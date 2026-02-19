@@ -10,7 +10,6 @@
     "start:web": "pnpm -C apps/web start",
     "lint:web": "pnpm -C apps/web lint",
     "graphs:all": "tsx server/fixtures/scripts/graphs-all.ts",
-    "graphs:all:upload": "tsx server/fixtures/scripts/graphs-all.ts --upload",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
