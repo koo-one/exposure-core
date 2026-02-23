@@ -1,4 +1,5 @@
 {
+  "eslint.nodePath": "node_modules",
   "eslint.useFlatConfig": true,
   "eslint.validate": [
     "javascript",
@@ -12,6 +13,6 @@
     { "directory": "./server", "changeProcessCWD": true }
   ],
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   }
 }

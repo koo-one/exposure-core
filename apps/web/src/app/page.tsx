@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, Activity, Network } from 'lucide-react';
+import { Search, ArrowRight, Activity  } from 'lucide-react';
 import { type SearchIndexEntry } from '@/constants';
 
 interface SearchResult {
@@ -98,7 +98,7 @@ export default function Home() {
           <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200">
             {searchResults.length > 0 ? (
               <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
-                {searchResults.map((result, idx) => (
+                {searchResults.map((result) => (
                     <Link
                       key={`${result.id}-${result.network}-${result.protocol}`}
                     href={`/asset/${result.id}?chain=${result.network}&protocol=${encodeURIComponent(result.protocol)}`}
