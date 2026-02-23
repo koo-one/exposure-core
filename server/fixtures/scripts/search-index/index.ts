@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { searchIndexBlobPath } from "../../../api/exposure/paths";
@@ -22,6 +23,9 @@ interface SearchIndexEntry {
   name: string;
   nodeId: string;
 }
+
+const here = dirname(fileURLToPath(import.meta.url));
+const serverDir = resolve(here, "..", "..", "..");
 
 const collectSearchIndexEntries = async (
   outputDir: string,
@@ -72,7 +76,7 @@ const collectSearchIndexEntries = async (
 };
 
 const main = async (): Promise<void> => {
-  const rootDir = process.cwd();
+  const rootDir = serverDir;
 
   const outputDir = resolve(rootDir, "fixtures", "output");
   const outPath = resolve(outputDir, "search-index.json");

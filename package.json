@@ -9,7 +9,7 @@
     "build:web": "pnpm -C apps/web build",
     "start:web": "pnpm -C apps/web start",
     "lint:web": "pnpm -C apps/web lint",
-    "graphs:all": "tsx server/fixtures/scripts/graphs-all.ts --env-file=.env.local",
+    "graphs:all": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"
