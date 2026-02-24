@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, Activity  } from 'lucide-react';
+import { Search, ArrowRight, Activity, Command  } from 'lucide-react';
 import { type SearchIndexEntry } from '@/constants';
 
 interface SearchResult {
@@ -37,7 +37,6 @@ export default function Home() {
     const q = query.toLowerCase();
     const results: SearchResult[] = [];
 
-    // Dynamic index (vaults/markets/etc.)
     for (const entry of dynamicIndex) {
       const haystack = `${entry.name} ${entry.id} ${entry.nodeId} ${entry.protocol} ${entry.chain}`.toLowerCase();
       if (!haystack.includes(q)) continue;
@@ -49,7 +48,6 @@ export default function Home() {
       });
     }
 
-    // De-dupe and cap results to avoid rendering hundreds/thousands of rows.
     const deduped: SearchResult[] = [];
     const seen = new Set<string>();
     for (const item of results) {
@@ -64,76 +62,101 @@ export default function Home() {
   }, [query, dynamicIndex]);
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-4 max-w-4xl mx-auto">
-      <div className="w-full max-w-2xl text-center mb-12">
-        <div className="inline-flex items-center justify-center p-3 bg-indigo-100 rounded-full mb-6">
-            <Activity className="w-8 h-8 text-indigo-600" />
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
-          Exposure Graph
-        </h1>
-        <p className="text-xl text-gray-500">
-          Search for an asset to visualize its complete exposure map.
-        </p>
-      </div>
-
-      <div className="w-full max-w-xl relative">
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-black selection:text-white">
+      <main className="flex-grow flex flex-col items-center justify-center p-10 max-w-5xl mx-auto w-full relative">
+        <div className="w-full text-center mb-24 space-y-8 relative z-10">
+          <div className="inline-flex items-center gap-4 px-5 py-2 bg-black/[0.02] border border-black rounded-sm text-black text-[10px] font-black uppercase tracking-[0.4em] mb-6">
+              <Activity className="w-3.5 h-3.5" />
+              Institutional Index Active
           </div>
-          <input
-            type="text"
-            className="block w-full pl-11 pr-4 py-4 bg-white border border-gray-200 rounded-2xl text-lg text-gray-900 shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-            placeholder="Search asset (e.g., mBTC, Ethereum)..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {/* Decorative shadow/glow */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl opacity-0 group-focus-within:opacity-20 transition-opacity -z-10 blur-sm"></div>
+          <h1 className="text-7xl md:text-9xl font-black text-black tracking-tighter leading-[0.85] uppercase italic">
+            EXPOSURE<br/><span className="text-[#00FF85] drop-shadow-[0_0_15px_rgba(0,255,133,0.3)]">CORE</span>
+          </h1>
+          <p className="text-xl text-black/40 font-medium max-w-lg mx-auto leading-relaxed tracking-tight border-t border-black/5 pt-8">
+            Professional visualization of open interest and capital distribution across decentralized networks.
+          </p>
         </div>
 
-        {/* Results Dropdown */}
-        {(query.length > 0) && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200">
-            {searchResults.length > 0 ? (
-              <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
-                {searchResults.map((result) => (
-                    <Link
-                      key={`${result.id}-${result.network}-${result.protocol}`}
-                    href={`/asset/${result.id}?chain=${result.network}&protocol=${encodeURIComponent(result.protocol)}`}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors group"
-                    >
-                    <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-start">
-                            <span className="font-medium text-gray-900 flex items-center gap-2">
-                              {result.name}
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 uppercase tracking-wide border border-gray-200">
-                                {result.network}
+        <div className="w-full max-w-2xl relative z-20">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-8 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-black/20 group-focus-within:text-black transition-colors" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-20 pr-24 py-8 bg-white border border-black rounded-sm text-2xl text-black shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] placeholder-black/10 focus:outline-none focus:ring-4 focus:ring-[#00FF85]/10 transition-all font-bold uppercase tracking-tight"
+              placeholder="SEARCH_REGISTRY..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoFocus
+            />
+            <div className="absolute inset-y-0 right-8 flex items-center pointer-events-none">
+               <div className="flex items-center gap-2 px-3 py-2 bg-black border border-black rounded-sm text-[10px] font-black text-white uppercase tracking-widest shadow-2xl">
+                  <Command className="w-3.5 h-3.5" /> K
+               </div>
+            </div>
+          </div>
+
+          {(query.length > 0) && (
+            <div className="absolute top-full left-0 right-0 mt-8 bg-white rounded-sm shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] border border-black overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+              {searchResults.length > 0 ? (
+                <div className="divide-y divide-black/5 max-h-[550px] overflow-y-auto custom-scrollbar">
+                  {searchResults.map((result) => (
+                      <Link
+                        key={`${result.id}-${result.network}-${result.protocol}`}
+href={`/asset/${encodeURIComponent(result.id)}?chain=${encodeURIComponent(result.network)}&protocol=${encodeURIComponent(result.protocol)}`}
+                        className="flex items-center justify-between px-12 py-8 hover:bg-black hover:text-white transition-all group border-l-[6px] border-transparent hover:border-[#00FF85]"
+                      >
+                      <div className="flex items-center gap-8">
+                          <div className="w-14 h-14 bg-black/5 border border-black rounded-sm flex items-center justify-center text-black/20 font-black text-xl group-hover:bg-white group-hover:text-black transition-all">
+                             {result.name.charAt(0)}
+                          </div>
+                          <div className="flex flex-col items-start pt-1">
+                              <span className="font-black text-2xl tracking-tighter flex items-center gap-4 uppercase italic">
+                                {result.name}
+                                <span className="px-2 py-0.5 border border-current opacity-30 text-[9px] font-black uppercase tracking-widest rounded-sm not-italic">
+                                  {result.network}
+                                </span>
                               </span>
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {result.protocol}
-                            </span>
-                        </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transform group-hover:translate-x-1 transition-all" />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-gray-500">
-                No assets found matching "{query}"
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                              <span className="text-[11px] font-bold opacity-40 uppercase tracking-[0.3em] mt-2 font-mono">
+                                {result.protocol}
+                              </span>
+                          </div>
+                      </div>
+                      <div className="w-12 h-12 rounded-full border border-current flex items-center justify-center opacity-20 group-hover:opacity-100 group-hover:bg-[#00FF85] group-hover:border-[#00FF85] transition-all">
+                        <ArrowRight className="w-5 h-5 group-hover:text-black transform group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-20 text-center">
+                  <p className="text-black/20 font-black uppercase tracking-[0.4em] text-sm italic">Zero Registry matches for this query</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-      {/* Footer / Helper */}
-      <div className="mt-12 text-sm text-gray-400">
-        Try searching for <span className="font-mono text-gray-600 bg-gray-100 px-1 py-0.5 rounded cursor-pointer hover:bg-gray-200" onClick={() => setQuery('Morpho')}>Morpho</span> or <span className="font-mono text-gray-600 bg-gray-100 px-1 py-0.5 rounded cursor-pointer hover:bg-gray-200" onClick={() => setQuery('mHYPER')}>mHYPER</span>
-      </div>
+        <div className="mt-24 flex flex-wrap justify-center gap-8 relative z-10">
+          <span className="text-[10px] font-black text-black/10 uppercase tracking-[0.6em] w-full text-center mb-4 italic">Common Institutional Inquiries</span>
+          {['Morpho', 'mHYPER', 'Ethena', 'mBTC'].map((term) => (
+            <button
+              key={term}
+              onClick={() => setQuery(term)}
+              className="px-8 py-4 bg-white border border-black rounded-sm text-[11px] font-black text-black/40 uppercase tracking-[0.3em] hover:bg-black hover:text-white hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] transition-all active:scale-95"
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      </main>
+
+      <footer className="p-12 text-center border-t border-black/5 bg-black/[0.01]">
+         <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.6em]">
+            © 2026 Paradigm // Distributed Risk Intelligence Platform
+         </p>
+      </footer>
     </div>
   );
 }
