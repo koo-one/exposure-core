@@ -8,6 +8,6 @@ import tseslint from "typescript-eslint";
 export default defineConfig(
   eslint.configs.recommended,
   tseslint.configs.strict,
-  // Disable stylistic/formatting rules that conflict with Prettier.
+  tseslint.configs.stylistic,
   eslintConfigPrettier,
 );

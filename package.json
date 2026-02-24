@@ -15,10 +15,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "lint-staged": {
-    "**/*.{ts,tsx}": [
-      "prettier --write",
-      "eslint --fix"
-    ]
+    "**/*.{js,mjs,ts,tsx,json,md}": "prettier --write",
+    "**/*.{ts,tsx}": "eslint --fix"
   },
   "keywords": [],
   "author": "",
