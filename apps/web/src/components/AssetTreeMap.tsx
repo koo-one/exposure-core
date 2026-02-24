@@ -19,6 +19,46 @@ interface AssetTreeMapProps {
   lastClick?: { nodeId: string; seq: number } | null;
 }
 
+interface TreemapTileDatum extends Record<string, unknown> {
+  nodeId?: string;
+  fullNode?: GraphNode;
+  lendingPosition?: "collateral" | "borrow";
+  originalValue?: number;
+  name?: string;
+  value?: number;
+  percent?: number;
+}
+
+interface TreemapTooltipPayloadItem {
+  payload?: TreemapTileDatum;
+}
+
+interface CustomContentProps extends Record<string, unknown> {
+  root?: unknown;
+  depth?: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  index?: number;
+  payload?: TreemapTileDatum;
+  colors?: unknown;
+  rank?: number;
+  nodeId?: string;
+  fullNode?: GraphNode;
+  lendingPosition?: "collateral" | "borrow";
+  originalValue?: number;
+  name: string;
+  value: number;
+  percent: number;
+  onSelect: AssetTreeMapProps["onSelect"];
+  selectedNodeId?: string | null;
+  pressedNodeId: string | null;
+  onPressStart: (nodeId: string) => void;
+  onPressEnd: () => void;
+  lastClick: { nodeId: string; seq: number } | null;
+}
+
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -26,11 +66,59 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   compactDisplay: "short",
 });
 
+const TreemapHoverCard = ({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: TreemapTooltipPayloadItem[];
+}) => {
+  if (!active) return null;
+
+  const dataItem = payload?.[0]?.payload;
+
+  if (!dataItem) return null;
+
+  const name = String(dataItem?.name ?? "");
+  const originalValue = Number(dataItem?.originalValue ?? dataItem?.value ?? 0);
+  const percent =
+    typeof dataItem?.percent === "number" ? dataItem.percent : null;
+  const kind = String(dataItem?.fullNode?.details?.kind ?? "");
+
+  return (
+    <div
+      className="pointer-events-none w-[260px] select-none rounded-lg border border-black/20 bg-black/90 p-4 text-white shadow-2xl"
+      style={{
+        transform: "translate3d(0, -6px, 0)",
+      }}
+    >
+      <div className="text-sm font-semibold text-white/90">{name}</div>
+      <div className="mt-1 text-4xl font-bold leading-none text-emerald-400">
+        {currencyFormatter.format(originalValue)}
+      </div>
+
+      <div className="mt-3 h-px w-full bg-white/15" />
+
+      <div className="mt-2 flex items-center justify-between text-sm text-white/85">
+        <div>{percent === null ? "" : `${(percent * 100).toFixed(1)}%`}</div>
+        <div>{percent === null ? "" : "of parent"}</div>
+      </div>
+      {kind && (
+        <div className="mt-1 text-xs font-medium text-white/60">{kind}</div>
+      )}
+    </div>
+  );
+};
+
 const sanitizeSvgId = (value: string): string => {
   return value.replace(/[^a-zA-Z0-9_-]/g, "_");
 };
 
-const ellipsizeToWidth = (value: string, maxWidthPx: number, fontSizePx: number): string => {
+const ellipsizeToWidth = (
+  value: string,
+  maxWidthPx: number,
+  fontSizePx: number,
+): string => {
   // Heuristic: average character width ~ 0.6em for the fonts we use.
   const approxCharWidth = fontSizePx * 0.6;
   const maxChars = Math.max(3, Math.floor(maxWidthPx / approxCharWidth));
@@ -42,8 +130,20 @@ const ellipsizeToWidth = (value: string, maxWidthPx: number, fontSizePx: number)
 };
 
 // Custom Tile Content
-const CustomContent = (props: any) => {
-  const { root, depth, x, y, width, height, index, payload, colors, rank, name, value, percent, onSelect, selectedNodeId } = props;
+const CustomContent = (props: Record<string, unknown>) => {
+  const typed = props as CustomContentProps;
+  const {
+    x,
+    y,
+    width,
+    height,
+    payload,
+    name,
+    value,
+    percent,
+    onSelect,
+    selectedNodeId,
+  } = typed;
   const {
     pressedNodeId,
     onPressStart,
@@ -54,10 +154,10 @@ const CustomContent = (props: any) => {
     onPressStart: (nodeId: string) => void;
     onPressEnd: () => void;
     lastClick: { nodeId: string; seq: number } | null;
-  } = props;
-  
+  } = typed;
+
   // Resolve data source: Check payload first, then fallback to props
-  const dataItem = payload || props;
+  const dataItem = payload || typed;
   const nodeId = dataItem?.nodeId;
   const fullNode = dataItem?.fullNode;
 
@@ -115,7 +215,11 @@ const CustomContent = (props: any) => {
   const usdFontSize = 12;
   const horizontalPadding = 12;
   const availableTextWidth = Math.max(0, width - horizontalPadding * 2);
-  const safeName = ellipsizeToWidth(String(name), availableTextWidth, nameFontSize);
+  const safeName = ellipsizeToWidth(
+    String(name),
+    availableTextWidth,
+    nameFontSize,
+  );
   const safeUsd = ellipsizeToWidth(
     currencyFormatter.format(originalValue),
     availableTextWidth,
@@ -152,7 +256,14 @@ const CustomContent = (props: any) => {
     >
       <defs>
         <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x={tileX} y={tileY} width={tileW} height={tileH} rx={0} ry={0} />
+          <rect
+            x={tileX}
+            y={tileY}
+            width={tileW}
+            height={tileH}
+            rx={0}
+            ry={0}
+          />
         </clipPath>
       </defs>
       <rect
@@ -164,7 +275,11 @@ const CustomContent = (props: any) => {
           fill,
           opacity: 1,
         }}
-        className={isPressed ? "exposure-tile-rect exposure-tile-rect--pressed" : "exposure-tile-rect"}
+        className={
+          isPressed
+            ? "exposure-tile-rect exposure-tile-rect--pressed"
+            : "exposure-tile-rect"
+        }
         rx={0}
         ry={0}
       />
@@ -209,7 +324,7 @@ const CustomContent = (props: any) => {
       <g clipPath={`url(#${clipId})`}>
         {showLogo && (
           <image
-            href={logoPath!}
+            href={logoPath}
             x={tileX + 6}
             y={tileY + 6}
             height="16"
@@ -304,27 +419,27 @@ export default function AssetTreeMap({
     };
 
     return children.map((c) => ({
-        name: (() => {
-          const node = c.node;
-          if (!node) return c.id;
+      name: (() => {
+        const node = c.node;
+        if (!node) return c.id;
 
-          if (node.details?.kind === "Lending") {
-            const borrow = pickTopTokenName(node.id, "borrow");
-            const collateral = pickTopTokenName(node.id, "collateral");
+        if (node.details?.kind === "Lending") {
+          const borrow = pickTopTokenName(node.id, "borrow");
+          const collateral = pickTopTokenName(node.id, "collateral");
 
-            if (collateral && borrow) return `${collateral}/${borrow}`;
-            if (collateral) return collateral;
-            if (borrow) return borrow;
-          }
+          if (collateral && borrow) return `${collateral}/${borrow}`;
+          if (collateral) return collateral;
+          if (borrow) return borrow;
+        }
 
-          return node.name;
-        })(),
-        value: c.value,
-        originalValue: c.edge.allocationUsd,
-        percent: c.percent,
-        nodeId: c.id,
-        fullNode: c.node,
-        lendingPosition: c.edge.lendingPosition,
+        return node.name;
+      })(),
+      value: c.value,
+      originalValue: c.edge.allocationUsd,
+      percent: c.percent,
+      nodeId: c.id,
+      fullNode: c.node,
+      lendingPosition: c.edge.lendingPosition,
     }));
   }, [data, rootNodeId]);
 
@@ -339,33 +454,27 @@ export default function AssetTreeMap({
   return (
     <div className="w-full h-full bg-black p-4">
       <ResponsiveContainer width="100%" height="100%">
-                <Treemap
-                  data={chartData}
-                  dataKey="value"
-                  aspectRatio={4 / 3}
-                  stroke="transparent"
-                  fill="#8884d8"
-                  content={(
-                    <CustomContent
-                      onSelect={onSelect}
-                      selectedNodeId={selectedNodeId}
-                      pressedNodeId={pressedNodeId}
-                      onPressStart={(nodeId: string) => setPressedNodeId(nodeId)}
-                      onPressEnd={() => setPressedNodeId(null)}
-                      lastClick={lastClick ?? null}
-                    />
-                  )}
-                  isAnimationActive={false}
-                >
-              <Tooltip 
-                 formatter={(value: any, name: any, props: any) => {
-                      const originalValue = props?.payload?.originalValue;
-                      return currencyFormatter.format(Number(originalValue ?? value));
-                  }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-              />
-         </Treemap>
-       </ResponsiveContainer>
+        <Treemap
+          data={chartData}
+          dataKey="value"
+          aspectRatio={4 / 3}
+          stroke="transparent"
+          fill="#8884d8"
+          content={
+            <CustomContent
+              onSelect={onSelect}
+              selectedNodeId={selectedNodeId}
+              pressedNodeId={pressedNodeId}
+              onPressStart={(nodeId: string) => setPressedNodeId(nodeId)}
+              onPressEnd={() => setPressedNodeId(null)}
+              lastClick={lastClick ?? null}
+            />
+          }
+          isAnimationActive={false}
+        >
+          <Tooltip content={<TreemapHoverCard />} cursor={false} />
+        </Treemap>
+      </ResponsiveContainer>
     </div>
   );
 }
