@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { GraphSnapshot, GraphNode } from '@/types';
-import { resolveRootNode, calculateNodeContext } from '@/lib/graph';
-
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { GraphSnapshot, GraphNode } from "@/types";
+import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
+import { formatChainLabel } from "@/utils/formatters";
 interface UseAssetDataProps {
   id: string;
   chain?: string;
@@ -9,7 +9,12 @@ interface UseAssetDataProps {
   focus?: string;
 }
 
-export function useAssetData({ id, chain, protocol, focus }: UseAssetDataProps) {
+export function useAssetData({
+  id,
+  chain,
+  protocol,
+  focus,
+}: UseAssetDataProps) {
   const [graphData, setGraphData] = useState<GraphSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [tvl, setTvl] = useState<number | null>(null);
@@ -17,40 +22,6 @@ export function useAssetData({ id, chain, protocol, focus }: UseAssetDataProps) 
   const [focusRootNodeId, setFocusRootNodeId] = useState<string | null>(null);
   const [focusStack, setFocusStack] = useState<string[]>([]);
   const [pageTitle, setPageTitle] = useState<string>(id);
-
-  const formatChainLabel = useCallback((value: string | undefined): string => {
-    if (!value) return "Unknown";
-    const slug = value.trim().toLowerCase();
-
-    switch (slug) {
-      case "eth":
-      case "ethereum":
-        return "Ethereum";
-      case "arb":
-      case "arbitrum":
-        return "Arbitrum";
-      case "op":
-      case "optimism":
-        return "Optimism";
-      case "base":
-        return "Base";
-      case "polygon":
-      case "matic":
-        return "Polygon";
-      case "hyper":
-      case "hyperliquid":
-        return "Hyper";
-      case "uni":
-      case "unichain":
-        return "Unichain";
-      case "global":
-        return "Global";
-      default:
-        return slug.length > 0
-          ? slug[0].toUpperCase() + slug.slice(1)
-          : "Unknown";
-    }
-  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -116,16 +87,19 @@ export function useAssetData({ id, chain, protocol, focus }: UseAssetDataProps) 
     return resolveRootNode(graphData.nodes, id, chain);
   }, [graphData, id, chain]);
 
-  const applyLocalDrilldown = useCallback((node: GraphNode) => {
-    const currentFocus = focusRootNodeId ?? rootNode?.id ?? null;
-    if (!currentFocus || currentFocus === node.id) {
-      setFocusRootNodeId(node.id);
-      return;
-    }
+  const applyLocalDrilldown = useCallback(
+    (node: GraphNode) => {
+      const currentFocus = focusRootNodeId ?? rootNode?.id ?? null;
+      if (!currentFocus || currentFocus === node.id) {
+        setFocusRootNodeId(node.id);
+        return;
+      }
 
-    setFocusStack((prev) => [...prev, currentFocus]);
-    setFocusRootNodeId(node.id);
-  }, [focusRootNodeId, rootNode]);
+      setFocusStack((prev) => [...prev, currentFocus]);
+      setFocusRootNodeId(node.id);
+    },
+    [focusRootNodeId, rootNode],
+  );
 
   const handleBackOneStep = useCallback(() => {
     if (!graphData) return;
