@@ -1,27 +1,16 @@
 'use client';
 
 import { GraphNode, GraphEdge } from '@/types';
-import { ShieldCheck, TrendingUp, AlertTriangle, Info, ExternalLink } from 'lucide-react';
+import { ShieldCheck, TrendingUp, AlertTriangle, Info, ExternalLink, ArrowLeft } from 'lucide-react';
 import { getNodeLogoPath } from '@/lib/logos';
+import { currencyFormatter, percentFormatter } from '@/utils/formatters';
 
 interface AssetDetailPanelProps {
   selectedNode: GraphNode | null;
-  edges: GraphEdge[]; // To calculate connections if needed
+  edges: GraphEdge[];
   rootNodeId?: string;
   onReset?: () => void;
 }
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  notation: 'compact',
-  compactDisplay: 'short',
-});
-
-const percentFormatter = new Intl.NumberFormat('en-US', {
-  style: 'percent',
-  maximumFractionDigits: 2,
-});
 
 export default function AssetDetailPanel({
   selectedNode,
@@ -31,21 +20,23 @@ export default function AssetDetailPanel({
 }: AssetDetailPanelProps) {
   if (!selectedNode) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
-        <Info className="w-12 h-12 mb-4 text-gray-300" />
-        <p className="text-sm">Select a tile from the map to view details.</p>
+      <div className="h-full flex flex-col items-center justify-center text-black/20 p-12 text-center bg-white border-l border-black">
+        <div className="w-16 h-16 bg-black/5 rounded-full flex items-center justify-center mb-8 border border-black/5">
+          <Info className="w-8 h-8 opacity-20" />
+        </div>
+        <h3 className="text-black font-black uppercase tracking-[0.2em] text-[10px] mb-2">No Node Selection</h3>
+        <p className="text-[11px] font-medium leading-relaxed max-w-[200px]">
+          Initialize analysis by selecting a data node from the distribution map.
+        </p>
       </div>
     );
   }
 
-  // Calculate specific stats for this node relative to the graph
-  // Assuming 'edges' passed are ALL edges, we filter for this node
-  // If this node is a destination (allocations TO it)
-  const incoming = edges.filter(e => e.to === selectedNode.id);
-  const totalIncoming = incoming.reduce((acc, e) => acc + e.allocationUsd, 0);
-  
-  // If it has outgoing (further strategies)
-  const outgoing = edges.filter(e => e.from === selectedNode.id);
+  const totalIncoming = edges
+    .filter(e => e.to === selectedNode.id)
+    .reduce((acc, e) => acc + e.allocationUsd, 0);
+    
+  const outgoingCount = edges.filter(e => e.from === selectedNode.id).length;
   
   const rootOutgoingTotal = (() => {
     if (!rootNodeId) return 0;
@@ -68,148 +59,165 @@ export default function AssetDetailPanel({
       : null;
 
   const protocolLabel = (() => {
-    switch (selectedNode.protocol) {
-      case 'morpho-v1':
-        return 'Morpho (v1)';
-      case 'morpho-v2':
-        return 'Morpho (v2)';
-      default:
-        return selectedNode.protocol || 'Unknown Protocol';
-    }
+    if (!selectedNode.protocol) return 'UNKNOWN';
+    const p = selectedNode.protocol.toLowerCase();
+    if (p.includes('morpho-v1')) return 'MORPHO V1';
+    if (p.includes('morpho-v2')) return 'MORPHO V2';
+    return selectedNode.protocol.toUpperCase();
   })();
 
-  const morphoVaultVersion =
-    selectedNode.details?.kind === 'Yield' &&
-    (selectedNode.protocol === 'morpho-v1' || selectedNode.protocol === 'morpho-v2')
-      ? selectedNode.protocol === 'morpho-v1'
-        ? 'v1'
-        : 'v2'
-      : null;
+  const logoPath = getNodeLogoPath(selectedNode);
 
   return (
-    <div className="h-full flex flex-col bg-white border-l border-gray-200 shadow-xl overflow-y-auto">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-        {/* Reset / Back Button */}
+    <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
+      {/* Institutional Header */}
+      <div className="p-10 border-b border-black/5 bg-gradient-to-b from-black/[0.02] to-transparent">
          {onReset && (
               <button 
                  onClick={onReset}
-                 className="mb-4 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-wide"
+                 className="mb-8 flex items-center gap-2 text-[10px] font-black text-black hover:opacity-60 transition-all uppercase tracking-[0.2em] group"
               >
-                 <span className="text-lg">←</span> Back
+                 <ArrowLeft className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform" />
+                 Navigate Parent
               </button>
          )}
         
-        <div className="flex items-start justify-between">
-            <div>
-                <div className="flex items-center gap-2">
-                    {getNodeLogoPath(selectedNode) && (
-                        <img 
-                            src={getNodeLogoPath(selectedNode)!} 
-                            alt="" 
-                            className="w-6 h-6 object-contain" 
-                        />
-                    )}
-                    <h2 className="text-xl font-bold text-gray-900 break-words">{selectedNode.name}</h2>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                     <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium uppercase tracking-wide">
+        <div className="flex items-start gap-6">
+            <div className="flex-shrink-0 w-14 h-14 bg-black/[0.03] border border-black flex items-center justify-center p-3 relative group">
+                {logoPath ? (
+                    <img 
+                        src={logoPath} 
+                        alt="" 
+                        className="w-full h-full object-contain relative z-10" 
+                    />
+                ) : (
+                    <div className="w-full h-full bg-black/5 flex items-center justify-center text-black/20 font-black text-xl relative z-10">
+                        {selectedNode.name.charAt(0)}
+                    </div>
+                )}
+            </div>
+            <div className="flex-grow pt-1">
+                <h2 className="text-2xl font-bold text-black leading-none mb-3 tracking-tighter uppercase italic">{selectedNode.name}</h2>
+                <div className="flex flex-wrap gap-2">
+                     <span className="px-2 py-0.5 border border-black text-black text-[9px] font-black uppercase tracking-widest bg-white">
                         {protocolLabel}
                      </span>
                     {selectedNode.chain && (
-                         <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium uppercase tracking-wide">
-                            {selectedNode.chain}
+                         <span className="px-2 py-0.5 border border-black/10 text-black/40 text-[9px] font-black uppercase tracking-widest rounded-sm">
+                            {selectedNode.chain.toUpperCase()}
                         </span>
                     )}
                 </div>
             </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mt-6">
-             <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Allocation</p>
-                 <p className="text-lg font-bold text-gray-900">{currencyFormatter.format(totalIncoming)}</p>
+        <div className="grid grid-cols-1 gap-px bg-black/10 mt-10 border border-black/10">
+             <div className="bg-white p-6">
+                 <p className="text-[10px] text-black/40 uppercase font-black tracking-[0.2em] mb-1">Impact Value</p>
+                 <p className="text-3xl font-black text-black tracking-tighter font-mono">{currencyFormatter.format(totalIncoming)}</p>
              </div>
-             <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Allocation Share</p>
-                  <p className="text-lg font-bold text-indigo-600">{percentFormatter.format(shareOfAllocationMap)}</p>
+             <div className="bg-white p-6 flex justify-between items-end relative overflow-hidden group">
+                  <div className="relative z-10">
+                    <p className="text-[10px] text-black/30 uppercase font-black tracking-[0.2em] mb-1">Portfolio Weight</p>
+                    <p className="text-2xl font-black text-black tracking-tighter font-mono">{percentFormatter.format(shareOfAllocationMap)}</p>
+                  </div>
+                  <div className="text-[40px] font-black text-black/[0.03] absolute -right-2 -bottom-4 select-none italic tracking-tighter uppercase transition-colors">
+                    {percentFormatter.format(shareOfAllocationMap)}
+                  </div>
              </div>
         </div>
       </div>
 
-      {/* Main Stats */}
-      <div className="p-6 space-y-6">
+      {/* Analytics Body */}
+      <div className="p-10 space-y-12">
         
-        {/* Core Metrics */}
-        <div>
-            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-gray-500" />
-                Performance & Data
+        {/* Performance Metrics */}
+        <section>
+            <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Stream_Performance
             </h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">APY</span>
-                    <span className="font-mono font-medium text-green-600">
+            <div className="space-y-5">
+                <div className="flex justify-between items-center group">
+                    <span className="text-[11px] font-bold text-black/40 uppercase tracking-widest group-hover:text-black transition-colors">Realized APY</span>
+                    <span className="font-mono font-black text-black text-base">
                         {apyForDisplay !== null
                           ? percentFormatter.format(apyForDisplay)
-                          : 'N/A'}
+                          : '—'}
                     </span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Curator</span>
-                    <span className="font-medium text-gray-900 text-sm">
-                        {selectedNode.details?.curator || 'N/A'}
+                <div className="w-full h-px bg-black/5" />
+                <div className="flex justify-between items-center group">
+                    <span className="text-[11px] font-bold text-black/40 uppercase tracking-widest group-hover:text-black transition-colors">Risk Curator</span>
+                    <span className="font-black text-black text-[11px] uppercase tracking-wider">
+                        {selectedNode.details?.curator || 'Institutional'}
                     </span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        {/* Risk Section */}
-        <div>
-             <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-gray-500" />
-                Risk Analysis
+        {/* Risk Profile */}
+        <section>
+             <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Integrity_Audit
             </h3>
-             <div className="border border-yellow-100 bg-yellow-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+             <div className="bg-black/5 border border-black/5 rounded-sm p-6 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-black/20 group-hover:bg-black transition-colors" />
+                <div className="flex items-start gap-4">
+                    <div className="p-2.5 bg-white border border-black/5 rounded-sm text-black flex-shrink-0">
+                        <AlertTriangle className="w-4 h-4" />
+                    </div>
                     <div>
-                        <h4 className="text-sm font-bold text-yellow-800">Risk Profile</h4>
-                        <p className="text-xs text-yellow-700 mt-1 leading-relaxed">
-                            This asset carries smart contract risk associated with {selectedNode.protocol}. 
-                            Ensure you understand the underlying strategies.
+                        <h4 className="text-[10px] font-black text-black uppercase tracking-[0.1em] mb-2 italic">Standard Validation</h4>
+                        <p className="text-[11px] text-black/40 font-medium leading-relaxed mb-6">
+                            Verified liquidity profiles for {selectedNode.protocol} remain compliant with institutional risk thresholds.
                         </p>
                         
                         {selectedNode.details?.healthRate && (
-                             <div className="mt-3 flex items-center gap-2">
-                                <span className="text-xs font-bold text-yellow-800">Health Rate:</span>
-                                <span className="text-xs font-mono bg-white px-2 py-1 rounded border border-yellow-200 text-yellow-900">
-                                    {selectedNode.details.healthRate.toFixed(2)}
-                                </span>
+                             <div className="flex flex-col gap-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-black text-black/40 uppercase tracking-[0.2em]">Health Factor</span>
+                                    <span className="text-[10px] font-mono font-black text-black">
+                                        {selectedNode.details.healthRate.toFixed(3)}
+                                    </span>
+                                </div>
+                                <div className="h-1 bg-black/5 rounded-full overflow-hidden border border-black/5">
+                                    <div 
+                                        className="h-full bg-black rounded-full" 
+                                        style={{ width: `${Math.min(100, (selectedNode.details.healthRate / 2) * 100)}%` }} 
+                                    />
+                                </div>
                              </div>
                         )}
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        {/* Details / Debug */}
-        <div>
-             <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-gray-500" />
-                Node Details
+        {/* Technical Metadata */}
+        <section className="pb-10">
+             <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                <ExternalLink className="w-3.5 h-3.5" />
+                System_Metadata
             </h3>
-            <div className="text-xs text-gray-500 font-mono bg-gray-50 p-3 rounded border border-gray-100 overflow-x-auto">
-                 <p>ID: {selectedNode.id}</p>
-                 <p>Type: {selectedNode.details?.kind || 'Asset'}</p>
-                 {morphoVaultVersion && <p>Morpho Vault Version: {morphoVaultVersion}</p>}
-                 {outgoing.length > 0 && (
-                     <p className="mt-2 text-indigo-500">
-                         + {outgoing.length} downstream allocations
-                    </p>
+            <div className="text-[10px] text-black/30 font-mono bg-black/[0.02] p-6 border border-black/5 space-y-4">
+                 <div className="flex flex-col gap-2">
+                    <span className="text-black/10 uppercase text-[8px] font-black tracking-widest">Index Identifier</span>
+                    <span className="break-all text-black/50 select-all leading-relaxed">{selectedNode.id}</span>
+                 </div>
+                 <div className="pt-2 flex items-center justify-between border-t border-black/5 pt-4">
+                    <span className="text-black/10 uppercase text-[8px] font-black tracking-widest">Logic Class</span>
+                    <p className="text-black font-black">{selectedNode.details?.kind?.toUpperCase() || 'STANDARD'}</p>
+                 </div>
+                 {outgoingCount > 0 && (
+                     <div className="pt-2 flex items-center gap-3 text-black">
+                        <div className="w-1.5 h-1.5 bg-black" />
+                        <span className="font-black italic tracking-tight uppercase">{outgoingCount} Downstream Active Channels</span>
+                    </div>
                 )}
             </div>
-        </div>
+        </section>
 
       </div>
     </div>

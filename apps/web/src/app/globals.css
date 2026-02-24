@@ -2,28 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --background-rgb: 255, 255, 255;
+  --accent-blue: 230, 235, 248; /* #E6EBF8 */
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* SVG treemap tile interactions */
@@ -36,119 +32,52 @@ body {
   transform-origin: center;
   transition:
     transform 120ms cubic-bezier(0.33, 1, 0.68, 1),
-    opacity 120ms cubic-bezier(0.33, 1, 0.68, 1);
+    filter 120ms ease;
 }
 
 .exposure-tile-rect--pressed {
-  transform: scale(0.985);
-  opacity: 0.92;
+  transform: scale(0.995);
+  filter: brightness(0.95);
 }
 
 .exposure-tile-click {
   transform-box: fill-box;
   transform-origin: center;
   pointer-events: none;
-  animation: exposure-tile-click 260ms cubic-bezier(0.33, 1, 0.68, 1);
+  animation: exposure-tile-click 300ms cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 @keyframes exposure-tile-click {
   0% {
     opacity: 0;
-    transform: scale(0.992);
+    transform: scale(1);
   }
-  35% {
-    opacity: 1;
-    transform: scale(1.01);
+  50% {
+    opacity: 0.1;
+    transform: scale(1.005);
   }
   100% {
     opacity: 0;
-    transform: scale(1.02);
+    transform: scale(1.01);
   }
 }
 
-/* Toast (terminal node) */
-.exposure-toast {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
-  transform: translateY(10px);
-  opacity: 0;
-  transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.exposure-toast--open {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.exposure-toast--closing {
-  transform: translateY(8px);
-  opacity: 0;
-}
-
-.exposure-toast-accent {
-  width: 2px;
-  height: 22px;
-  border-radius: 999px;
-  background: rgba(239, 68, 68, 0.9);
-}
-
-.exposure-toast-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  color: rgba(220, 38, 38, 0.9);
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border: 1px solid transparent;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease;
 }
 
-.exposure-toast-close:hover {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.18);
-  color: rgba(185, 28, 28, 1);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
 }
 
-.exposure-toast-progress {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 8px;
-  height: 2px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.exposure-toast-progress-bar {
-  height: 100%;
-  width: 100%;
-  transform-origin: left;
-  background: rgba(239, 68, 68, 0.55);
-  animation: exposure-toast-progress 2600ms linear forwards;
-}
-
-@keyframes exposure-toast-progress {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 @layer utilities {
