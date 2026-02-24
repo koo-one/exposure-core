@@ -104,7 +104,7 @@ export default function Home() {
                   {searchResults.map((result) => (
                       <Link
                         key={`${result.id}-${result.network}-${result.protocol}`}
-                        href={`/asset/${result.id}?chain=${result.network}&protocol=${encodeURIComponent(result.protocol)}`}
+href={`/asset/${encodeURIComponent(result.id)}?chain=${encodeURIComponent(result.network)}&protocol=${encodeURIComponent(result.protocol)}`}
                         className="flex items-center justify-between px-12 py-8 hover:bg-black hover:text-white transition-all group border-l-[6px] border-transparent hover:border-[#00FF85]"
                       >
                       <div className="flex items-center gap-8">
