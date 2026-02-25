@@ -88,7 +88,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const isPressed = pressedNodeId === nodeId;
   const originalValue = dataItem.originalValue ?? value;
 
-  const fill = "#E6EBF8"; 
+  const fill = "#E6EBF8";
   const stroke = "#000000";
   const monoFont = "'JetBrains Mono', monospace";
 
@@ -100,13 +100,9 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const fontSize = 13;
   const horizontalPadding = 12;
   const availableTextWidth = Math.max(0, width - horizontalPadding * 2);
-  
+
   const displayText = `${name} ${currencyFormatter.format(originalValue)}`;
-  const safeText = ellipsizeToWidth(
-    displayText,
-    availableTextWidth,
-    fontSize,
-  );
+  const safeText = ellipsizeToWidth(displayText, availableTextWidth, fontSize);
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
@@ -140,7 +136,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           <rect x={x} y={y} width={width} height={height} />
         </clipPath>
       </defs>
-      
+
       <rect
         x={x}
         y={y}
@@ -190,23 +186,23 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           vectorEffect="non-scaling-stroke"
         />
       )}
-      
+
       <g clipPath={`url(#${clipId})`}>
         {showLogo && logoPath && (
           <image
             href={logoPath}
             x={x + 8}
             y={y + 8}
-            height="12"
-            width="12"
+            height="18"
+            width="18"
             preserveAspectRatio="xMidYMid meet"
           />
         )}
-        
+
         {width > 40 && height > 20 && (
           <text
-            x={x + 8}
-            y={y + 18}
+            x={showLogo ? x + 32 : x + 8}
+            y={y + 21}
             textAnchor="start"
             fill="#000000"
             fontSize={fontSize}
