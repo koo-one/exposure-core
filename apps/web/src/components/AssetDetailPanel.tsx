@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   RotateCcw,
 } from "lucide-react";
-import { getNodeLogoPath, hasChainLogo, getChainLogoPath } from "@/lib/logos";
+import { getNodeLogos, hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { currencyFormatter, percentFormatter } from "@/utils/formatters";
 import Link from "next/link";
 import Image from "next/image";
@@ -81,7 +81,7 @@ export default function AssetDetailPanel({
     return selectedNode.protocol.toUpperCase();
   })();
 
-  const logoPath = getNodeLogoPath(selectedNode);
+  const logoPaths = getNodeLogos(selectedNode);
   const chainLogoPath = hasChainLogo(selectedNode.chain)
     ? getChainLogoPath(selectedNode.chain)
     : null;
@@ -112,16 +112,26 @@ export default function AssetDetailPanel({
         </div>
 
         <div className="flex items-start gap-6">
-          <div className="flex-shrink-0 w-14 h-14 bg-black/[0.03] border border-black flex items-center justify-center p-3 relative group">
-            {logoPath ? (
-              <img
-                src={logoPath}
-                alt=""
-                className="w-full h-full object-contain relative z-10"
-              />
+          <div className="flex-shrink-0 flex items-center -space-x-4 relative">
+            {logoPaths.length > 0 ? (
+              logoPaths.map((logoPath, idx) => (
+                <div
+                  key={logoPath}
+                  className="w-14 h-14 bg-white border border-black flex items-center justify-center p-3 rounded-full overflow-hidden shadow-lg z-[10] relative"
+                  style={{ zIndex: 10 - idx }}
+                >
+                  <img
+                    src={logoPath}
+                    alt=""
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ))
             ) : (
-              <div className="w-full h-full bg-black/5 flex items-center justify-center text-black/20 font-black text-xl relative z-10">
-                {selectedNode.name.charAt(0)}
+              <div className="w-14 h-14 bg-black/[0.03] border border-black flex items-center justify-center p-3 relative group">
+                <div className="w-full h-full bg-black/5 flex items-center justify-center text-black/20 font-black text-xl relative z-10">
+                  {selectedNode.name.charAt(0)}
+                </div>
               </div>
             )}
           </div>

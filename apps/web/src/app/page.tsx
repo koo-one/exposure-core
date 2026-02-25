@@ -18,7 +18,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   hasProtocolLogo,
   getProtocolLogoPath,
-  getNodeLogoPath,
+  getNodeLogos,
   hasChainLogo,
   getChainLogoPath,
 } from "@/lib/logos";
@@ -248,7 +248,7 @@ export default function Home() {
             ) : filteredResults.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredResults.map((result) => {
-                  const logoPath = getNodeLogoPath(result);
+                  const logoPaths = getNodeLogos(result);
                   const chainLogoPath = hasChainLogo(result.chain)
                     ? getChainLogoPath(result.chain)
                     : null;
@@ -262,19 +262,27 @@ export default function Home() {
                       <div className="absolute top-0 left-0 w-1 h-0 bg-[#00FF85] group-hover:h-full transition-all duration-300" />
 
                       <div className="flex items-start justify-between mb-8">
-                        <div className="w-10 h-10 bg-black/5 border border-black/5 rounded-sm flex items-center justify-center overflow-hidden transition-all group-hover:bg-white group-hover:border-black/10">
-                          {logoPath ? (
-                            <Image
-                              src={logoPath}
-                              alt={result.name}
-                              width={24}
-                              height={24}
-                              className="object-contain"
-                            />
+                        <div className="flex items-center -space-x-2">
+                          {logoPaths.length > 0 ? (
+                            logoPaths.map((logoPath, idx) => (
+                              <div
+                                key={logoPath}
+                                className="w-10 h-10 bg-white border border-black/10 rounded-full flex items-center justify-center overflow-hidden transition-all group-hover:border-black/20 shadow-sm"
+                                style={{ zIndex: 10 - idx }}
+                              >
+                                <Image
+                                  src={logoPath}
+                                  alt={result.name}
+                                  width={24}
+                                  height={24}
+                                  className="object-contain"
+                                />
+                              </div>
+                            ))
                           ) : (
-                            <span className="text-black/20 font-black text-sm group-hover:text-black transition-all">
+                            <div className="w-10 h-10 bg-black/5 border border-black/5 rounded-sm flex items-center justify-center text-black/20 font-black text-sm group-hover:text-black transition-all">
                               {result.name.charAt(0)}
-                            </span>
+                            </div>
                           )}
                         </div>
                         {chainLogoPath && (

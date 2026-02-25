@@ -1,7 +1,7 @@
 import type { GraphNode } from "@/types";
 
 export function normalizeLogoKey(input: string): string {
-  return input.trim().toLowerCase();
+  return input.trim().toLowerCase().replace(/^w/, ""); // handle WETH -> ETH, etc
 }
 
 /**
@@ -29,11 +29,6 @@ export function normalizeChainKey(chain: string): string {
   return normalized;
 }
 
-// Public assets under apps/web/public are served from the site root.
-export function getMidasAssetLogoPath(assetId: string): string {
-  return `/logos/midas/${normalizeLogoKey(assetId)}.svg`;
-}
-
 export function getProtocolLogoPath(protocol: string): string {
   return `/logos/protocols/${normalizeProtocolKey(protocol)}.svg`;
 }
@@ -42,26 +37,13 @@ export function getChainLogoPath(chain: string): string {
   return `/logos/chains/${normalizeChainKey(chain)}.svg`;
 }
 
-// Keep this list in sync with apps/web/public/logos/midas/*.svg.
-const MIDAS_ASSET_LOGO_KEYS = new Set<string>([
-  "mapollo",
-  "mbasis",
-  "mbtc",
-  "medge",
-  "mevbtc",
-  "mf-one",
-  "mfarm",
-  "mhyper",
-  "mhyperbtc",
-  "mhypereth",
-  "mmev",
-  "mre7btc",
-  "mre7sol",
-  "mre7yield",
-  "msyrupusd",
-  "mtbill",
-  "mxrp",
-]);
+export function getAssetLogoPath(assetId: string): string {
+  if (!assetId || assetId.length > 20) return "";
+  const key = assetId.trim().toLowerCase();
+  // We optimistically return the path based on the symbol.
+  // This avoids maintaining a massive hardcoded list of every SVG in the repo.
+  return `/logos/assets/${key}.svg`;
+}
 
 // Keep this list in sync with apps/web/public/logos/protocols/*.svg.
 const PROTOCOL_LOGO_KEYS = new Set<string>([
@@ -85,10 +67,6 @@ const CHAIN_LOGO_KEYS = new Set<string>([
   "uni",
 ]);
 
-export function hasMidasAssetLogo(assetId: string): boolean {
-  return MIDAS_ASSET_LOGO_KEYS.has(normalizeLogoKey(assetId));
-}
-
 export function hasProtocolLogo(protocol?: string | null): boolean {
   if (!protocol) return false;
   return PROTOCOL_LOGO_KEYS.has(normalizeProtocolKey(protocol));
@@ -102,21 +80,45 @@ export function hasChainLogo(chain?: string | null): chain is string {
 export function getNodeLogoPath(
   node: GraphNode | { name: string; protocol?: string | null },
 ): string | null {
-  if (!node.protocol) return null;
+  const logos = getNodeLogos(node);
+  return logos.length > 0 ? logos[0] : null;
+}
 
-  // 1. Try Midas specific asset logo
-  if (node.protocol === "midas") {
-    if (hasMidasAssetLogo(node.name)) {
-      return getMidasAssetLogoPath(node.name);
-    }
+/**
+ * Returns an array of logo paths for a node.
+ * If it's a lending market (e.g. "WETH/USDC"), it may return two logos.
+ */
+export function getNodeLogos(
+  node: GraphNode | { name: string; protocol?: string | null },
+): string[] {
+  const logos: string[] = [];
+
+  // 1. Check for lending market pattern in name (e.g. "WETH/USDC" or "WETH-USDC")
+  const marketParts = node.name.split(/[/-]/);
+  if (marketParts.length >= 2 && marketParts.length <= 3) {
+    const logo1 = getAssetLogoPath(marketParts[0]);
+    const logo2 = getAssetLogoPath(marketParts[1]);
+
+    if (logo1) logos.push(logo1);
+    if (logo2) logos.push(logo2);
+
+    if (logos.length >= 2) return logos;
   }
 
-  // 2. Fallback to protocol level logo
-  if (hasProtocolLogo(node.protocol)) {
-    return getProtocolLogoPath(node.protocol);
+  // 2. Try single asset logo from name if it looks like a symbol
+  const isSymbolic =
+    /^[A-Za-z0-9.]+$/.test(node.name) && node.name.length <= 10;
+  if (isSymbolic) {
+    const assetLogo = getAssetLogoPath(node.name);
+    if (assetLogo) return [assetLogo];
   }
 
-  return null;
+  // 3. Fallback to protocol level logo
+  if (node.protocol && hasProtocolLogo(node.protocol)) {
+    return [getProtocolLogoPath(node.protocol)];
+  }
+
+  return logos;
 }
 
 export function getFallbackMonogram(text: string): string {

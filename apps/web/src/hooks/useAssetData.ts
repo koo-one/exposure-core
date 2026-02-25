@@ -77,8 +77,9 @@ export function useAssetData({
           setFocusRootNodeId(initial.id);
           setFocusStack([]);
 
+          const chainLabel = formatChainLabel(resolvedRoot.chain ?? chain);
           const titleNode = focusNode || resolvedRoot;
-          setPageTitle(titleNode.name);
+          setPageTitle(`${chainLabel} ${titleNode.name}`);
 
           if (resolvedRoot.tvlUsd) {
             setTvl(resolvedRoot.tvlUsd);
