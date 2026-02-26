@@ -360,7 +360,15 @@ export const fetchEulerVaultOpenInterest = async (
   const url = eulerOpenInterestUrl(chainId);
   const response = await fetch(url);
 
-  if (!response.ok) return new Map();
+  if (response.status === 404) {
+    return new Map();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Euler open-interest error: ${response.status} ${response.statusText}`,
+    );
+  }
 
   const json: EulerOpenInterestResponse = await response.json();
 
@@ -402,7 +410,15 @@ export const fetchEulerPrices = async (
   const url = eulerPriceUrl(chainId);
   const response = await fetch(url);
 
-  if (!response.ok) return new Map();
+  if (response.status === 404) {
+    return new Map();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Euler price error: ${response.status} ${response.statusText}`,
+    );
+  }
 
   const json: Record<string, EulerPriceRecord> = await response.json();
   const prices = new Map<Address, number>();

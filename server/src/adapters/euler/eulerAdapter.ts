@@ -220,16 +220,39 @@ export const createEulerAdapter = (): Adapter<
       );
 
       const catalogs: EulerChainCatalog[] = [];
-      for (const res of settled) {
-        if (res.status === "fulfilled") catalogs.push(res.value);
+      const failures: { chainId: number; chainKey: string; reason: unknown }[] =
+        [];
+
+      for (const [idx, res] of settled.entries()) {
+        const config = EULER_CHAIN_CONFIGS[idx];
+        if (!config) continue;
+
+        if (res.status === "fulfilled") {
+          catalogs.push(res.value);
+        } else {
+          failures.push({
+            chainId: config.chainId,
+            chainKey: config.chainKey,
+            reason: res.reason,
+          });
+        }
+      }
+
+      if (failures.length > 0 && catalogs.length > 0) {
+        // Keep partial results, but surface per-chain failures.
+        console.warn(
+          `Euler: ${failures.length} chain catalog fetch(es) failed`,
+          failures.map((f) => ({
+            chainId: f.chainId,
+            chainKey: f.chainKey,
+            reason: String(f.reason),
+          })),
+        );
       }
 
       if (catalogs.length === 0) {
-        const firstRejection = settled.find(
-          (r): r is PromiseRejectedResult => r.status === "rejected",
-        );
         throw new Error(
-          `Euler: no chain catalogs fetched${firstRejection ? ` (first error: ${String(firstRejection.reason)})` : ""}`,
+          `Euler: no chain catalogs fetched${failures.length > 0 ? ` (errors: ${failures.map((f) => `${f.chainKey}:${f.chainId} ${String(f.reason)}`).join("; ")})` : ""}`,
         );
       }
 
