@@ -2,16 +2,7 @@
 
 import { Suspense, useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Activity,
-  Command,
-  ArrowRight,
-  Filter,
-  Globe,
-  LayoutGrid,
-  ChevronRight,
-} from "lucide-react";
+import { Search, Activity, Command, Globe, ChevronRight } from "lucide-react";
 import { type SearchIndexEntry } from "@/constants";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -32,7 +23,6 @@ function HomeInner() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [dynamicIndex, setDynamicIndex] = useState<SearchIndexEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
 
   // Sync state with URL params
@@ -51,15 +41,6 @@ function HomeInner() {
   // Active search includes text query OR any filter/sort.
   const isSearchActive = !!(query || hasFilters);
 
-  // Once pinned by interaction, it stays pinned for this session unless reset
-  const [isPinned, setIsPinned] = useState(hasFilters);
-
-  useEffect(() => {
-    if (isSearchActive) setIsPinned(true);
-  }, [isSearchActive]);
-
-  // Grid is only visible when filters are active and there is no text query.
-  const showGrid = isSearchActive && !query;
   const showDropdown = isFocused && query.length > 0;
 
   useEffect(() => {
@@ -72,8 +53,6 @@ function HomeInner() {
         setDynamicIndex(json as SearchIndexEntry[]);
       } catch {
         // ignore
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -223,54 +202,41 @@ function HomeInner() {
       {/* Central Search Section */}
       <div
         className={cn(
-          "flex flex-col items-center transition-all duration-700 ease-in-out px-6",
-          isPinned
-            ? "pt-12 pb-8 border-b border-black/[0.03] bg-white/50 backdrop-blur-md sticky top-0 z-40"
-            : "pt-[25vh] pb-20",
+          "flex flex-col items-center transition-all duration-700 ease-in-out px-6 pt-[25vh] pb-20",
         )}
       >
         <div
           className={cn(
             "w-full max-w-3xl flex flex-col items-center gap-8 transition-all duration-700",
-            isPinned
-              ? "lg:flex-row lg:max-w-[1400px] lg:justify-between lg:gap-6"
-              : "",
           )}
         >
           {/* Logo */}
           <div
             className={cn(
               "flex items-center gap-4 transition-all duration-500",
-              isPinned ? "lg:shrink-0" : "flex-col text-center",
+              "flex-col text-center",
             )}
           >
             <div
               className={cn(
                 "bg-black rounded-2xl flex items-center justify-center shadow-2xl shadow-black/10 transition-all",
-                isPinned ? "w-10 h-10" : "w-20 h-20 mb-2",
+                "w-20 h-20 mb-2",
               )}
             >
-              <Activity
-                className={cn(
-                  "text-[#00FF85]",
-                  isPinned ? "w-5 h-5" : "w-10 h-10",
-                )}
-              />
+              <Activity className={cn("text-[#00FF85]", "w-10 h-10")} />
             </div>
             <div>
               <h1
                 className={cn(
                   "font-black tracking-tighter uppercase italic leading-none transition-all",
-                  isPinned ? "text-lg" : "text-4xl",
+                  "text-4xl",
                 )}
               >
                 Exposure
               </h1>
-              {!isPinned && (
-                <p className="text-[12px] font-bold text-black/30 uppercase tracking-[0.4em] mt-3">
-                  Institutional Risk Registry
-                </p>
-              )}
+              <p className="text-[12px] font-bold text-black/30 uppercase tracking-[0.4em] mt-3">
+                Institutional Risk Registry
+              </p>
             </div>
           </div>
 
@@ -278,7 +244,7 @@ function HomeInner() {
           <div
             className={cn(
               "relative group transition-all duration-500",
-              isPinned ? "flex-grow max-w-xl" : "w-full max-w-2xl",
+              "w-full max-w-2xl",
             )}
             ref={dropdownRef}
           >
@@ -300,9 +266,7 @@ function HomeInner() {
               }}
               className={cn(
                 "w-full pl-14 pr-16 py-5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-[12px] focus:ring-black/[0.015] transition-all placeholder:text-black/10",
-                isPinned
-                  ? "text-xs py-4"
-                  : "text-sm shadow-2xl shadow-black/[0.02]",
+                "text-sm shadow-2xl shadow-black/[0.02]",
               )}
             />
             <div className="hidden sm:flex absolute right-6 top-1/2 -translate-y-1/2 items-center gap-2 px-2.5 py-1.5 bg-black/5 border border-black/5 rounded-lg text-[9px] font-black text-black/40 uppercase tracking-widest pointer-events-none">
@@ -369,29 +333,14 @@ function HomeInner() {
           </div>
 
           {/* Stats / Mobile View Logic */}
-          {isPinned && (
-            <div className="hidden lg:flex items-center gap-6 shrink-0">
-              <div className="text-right">
-                <div className="text-[9px] font-black text-black/20 uppercase tracking-[0.2em]">
-                  Matches
-                </div>
-                <div className="text-sm font-black text-black">
-                  {filteredResults.length}
-                </div>
-              </div>
-              <div className="h-8 w-px bg-black/[0.05]" />
-              <div className="p-2.5 bg-black/[0.03] rounded-xl border border-black/5">
-                <LayoutGrid className="w-4 h-4 text-black/60" />
-              </div>
-            </div>
-          )}
+          <div className="hidden lg:flex items-center gap-6 shrink-0" />
         </div>
 
         {/* Filter Pills Row */}
         <div
           className={cn(
             "flex items-center justify-center gap-3 pb-2 -mx-2 px-2 transition-all duration-700",
-            isPinned ? "mt-6 max-w-[1400px] w-full" : "mt-10",
+            "mt-10",
           )}
         >
           <FilterPill
@@ -442,7 +391,7 @@ function HomeInner() {
             onChange={(v) => updateParams({ curator: v })}
           />
 
-          {isPinned && (
+          {isSearchActive && (
             <FilterPill
               label="Sort"
               value={apySort}
@@ -453,130 +402,8 @@ function HomeInner() {
         </div>
       </div>
 
-      {/* Main Content Grid - Only shown when filters are active but NO text search is typing */}
-      <main
-        className={cn(
-          "max-w-[1400px] mx-auto w-full p-6 lg:p-10 flex-grow transition-opacity duration-500",
-          showGrid ? "opacity-100" : "opacity-0 pointer-events-none",
-        )}
-      >
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-pulse">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="h-56 bg-black/[0.02] rounded-3xl border border-black/[0.03]"
-              />
-            ))}
-          </div>
-        ) : filteredResults.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredResults.map((result) => {
-              const logoPaths = getNodeLogos(result);
-              const chainLogoPath = hasChainLogo(result.chain)
-                ? getChainLogoPath(result.chain)
-                : null;
-
-              return (
-                <Link
-                  key={`${result.id}-${result.chain}-${result.protocol}`}
-                  href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
-                  className="group flex flex-col bg-white border border-black/[0.05] rounded-3xl p-8 hover:border-black/[0.1] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all relative overflow-hidden"
-                >
-                  <div className="flex items-start justify-between mb-10">
-                    <div className="flex items-center -space-x-3">
-                      {logoPaths.length > 0 ? (
-                        logoPaths.map((logoPath, idx) => (
-                          <div
-                            key={logoPath}
-                            className="w-14 h-14 bg-white border border-black/[0.06] rounded-full flex items-center justify-center overflow-hidden transition-all group-hover:border-black/10 shadow-sm"
-                            style={{ zIndex: 10 - idx }}
-                          >
-                            <Image
-                              src={logoPath}
-                              alt={result.name}
-                              width={32}
-                              height={32}
-                              className="object-contain"
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="w-14 h-14 bg-black/[0.02] border border-black/5 rounded-full flex items-center justify-center text-black/20 font-black text-sm group-hover:text-black transition-all">
-                          {result.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    {chainLogoPath && (
-                      <div className="w-7 h-7 bg-black/[0.03] rounded-full flex items-center justify-center border border-black/5">
-                        <Image
-                          src={chainLogoPath}
-                          alt={result.chain}
-                          width={16}
-                          height={16}
-                          className="object-contain opacity-40 group-hover:opacity-100 transition-opacity"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black text-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors leading-tight">
-                      {result.name}
-                    </h3>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[11px] font-bold text-black/30 uppercase tracking-[0.15em]">
-                        {result.protocol}
-                      </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-black/[0.08]" />
-                      <span className="text-[11px] font-bold text-black/30 uppercase tracking-[0.15em]">
-                        {result.chain}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-10 pt-8 border-t border-black/[0.04] flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-black/20 group-hover:text-black transition-colors">
-                    <span className="flex items-center gap-2.5">
-                      <Activity className="w-3.5 h-3.5" />
-                      View Analysis
-                    </span>
-                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-all" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-40 text-center">
-            <div className="w-24 h-24 bg-black/[0.02] rounded-full flex items-center justify-center mb-8">
-              <Filter className="w-10 h-10 text-black/5" />
-            </div>
-            <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic mb-3">
-              No results found
-            </h3>
-            <p className="text-sm font-medium text-black/40 max-w-xs uppercase tracking-widest leading-relaxed">
-              Refine your search criteria or adjust your filters.
-            </p>
-            <button
-              onClick={() => {
-                updateParams({
-                  q: "",
-                  protocol: "all",
-                  chain: "all",
-                  curator: "all",
-                });
-                setIsPinned(false);
-              }}
-              className="mt-10 px-10 py-4 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/20 rounded-full"
-            >
-              Reset All Filters
-            </button>
-          </div>
-        )}
-      </main>
-
       {/* Hero Welcome Message when no filters active */}
-      {!isPinned && (
+      {!isSearchActive && (
         <div className="flex-grow flex flex-col items-center justify-center px-6 -mt-20">
           <div className="max-w-2xl text-center space-y-6 animate-in fade-in zoom-in duration-1000">
             <div className="inline-flex items-center gap-3 px-4 py-2 bg-black/[0.02] border border-black/5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-black/40">

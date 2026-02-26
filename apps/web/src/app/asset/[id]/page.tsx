@@ -47,6 +47,10 @@ export default function AssetPage() {
     handleBackOneStep,
     isAtAssetRoot,
     rootNode,
+    isOthersView,
+    setIsOthersView,
+    othersChildrenIds,
+    setOthersChildrenIds,
   } = useAssetData({ id, chain, protocol, focus });
 
   const { terminalToast, showTerminalToast, closeTerminalToast } =
@@ -54,6 +58,11 @@ export default function AssetPage() {
 
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
+
+  const handleSelectOthers = (childIds: string[]) => {
+    setOthersChildrenIds(childIds);
+    setIsOthersView(true);
+  };
 
   const handleDrilldownSelect = async (
     node: GraphNode,
@@ -260,6 +269,9 @@ export default function AssetPage() {
             data={graphData}
             rootNodeId={focusRootNodeId || rootNode?.id}
             onSelect={handleDrilldownSelect}
+            onSelectOthers={handleSelectOthers}
+            isOthersView={isOthersView}
+            othersChildrenIds={othersChildrenIds}
             selectedNodeId={selectedNode?.id}
             lastClick={lastTileClick.current}
           />
@@ -272,7 +284,9 @@ export default function AssetPage() {
             edges={graphData.edges}
             rootNodeId={focusRootNodeId || rootNode?.id}
             originId={origin}
-            onReset={!isAtAssetRoot ? handleBackOneStep : undefined}
+            onReset={
+              !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
+            }
           />
         </aside>
       </main>

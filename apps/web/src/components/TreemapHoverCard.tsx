@@ -7,6 +7,8 @@ interface TreemapHoverCardDatum {
   value?: number;
   percent?: number;
   fullNode?: GraphNode;
+  isOthers?: boolean;
+  childCount?: number;
 }
 
 interface TreemapHoverCardPayloadItem {
@@ -27,8 +29,13 @@ export const TreemapHoverCard = ({
 
   const name = String(dataItem?.name ?? "");
   const originalValue = Number(dataItem?.originalValue ?? dataItem?.value ?? 0);
-  const percent = typeof dataItem?.percent === "number" ? dataItem.percent : null;
-  const kind = String(dataItem?.fullNode?.details?.kind ?? "");
+  const percent =
+    typeof dataItem?.percent === "number" ? dataItem.percent : null;
+  const isOthers = dataItem?.isOthers;
+  const childCount = dataItem?.childCount;
+  const kind = isOthers
+    ? `Aggregate (${childCount} Items)`
+    : String(dataItem?.fullNode?.details?.kind ?? "");
 
   return (
     <div
@@ -38,14 +45,20 @@ export const TreemapHoverCard = ({
       }}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">{kind || 'Asset'}</div>
+        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
+          {kind || "Asset"}
+        </div>
         <div className="w-1.5 h-1.5 rounded-full bg-[#00FF85] shadow-[0_0_8px_#00FF85]" />
       </div>
-      
-      <div className="text-sm font-bold text-white/90 mb-3 tracking-tight uppercase">{name}</div>
-      
+
+      <div className="text-sm font-bold text-white/90 mb-3 tracking-tight uppercase">
+        {isOthers ? "OTHERS" : name}
+      </div>
+
       <div className="flex flex-col gap-0.5 mb-6">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">Allocation Value</div>
+        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">
+          {isOthers ? "Total Aggregate Value" : "Allocation Value"}
+        </div>
         <div className="text-3xl font-black leading-none text-[#00FF85] tracking-tighter font-mono">
           {currencyFormatter.format(originalValue)}
         </div>
@@ -54,9 +67,11 @@ export const TreemapHoverCard = ({
       <div className="h-px w-full bg-white/5 mb-4" />
 
       <div className="flex items-center justify-between">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">Portfolio Share</div>
+        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">
+          Portfolio Share
+        </div>
         <div className="text-xs font-black text-white font-mono">
-            {percent === null ? "—" : `${(percent * 100).toFixed(2)}%`}
+          {percent === null ? "—" : `${(percent * 100).toFixed(2)}%`}
         </div>
       </div>
     </div>
