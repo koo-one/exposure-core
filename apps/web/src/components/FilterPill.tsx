@@ -85,7 +85,7 @@ export function FilterPill({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-48 max-h-64 overflow-y-auto bg-white border border-black/10 rounded-xl shadow-2xl shadow-black/10 z-50 py-1.5 custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute top-full left-0 mt-2 w-48 max-h-64 overflow-y-auto bg-white border border-black/10 rounded-xl shadow-2xl shadow-black/10 z-[60] py-1.5 custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
           {options.map((option) => (
             <button
               key={option.value}

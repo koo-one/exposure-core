@@ -177,10 +177,15 @@ function HomeInner() {
     }
 
     if (apyMin.trim().length > 0 || apyMax.trim().length > 0) {
-      const minPct = Number(apyMin);
-      const maxPct = Number(apyMax);
-      const min = Number.isFinite(minPct) ? minPct : null;
-      const max = Number.isFinite(maxPct) ? maxPct : null;
+      const parseBound = (s: string): number | null => {
+        const trimmed = s.trim();
+        if (trimmed.length === 0) return null;
+        const n = Number(trimmed);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const min = parseBound(apyMin);
+      const max = parseBound(apyMax);
 
       results = results.filter((entry) => {
         const apy = typeof entry.apy === "number" ? entry.apy : null;
