@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GraphSnapshot, GraphNode } from "@/types";
 import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
-import { formatChainLabel } from "@/utils/formatters";
 
 interface UseAssetDataProps {
   id: string;
@@ -28,6 +27,10 @@ export function useAssetData({
   const [focusStack, setFocusStack] = useState<string[]>([]);
   const [pageTitle, setPageTitle] = useState<string>(id);
 
+  // Others view state
+  const [isOthersView, setIsOthersView] = useState(false);
+  const [othersChildrenIds, setOthersChildrenIds] = useState<string[]>([]);
+
   // Synchronize focusRootNodeId with URL
   useEffect(() => {
     if (!focusRootNodeId) return;
@@ -41,6 +44,12 @@ export function useAssetData({
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     router.replace(newUrl, { scroll: false });
+  }, [focusRootNodeId]);
+
+  // Reset Others view when focusRootNodeId changes
+  useEffect(() => {
+    setIsOthersView(false);
+    setOthersChildrenIds([]);
   }, [focusRootNodeId]);
 
   useEffect(() => {
@@ -77,9 +86,8 @@ export function useAssetData({
           setFocusRootNodeId(initial.id);
           setFocusStack([]);
 
-          const chainLabel = formatChainLabel(resolvedRoot.chain ?? chain);
           const titleNode = focusNode || resolvedRoot;
-          setPageTitle(`${chainLabel} ${titleNode.name}`);
+          setPageTitle(titleNode.name);
 
           if (resolvedRoot.tvlUsd) {
             setTvl(resolvedRoot.tvlUsd);
@@ -100,7 +108,7 @@ export function useAssetData({
     };
 
     fetchData();
-  }, [id, chain, focus, protocol, formatChainLabel]);
+  }, [id, chain, focus, protocol]);
 
   const rootNode = useMemo(() => {
     if (!graphData) return null;
@@ -124,6 +132,12 @@ export function useAssetData({
   const handleBackOneStep = useCallback(() => {
     if (!graphData) return;
 
+    if (isOthersView) {
+      setIsOthersView(false);
+      setOthersChildrenIds([]);
+      return;
+    }
+
     const prevId = focusStack[focusStack.length - 1];
     if (!prevId) {
       // If stack is empty but we are focused on something that isn't the root, reset to root
@@ -139,7 +153,7 @@ export function useAssetData({
 
     const prevNode = graphData.nodes.find((n) => n.id === prevId);
     if (prevNode) setSelectedNode(prevNode);
-  }, [graphData, focusStack, focusRootNodeId, rootNode]);
+  }, [graphData, focusStack, focusRootNodeId, rootNode, isOthersView]);
 
   return {
     graphData,
@@ -155,5 +169,9 @@ export function useAssetData({
     applyLocalDrilldown,
     handleBackOneStep,
     isAtAssetRoot: focusRootNodeId === rootNode?.id,
+    isOthersView,
+    setIsOthersView,
+    othersChildrenIds,
+    setOthersChildrenIds,
   };
 }

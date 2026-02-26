@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
@@ -18,6 +18,9 @@ interface AssetTreeMapProps {
   ) => void | Promise<void>;
   selectedNodeId?: string | null;
   lastClick?: { nodeId: string; seq: number } | null;
+  isOthersView?: boolean;
+  othersChildrenIds?: string[];
+  onSelectOthers?: (childIds: string[]) => void;
 }
 
 export default function AssetTreeMap({
@@ -26,8 +29,32 @@ export default function AssetTreeMap({
   onSelect,
   selectedNodeId,
   lastClick,
+  isOthersView,
+  othersChildrenIds,
+  onSelectOthers,
 }: AssetTreeMapProps) {
   const [pressedNodeId, setPressedNodeId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setContainerSize({
+        width: Math.max(0, Math.floor(rect.width)),
+        height: Math.max(0, Math.floor(rect.height)),
+      });
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const chartData = useMemo(() => {
     if (!data || !rootNodeId) return [];
@@ -35,7 +62,11 @@ export default function AssetTreeMap({
     const root = data.nodes.find((n) => n.id === rootNodeId);
     if (!root) return [];
 
-    const children = getDirectChildren(root, data.nodes, data.edges);
+    let children = getDirectChildren(root, data.nodes, data.edges);
+
+    if (isOthersView && othersChildrenIds) {
+      children = children.filter((c) => othersChildrenIds.includes(c.id));
+    }
 
     const nodesById = new Map(data.nodes.map((n) => [n.id, n] as const));
     const edgesByFrom = new Map<string, GraphEdge[]>();
@@ -63,7 +94,7 @@ export default function AssetTreeMap({
       return nodesById.get(to)?.name ?? null;
     };
 
-    return children.map((c) => ({
+    const mappedChildren = children.map((c) => ({
       name: (() => {
         const node = c.node;
         if (!node) return c.id;
@@ -86,7 +117,59 @@ export default function AssetTreeMap({
       fullNode: c.node,
       lendingPosition: c.edge.lendingPosition,
     }));
-  }, [data, rootNodeId]);
+
+    if (isOthersView) return mappedChildren;
+
+    // Others aggregation logic
+    // Goal: group physically small tiles.
+    // We approximate physical size via area: tile area ~= percent * containerArea.
+    const OTHERS_AGGREGATION_MIN_TILE_AREA_PX = 2800; // ~53x53px
+    const OTHERS_AGGREGATION_MIN_COUNT = 3;
+    const OTHERS_AGGREGATION_MIN_MAJOR_COUNT = 6;
+
+    const containerArea = containerSize.width * containerSize.height;
+    const minPercentByArea =
+      containerArea > 0
+        ? OTHERS_AGGREGATION_MIN_TILE_AREA_PX / containerArea
+        : 0.005;
+    const MIN_PERCENT = Math.min(0.02, Math.max(0.001, minPercentByArea));
+
+    const sorted = [...mappedChildren].sort((a, b) => b.value - a.value);
+
+    let major = sorted.filter((c) => c.percent >= MIN_PERCENT);
+    let minor = sorted.filter((c) => c.percent < MIN_PERCENT);
+
+    // If everything is tiny, keep a few largest tiles visible (avoid a full-screen "OTHERS" tile).
+    if (
+      major.length === 0 &&
+      sorted.length > OTHERS_AGGREGATION_MIN_MAJOR_COUNT
+    ) {
+      major = sorted.slice(0, OTHERS_AGGREGATION_MIN_MAJOR_COUNT);
+      const majorIds = new Set(major.map((c) => c.nodeId));
+      minor = sorted.filter((c) => !majorIds.has(c.nodeId));
+    }
+
+    if (minor.length >= OTHERS_AGGREGATION_MIN_COUNT) {
+      const minorTotalValue = minor.reduce((sum, c) => sum + c.value, 0);
+      const minorTotalPercent = minor.reduce((sum, c) => sum + c.percent, 0);
+
+      return [
+        ...major,
+        {
+          name: "OTHERS",
+          value: minorTotalValue,
+          originalValue: minorTotalValue,
+          percent: minorTotalPercent,
+          nodeId: "others",
+          isOthers: true,
+          childIds: minor.map((c) => c.nodeId),
+          childCount: minor.length,
+        },
+      ];
+    }
+
+    return sorted;
+  }, [data, rootNodeId, isOthersView, othersChildrenIds, containerSize]);
 
   if (!data || chartData.length === 0) {
     return (
@@ -97,7 +180,14 @@ export default function AssetTreeMap({
   }
 
   return (
-    <div className="w-full h-full bg-[#E6EBF8]">
+    <div ref={containerRef} className="w-full h-full bg-[#E6EBF8] relative">
+      {isOthersView && (
+        <div className="absolute top-10 right-10 z-20 pointer-events-none">
+          <div className="px-5 py-2.5 bg-black border border-black text-[9px] font-black text-[#00FF85] uppercase tracking-[0.3em] shadow-xl">
+            Aggregate View // Others ({chartData.length})
+          </div>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height="100%">
         <Treemap
           data={chartData}
@@ -107,6 +197,7 @@ export default function AssetTreeMap({
           content={
             <AssetTreeMapTile
               onSelect={onSelect}
+              onSelectOthers={onSelectOthers}
               selectedNodeId={selectedNodeId}
               pressedNodeId={pressedNodeId}
               onPressStart={setPressedNodeId}

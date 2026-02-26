@@ -1,17 +1,15 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import {
-  Search,
-  Activity,
-  Command,
-  ArrowRight,
-  Filter,
-  Globe,
-  LayoutGrid,
-  ChevronRight,
-} from "lucide-react";
+  Suspense,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
+import Link from "next/link";
+import { Search, Activity, Command, Globe, ChevronRight } from "lucide-react";
 import { type SearchIndexEntry } from "@/constants";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -29,34 +27,49 @@ function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [dynamicIndex, setDynamicIndex] = useState<SearchIndexEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFocused, setIsFocused] = useState(false);
 
   // Sync state with URL params
   const selectedProtocol = searchParams.get("protocol") || "all";
   const selectedChain = searchParams.get("chain") || "all";
   const selectedCurator = searchParams.get("curator") || "all";
-  const apySort = searchParams.get("apySort") || "default";
+  const apyMin = searchParams.get("apyMin") || "";
+  const apyMax = searchParams.get("apyMax") || "";
   const query = searchParams.get("q") || "";
 
   const hasFilters =
     selectedProtocol !== "all" ||
     selectedChain !== "all" ||
     selectedCurator !== "all" ||
-    apySort !== "default";
+    apyMin.trim().length > 0 ||
+    apyMax.trim().length > 0;
 
   // Active search includes text query OR any filter/sort.
   const isSearchActive = !!(query || hasFilters);
 
-  // Pinned layout should not activate just from typing.
-  const isPinned = hasFilters;
+  const showDropdown = isSearchActive;
 
-  // Grid is only visible when filters are active and there is no text query.
-  const showGrid = hasFilters && !query;
-  const showDropdown = isFocused && query.length > 0;
+  const updateParams = useCallback(
+    (newParams: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (
+          value === null ||
+          (value === "all" &&
+            (key === "protocol" || key === "curator" || key === "chain")) ||
+          (value === "" &&
+            (key === "q" || key === "apyMin" || key === "apyMax"))
+        ) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -68,8 +81,6 @@ function HomeInner() {
         setDynamicIndex(json as SearchIndexEntry[]);
       } catch {
         // ignore
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -86,20 +97,6 @@ function HomeInner() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsFocused(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const protocols = useMemo(() => {
@@ -123,8 +120,18 @@ function HomeInner() {
   }, [dynamicIndex]);
 
   const curators = useMemo(() => {
+    const scope = dynamicIndex.filter((entry) => {
+      const protocolMatch =
+        selectedProtocol === "all" ||
+        entry.protocol.toLowerCase() === selectedProtocol.toLowerCase();
+      const chainMatch =
+        selectedChain === "all" ||
+        entry.chain.toLowerCase() === selectedChain.toLowerCase();
+      return protocolMatch && chainMatch;
+    });
+
     const set = new Set<string>();
-    for (const entry of dynamicIndex) {
+    for (const entry of scope) {
       if (typeof entry.curator !== "string") continue;
       const value = entry.curator.trim();
       if (!value) continue;
@@ -136,13 +143,14 @@ function HomeInner() {
         .sort((a, b) => a.localeCompare(b))
         .map((c) => ({ label: c, value: c })),
     ];
-  }, [dynamicIndex]);
+  }, [dynamicIndex, selectedProtocol, selectedChain]);
 
-  const apySortOptions = [
-    { label: "Default", value: "default" },
-    { label: "APY: High to Low", value: "desc" },
-    { label: "APY: Low to High", value: "asc" },
-  ];
+  useEffect(() => {
+    if (selectedCurator === "all") return;
+    if (dynamicIndex.length === 0) return;
+    const isValid = curators.some((c) => c.value === selectedCurator);
+    if (!isValid) updateParams({ curator: "all" });
+  }, [selectedCurator, curators, updateParams, dynamicIndex.length]);
 
   const filteredResults = useMemo(() => {
     let results = dynamicIndex;
@@ -168,22 +176,33 @@ function HomeInner() {
       });
     }
 
-    if (selectedCurator !== "all") {
-      results = results.filter((entry) => entry.curator === selectedCurator);
+    if (apyMin.trim().length > 0 || apyMax.trim().length > 0) {
+      const parseBound = (s: string): number | null => {
+        const trimmed = s.trim();
+        if (trimmed.length === 0) return null;
+        const n = Number(trimmed);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const min = parseBound(apyMin);
+      const max = parseBound(apyMax);
+
+      results = results.filter((entry) => {
+        const apy = typeof entry.apy === "number" ? entry.apy : null;
+        if (apy == null) return false;
+
+        // Normalize to percent for comparison.
+        // Some adapters emit APY as a fraction (0.02 == 2%), others emit percent (2 == 2%).
+        const apyPercent = apy > 1 ? apy : apy * 100;
+
+        if (min != null && apyPercent < min) return false;
+        if (max != null && apyPercent > max) return false;
+        return true;
+      });
     }
 
-    if (apySort !== "default") {
-      const dir = apySort === "asc" ? "asc" : "desc";
-      results = [...results].sort((a, b) => {
-        const aApy = typeof a.apy === "number" ? a.apy : null;
-        const bApy = typeof b.apy === "number" ? b.apy : null;
-
-        if (aApy == null && bApy == null) return 0;
-        if (aApy == null) return 1;
-        if (bApy == null) return -1;
-
-        return dir === "asc" ? aApy - bApy : bApy - aApy;
-      });
+    if (selectedCurator !== "all") {
+      results = results.filter((entry) => entry.curator === selectedCurator);
     }
 
     return results;
@@ -191,92 +210,168 @@ function HomeInner() {
     selectedProtocol,
     selectedChain,
     selectedCurator,
-    apySort,
+    apyMin,
+    apyMax,
     query,
     dynamicIndex,
   ]);
-
-  const updateParams = (newParams: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (
-        value === null ||
-        (value === "all" &&
-          (key === "protocol" || key === "curator" || key === "chain")) ||
-        (value === "default" && key === "apySort") ||
-        (!value && key === "q")
-      ) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
       {/* Central Search Section */}
       <div
         className={cn(
-          "flex flex-col items-center transition-all duration-700 ease-in-out px-6",
-          isPinned
-            ? "pt-12 pb-8 border-b border-black/[0.03] bg-white/50 backdrop-blur-md sticky top-0 z-40"
-            : "pt-[25vh] pb-20",
+          "flex flex-col items-center transition-all duration-700 ease-in-out px-6 pt-[18vh] pb-16",
         )}
       >
         <div
           className={cn(
-            "w-full max-w-3xl flex flex-col items-center gap-8 transition-all duration-700",
-            isPinned
-              ? "lg:flex-row lg:max-w-[1400px] lg:justify-between lg:gap-6"
-              : "",
+            "w-full max-w-3xl flex flex-col items-center gap-6 transition-all duration-700",
           )}
         >
           {/* Logo */}
           <div
             className={cn(
               "flex items-center gap-4 transition-all duration-500",
-              isPinned ? "lg:shrink-0" : "flex-col text-center",
+              "flex-col text-center",
             )}
           >
             <div
               className={cn(
                 "bg-black rounded-2xl flex items-center justify-center shadow-2xl shadow-black/10 transition-all",
-                isPinned ? "w-10 h-10" : "w-20 h-20 mb-2",
+                "w-16 h-16 mb-1",
               )}
             >
-              <Activity
-                className={cn(
-                  "text-[#00FF85]",
-                  isPinned ? "w-5 h-5" : "w-10 h-10",
-                )}
-              />
+              <Activity className={cn("text-[#00FF85]", "w-8 h-8")} />
             </div>
             <div>
               <h1
                 className={cn(
                   "font-black tracking-tighter uppercase italic leading-none transition-all",
-                  isPinned ? "text-lg" : "text-4xl",
+                  "text-3xl",
                 )}
               >
                 Exposure
               </h1>
-              {!isSearchActive && (
-                <p className="text-[12px] font-bold text-black/30 uppercase tracking-[0.4em] mt-3">
-                  Institutional Risk Registry
-                </p>
-              )}
+              <p className="text-[10px] font-bold text-black/30 uppercase tracking-[0.4em] mt-2">
+                Institutional Risk Registry
+              </p>
             </div>
+          </div>
+
+          {/* Filter Pills Row */}
+          <div className="flex items-center justify-center gap-2 pb-1 -mx-2 px-2 transition-all duration-700">
+            <FilterPill
+              label="Protocol"
+              value={selectedProtocol}
+              options={protocols}
+              onChange={(v) => updateParams({ protocol: v })}
+              icon={
+                selectedProtocol !== "all" &&
+                hasProtocolLogo(selectedProtocol) ? (
+                  <Image
+                    src={getProtocolLogoPath(selectedProtocol)}
+                    alt={selectedProtocol}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Globe className="w-3.5 h-3.5 text-black/20" />
+                )
+              }
+            />
+
+            <FilterPill
+              label="Chain"
+              value={selectedChain}
+              options={chains}
+              onChange={(v) => updateParams({ chain: v })}
+              icon={
+                selectedChain !== "all" && hasChainLogo(selectedChain) ? (
+                  <Image
+                    src={getChainLogoPath(selectedChain)}
+                    alt={selectedChain}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Activity className="w-3.5 h-3.5 text-black/20" />
+                )
+              }
+            />
+
+            <div
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 border rounded-full transition-all duration-200 group",
+                apyMin || apyMax
+                  ? "bg-black text-white border-black shadow-lg shadow-black/10"
+                  : "bg-white border-black/10 hover:border-black/30 text-black",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest whitespace-nowrap",
+                  apyMin || apyMax ? "text-white/40" : "text-black/40",
+                )}
+              >
+                APY
+              </span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  inputMode="decimal"
+                  placeholder="MIN"
+                  value={apyMin}
+                  onChange={(e) => {
+                    updateParams({ apyMin: e.target.value });
+                  }}
+                  className={cn(
+                    "w-10 bg-transparent text-[10px] font-bold uppercase tracking-widest placeholder:text-black/20 focus:outline-none",
+                    apyMin || apyMax
+                      ? "text-white placeholder:text-white/20"
+                      : "text-black",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-[10px] font-bold opacity-20",
+                    apyMin || apyMax ? "text-white" : "text-black",
+                  )}
+                >
+                  -
+                </span>
+                <input
+                  inputMode="decimal"
+                  placeholder="MAX"
+                  value={apyMax}
+                  onChange={(e) => {
+                    updateParams({ apyMax: e.target.value });
+                  }}
+                  className={cn(
+                    "w-10 bg-transparent text-[10px] font-bold uppercase tracking-widest placeholder:text-black/20 focus:outline-none",
+                    apyMin || apyMax
+                      ? "text-white placeholder:text-white/20"
+                      : "text-black",
+                  )}
+                />
+              </div>
+            </div>
+
+            <FilterPill
+              label="Curator"
+              value={selectedCurator}
+              options={curators}
+              onChange={(v) => updateParams({ curator: v })}
+            />
           </div>
 
           {/* Search Bar Container */}
           <div
             className={cn(
               "relative group transition-all duration-500",
-              isPinned ? "flex-grow max-w-xl" : "w-full max-w-2xl",
+              "w-full max-w-2xl",
             )}
-            ref={dropdownRef}
           >
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-black/20 group-focus-within:text-black transition-colors" />
             <input
@@ -284,21 +379,12 @@ function HomeInner() {
               type="text"
               placeholder="Search assets, protocols, or chains..."
               value={query}
-              onFocus={() => setIsFocused(true)}
               onChange={(e) => {
                 updateParams({ q: e.target.value });
-                setIsFocused(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setIsFocused(false);
-                }
               }}
               className={cn(
-                "w-full pl-14 pr-16 py-5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-[12px] focus:ring-black/[0.015] transition-all placeholder:text-black/10",
-                isPinned
-                  ? "text-xs py-4"
-                  : "text-sm shadow-2xl shadow-black/[0.02]",
+                "w-full pl-14 pr-16 py-3.5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-8 focus:ring-black/[0.01] transition-all placeholder:text-black/10",
+                "text-xs shadow-xl shadow-black/[0.01]",
               )}
             />
             <div className="hidden sm:flex absolute right-6 top-1/2 -translate-y-1/2 items-center gap-2 px-2.5 py-1.5 bg-black/5 border border-black/5 rounded-lg text-[9px] font-black text-black/40 uppercase tracking-widest pointer-events-none">
@@ -314,7 +400,6 @@ function HomeInner() {
                       <Link
                         key={`${result.id}-${result.chain}-${result.protocol}`}
                         href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
-                        onClick={() => setIsFocused(false)}
                         className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
                       >
                         <div className="flex items-center gap-4">
@@ -365,210 +450,9 @@ function HomeInner() {
           </div>
 
           {/* Stats / Mobile View Logic */}
-          {isPinned && (
-            <div className="hidden lg:flex items-center gap-6 shrink-0">
-              <div className="text-right">
-                <div className="text-[9px] font-black text-black/20 uppercase tracking-[0.2em]">
-                  Matches
-                </div>
-                <div className="text-sm font-black text-black">
-                  {filteredResults.length}
-                </div>
-              </div>
-              <div className="h-8 w-px bg-black/[0.05]" />
-              <div className="p-2.5 bg-black/[0.03] rounded-xl border border-black/5">
-                <LayoutGrid className="w-4 h-4 text-black/60" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Filter Pills Row */}
-        <div
-          className={cn(
-            "flex items-center justify-center gap-3 overflow-x-auto pb-2 -mx-2 px-2 custom-scrollbar no-scrollbar transition-all duration-700",
-            isPinned ? "mt-6 max-w-[1400px] w-full" : "mt-10",
-          )}
-        >
-          <FilterPill
-            label="Protocol"
-            value={selectedProtocol}
-            options={protocols}
-            onChange={(v) => updateParams({ protocol: v })}
-            icon={
-              selectedProtocol !== "all" &&
-              hasProtocolLogo(selectedProtocol) ? (
-                <Image
-                  src={getProtocolLogoPath(selectedProtocol)}
-                  alt={selectedProtocol}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
-              ) : (
-                <Globe className="w-3.5 h-3.5 text-black/20" />
-              )
-            }
-          />
-
-          <FilterPill
-            label="Chain"
-            value={selectedChain}
-            options={chains}
-            onChange={(v) => updateParams({ chain: v })}
-            icon={
-              selectedChain !== "all" && hasChainLogo(selectedChain) ? (
-                <Image
-                  src={getChainLogoPath(selectedChain)}
-                  alt={selectedChain}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
-              ) : (
-                <Activity className="w-3.5 h-3.5 text-black/20" />
-              )
-            }
-          />
-
-          <FilterPill
-            label="Curator"
-            value={selectedCurator}
-            options={curators}
-            onChange={(v) => updateParams({ curator: v })}
-          />
-
-          {isPinned && (
-            <FilterPill
-              label="Sort"
-              value={apySort}
-              options={apySortOptions}
-              onChange={(v) => updateParams({ apySort: v })}
-            />
-          )}
+          <div className="hidden lg:flex items-center gap-6 shrink-0" />
         </div>
       </div>
-
-      {/* Main Content Grid - Only shown when filters are active but NO text search is typing */}
-      <main
-        className={cn(
-          "max-w-[1400px] mx-auto w-full p-6 lg:p-10 flex-grow transition-opacity duration-500",
-          showGrid ? "opacity-100" : "opacity-0 pointer-events-none",
-        )}
-      >
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-pulse">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="h-56 bg-black/[0.02] rounded-3xl border border-black/[0.03]"
-              />
-            ))}
-          </div>
-        ) : filteredResults.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredResults.map((result) => {
-              const logoPaths = getNodeLogos(result);
-              const chainLogoPath = hasChainLogo(result.chain)
-                ? getChainLogoPath(result.chain)
-                : null;
-
-              return (
-                <Link
-                  key={`${result.id}-${result.chain}-${result.protocol}`}
-                  href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
-                  className="group flex flex-col bg-white border border-black/[0.05] rounded-3xl p-8 hover:border-black/[0.1] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all relative overflow-hidden"
-                >
-                  <div className="flex items-start justify-between mb-10">
-                    <div className="flex items-center -space-x-3">
-                      {logoPaths.length > 0 ? (
-                        logoPaths.map((logoPath, idx) => (
-                          <div
-                            key={logoPath}
-                            className="w-14 h-14 bg-white border border-black/[0.06] rounded-full flex items-center justify-center overflow-hidden transition-all group-hover:border-black/10 shadow-sm"
-                            style={{ zIndex: 10 - idx }}
-                          >
-                            <Image
-                              src={logoPath}
-                              alt={result.name}
-                              width={32}
-                              height={32}
-                              className="object-contain"
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="w-14 h-14 bg-black/[0.02] border border-black/5 rounded-full flex items-center justify-center text-black/20 font-black text-sm group-hover:text-black transition-all">
-                          {result.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    {chainLogoPath && (
-                      <div className="w-7 h-7 bg-black/[0.03] rounded-full flex items-center justify-center border border-black/5">
-                        <Image
-                          src={chainLogoPath}
-                          alt={result.chain}
-                          width={16}
-                          height={16}
-                          className="object-contain opacity-40 group-hover:opacity-100 transition-opacity"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black text-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors leading-tight">
-                      {result.name}
-                    </h3>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[11px] font-bold text-black/30 uppercase tracking-[0.15em]">
-                        {result.protocol}
-                      </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-black/[0.08]" />
-                      <span className="text-[11px] font-bold text-black/30 uppercase tracking-[0.15em]">
-                        {result.chain}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-10 pt-8 border-t border-black/[0.04] flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-black/20 group-hover:text-black transition-colors">
-                    <span className="flex items-center gap-2.5">
-                      <Activity className="w-3.5 h-3.5" />
-                      View Analysis
-                    </span>
-                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-all" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-40 text-center">
-            <div className="w-24 h-24 bg-black/[0.02] rounded-full flex items-center justify-center mb-8">
-              <Filter className="w-10 h-10 text-black/5" />
-            </div>
-            <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic mb-3">
-              No results found
-            </h3>
-            <p className="text-sm font-medium text-black/40 max-w-xs uppercase tracking-widest leading-relaxed">
-              Refine your search criteria or adjust your filters.
-            </p>
-            <button
-              onClick={() =>
-                updateParams({
-                  q: "",
-                  protocol: "all",
-                  chain: "all",
-                  curator: "all",
-                })
-              }
-              className="mt-10 px-10 py-4 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/20 rounded-full"
-            >
-              Reset All Filters
-            </button>
-          </div>
-        )}
-      </main>
 
       {/* Hero Welcome Message when no filters active */}
       {!isSearchActive && (

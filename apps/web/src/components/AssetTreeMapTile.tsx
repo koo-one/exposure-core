@@ -9,6 +9,9 @@ interface TreemapTileDatum extends Record<string, unknown> {
   fullNode?: GraphNode;
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
+  isOthers?: boolean;
+  childIds?: string[];
+  childCount?: number;
 }
 
 interface CustomContentProps extends Record<string, unknown> {
@@ -35,6 +38,7 @@ interface CustomContentProps extends Record<string, unknown> {
       lendingPosition?: "collateral" | "borrow";
     },
   ) => void | Promise<void>;
+  onSelectOthers?: (childIds: string[]) => void;
   selectedNodeId?: string | null;
   pressedNodeId: string | null;
   onPressStart: (nodeId: string) => void;
@@ -71,6 +75,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     name,
     value,
     onSelect,
+    onSelectOthers,
     selectedNodeId,
     pressedNodeId,
     onPressStart,
@@ -81,18 +86,20 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const dataItem = payload || typed;
   const nodeId = dataItem?.nodeId;
   const fullNode = dataItem?.fullNode;
+  const isOthers = dataItem?.isOthers;
 
-  if (!nodeId || !fullNode) return null;
+  if (!nodeId || (!fullNode && !isOthers)) return null;
 
   const isSelected = selectedNodeId === nodeId;
   const isPressed = pressedNodeId === nodeId;
   const originalValue = dataItem.originalValue ?? value;
 
-  const fill = "#E6EBF8";
-  const stroke = "#000000";
+  const fill = isOthers ? "#000000" : "#E6EBF8";
+  const stroke = isOthers ? "#00FF85" : "#000000";
+  const textColor = isOthers ? "#00FF85" : "#000000";
   const monoFont = "'JetBrains Mono', monospace";
 
-  const logoPaths = getNodeLogos(fullNode);
+  const logoPaths = fullNode ? getNodeLogos(fullNode) : [];
   const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
 
   const clipId = `clip_${sanitizeSvgId(String(nodeId))}`;
@@ -101,13 +108,20 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const horizontalPadding = 12;
   const availableTextWidth = Math.max(0, width - horizontalPadding * 2);
 
-  const displayText = `${name} ${currencyFormatter.format(originalValue)}`;
+  const displayText = isOthers
+    ? `${name} (${dataItem.childCount}) ${currencyFormatter.format(originalValue)}`
+    : `${name} ${currencyFormatter.format(originalValue)}`;
   const safeText = ellipsizeToWidth(displayText, availableTextWidth, fontSize);
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
   const handleActivate = () => {
-    void onSelect(fullNode, { lendingPosition: dataItem?.lendingPosition });
+    const childIds = dataItem.childIds;
+    if (isOthers && onSelectOthers && Array.isArray(childIds)) {
+      onSelectOthers(childIds);
+    } else if (fullNode) {
+      void onSelect(fullNode, { lendingPosition: dataItem?.lendingPosition });
+    }
   };
 
   const handleKeyDown: React.KeyboardEventHandler<SVGGElement> = (e) => {
@@ -206,7 +220,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
             x={showLogos ? x + 16 + logoPaths.length * 12 : x + 8}
             y={y + 21}
             textAnchor="start"
-            fill="#000000"
+            fill={textColor}
             fontSize={fontSize}
             fontWeight={400}
             style={{ fontFamily: monoFont }}
