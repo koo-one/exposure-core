@@ -51,11 +51,15 @@ function HomeInner() {
   // Active search includes text query OR any filter/sort.
   const isSearchActive = !!(query || hasFilters);
 
-  // Pinned layout should not activate just from typing.
-  const isPinned = hasFilters;
+  // Once pinned by interaction, it stays pinned for this session unless reset
+  const [isPinned, setIsPinned] = useState(hasFilters);
+
+  useEffect(() => {
+    if (isSearchActive) setIsPinned(true);
+  }, [isSearchActive]);
 
   // Grid is only visible when filters are active and there is no text query.
-  const showGrid = hasFilters && !query;
+  const showGrid = isSearchActive && !query;
   const showDropdown = isFocused && query.length > 0;
 
   useEffect(() => {
@@ -262,7 +266,7 @@ function HomeInner() {
               >
                 Exposure
               </h1>
-              {!isSearchActive && (
+              {!isPinned && (
                 <p className="text-[12px] font-bold text-black/30 uppercase tracking-[0.4em] mt-3">
                   Institutional Risk Registry
                 </p>
@@ -386,7 +390,7 @@ function HomeInner() {
         {/* Filter Pills Row */}
         <div
           className={cn(
-            "flex items-center justify-center gap-3 overflow-x-auto pb-2 -mx-2 px-2 custom-scrollbar no-scrollbar transition-all duration-700",
+            "flex items-center justify-center gap-3 pb-2 -mx-2 px-2 transition-all duration-700",
             isPinned ? "mt-6 max-w-[1400px] w-full" : "mt-10",
           )}
         >
@@ -554,14 +558,15 @@ function HomeInner() {
               Refine your search criteria or adjust your filters.
             </p>
             <button
-              onClick={() =>
+              onClick={() => {
                 updateParams({
                   q: "",
                   protocol: "all",
                   chain: "all",
                   curator: "all",
-                })
-              }
+                });
+                setIsPinned(false);
+              }}
               className="mt-10 px-10 py-4 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/20 rounded-full"
             >
               Reset All Filters
@@ -571,7 +576,7 @@ function HomeInner() {
       </main>
 
       {/* Hero Welcome Message when no filters active */}
-      {!isSearchActive && (
+      {!isPinned && (
         <div className="flex-grow flex flex-col items-center justify-center px-6 -mt-20">
           <div className="max-w-2xl text-center space-y-6 animate-in fade-in zoom-in duration-1000">
             <div className="inline-flex items-center gap-3 px-4 py-2 bg-black/[0.02] border border-black/5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
