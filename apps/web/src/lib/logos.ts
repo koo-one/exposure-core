@@ -93,27 +93,51 @@ export function getNodeLogos(
 ): string[] {
   const logos: string[] = [];
 
-  // 1. Check for lending market pattern in name (e.g. "WETH/USDC" or "WETH-USDC")
-  const marketParts = node.name.split(/[/-]/);
-  if (marketParts.length >= 2 && marketParts.length <= 3) {
-    const logo1 = getAssetLogoPath(marketParts[0]);
-    const logo2 = getAssetLogoPath(marketParts[1]);
+  const name = node.name.trim();
 
-    if (logo1) logos.push(logo1);
-    if (logo2) logos.push(logo2);
+  const isTokenLike = (value: string): boolean => {
+    const v = value.trim();
+    return /^[A-Za-z0-9.]+$/.test(v) && v.length >= 2 && v.length <= 10;
+  };
 
-    if (logos.length >= 2) return logos;
+  const isUpperTokenLike = (value: string): boolean => {
+    const v = value.trim();
+    return /^[A-Z0-9.]+$/.test(v) && v.length >= 2 && v.length <= 10;
+  };
+
+  // 1. Prefer known hyphenated single-symbol asset keys (e.g. "mf-one")
+  const isLowerHyphenatedAssetKey =
+    /^[a-z0-9.]+(?:-[a-z0-9.]+)+$/.test(name) && name.length <= 20;
+  if (isLowerHyphenatedAssetKey) {
+    return [getAssetLogoPath(name)];
   }
 
-  // 2. Try single asset logo from name if it looks like a symbol
-  const isSymbolic =
-    /^[A-Za-z0-9.]+$/.test(node.name) && node.name.length <= 10;
+  // 2. Check for lending market pattern in name (e.g. "WETH/USDC" or "WETH-USDC")
+  const slashParts = name.split("/");
+  if (slashParts.length === 2) {
+    const [base, quote] = slashParts;
+    if (isTokenLike(base) && isTokenLike(quote)) {
+      return [getAssetLogoPath(base), getAssetLogoPath(quote)];
+    }
+  }
+
+  // Only treat dash-delimited pairs as markets when both sides look like symbols.
+  const dashParts = name.split("-");
+  if (dashParts.length === 2) {
+    const [base, quote] = dashParts;
+    if (isUpperTokenLike(base) && isUpperTokenLike(quote)) {
+      return [getAssetLogoPath(base), getAssetLogoPath(quote)];
+    }
+  }
+
+  // 3. Try single asset logo from name if it looks like a symbol
+  const isSymbolic = /^[A-Za-z0-9.]+$/.test(name) && name.length <= 10;
   if (isSymbolic) {
-    const assetLogo = getAssetLogoPath(node.name);
+    const assetLogo = getAssetLogoPath(name);
     if (assetLogo) return [assetLogo];
   }
 
-  // 3. Fallback to protocol level logo
+  // 4. Fallback to protocol level logo
   if (node.protocol && hasProtocolLogo(node.protocol)) {
     return [getProtocolLogoPath(node.protocol)];
   }
