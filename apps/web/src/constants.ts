@@ -6,4 +6,5 @@ export interface SearchIndexEntry {
   nodeId: string;
   apy?: number | null;
   curator?: string | null;
+  tvlUsd?: number | null;
 }

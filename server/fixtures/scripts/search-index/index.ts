@@ -11,6 +11,7 @@ interface SnapshotNode {
   name: string;
   protocol?: string;
   apy?: number | null;
+  tvlUsd?: number | null;
   details?: {
     kind?: string;
     curator?: string | null;
@@ -29,6 +30,7 @@ interface SearchIndexEntry {
   nodeId: string;
   apy: number | null;
   curator: string | null;
+  tvlUsd: number | null;
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -59,6 +61,7 @@ const collectSearchIndexEntries = async (
       if (!root?.id || !root.name) continue;
 
       const apy = typeof root.apy === "number" ? root.apy : null;
+      const tvlUsd = typeof root.tvlUsd === "number" ? root.tvlUsd : null;
       const curator =
         typeof root.details?.curator === "string" ? root.details.curator : null;
 
@@ -81,6 +84,7 @@ const collectSearchIndexEntries = async (
         nodeId: root.id,
         apy,
         curator,
+        tvlUsd,
       });
     }
   }

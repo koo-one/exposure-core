@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect, useRef } from "react";
+import {
+  Suspense,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import { Search, Activity, Command, Globe, ChevronRight } from "lucide-react";
 import { type SearchIndexEntry } from "@/constants";
@@ -20,28 +27,49 @@ function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [dynamicIndex, setDynamicIndex] = useState<SearchIndexEntry[]>([]);
-  const [isFocused, setIsFocused] = useState(false);
 
   // Sync state with URL params
   const selectedProtocol = searchParams.get("protocol") || "all";
   const selectedChain = searchParams.get("chain") || "all";
   const selectedCurator = searchParams.get("curator") || "all";
-  const apySort = searchParams.get("apySort") || "default";
+  const apyMin = searchParams.get("apyMin") || "";
+  const apyMax = searchParams.get("apyMax") || "";
   const query = searchParams.get("q") || "";
 
   const hasFilters =
     selectedProtocol !== "all" ||
     selectedChain !== "all" ||
     selectedCurator !== "all" ||
-    apySort !== "default";
+    apyMin.trim().length > 0 ||
+    apyMax.trim().length > 0;
 
   // Active search includes text query OR any filter/sort.
   const isSearchActive = !!(query || hasFilters);
 
-  const showDropdown = isFocused && (query.length > 0 || hasFilters);
+  const showDropdown = isSearchActive;
+
+  const updateParams = useCallback(
+    (newParams: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (
+          value === null ||
+          (value === "all" &&
+            (key === "protocol" || key === "curator" || key === "chain")) ||
+          (value === "" &&
+            (key === "q" || key === "apyMin" || key === "apyMax"))
+        ) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -71,20 +99,6 @@ function HomeInner() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsFocused(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const protocols = useMemo(() => {
     const set = new Set(dynamicIndex.map((e) => e.protocol));
     return [
@@ -107,19 +121,13 @@ function HomeInner() {
 
   const curators = useMemo(() => {
     const scope = dynamicIndex.filter((entry) => {
-      if (selectedProtocol !== "all") {
-        if (entry.protocol.toLowerCase() !== selectedProtocol.toLowerCase()) {
-          return false;
-        }
-      }
-
-      if (selectedChain !== "all") {
-        if (entry.chain.toLowerCase() !== selectedChain.toLowerCase()) {
-          return false;
-        }
-      }
-
-      return true;
+      const protocolMatch =
+        selectedProtocol === "all" ||
+        entry.protocol.toLowerCase() === selectedProtocol.toLowerCase();
+      const chainMatch =
+        selectedChain === "all" ||
+        entry.chain.toLowerCase() === selectedChain.toLowerCase();
+      return protocolMatch && chainMatch;
     });
 
     const set = new Set<string>();
@@ -139,15 +147,10 @@ function HomeInner() {
 
   useEffect(() => {
     if (selectedCurator === "all") return;
+    if (dynamicIndex.length === 0) return;
     const isValid = curators.some((c) => c.value === selectedCurator);
     if (!isValid) updateParams({ curator: "all" });
-  }, [selectedCurator, curators]);
-
-  const apySortOptions = [
-    { label: "Default", value: "default" },
-    { label: "APY: High to Low", value: "desc" },
-    { label: "APY: Low to High", value: "asc" },
-  ];
+  }, [selectedCurator, curators, updateParams, dynamicIndex.length]);
 
   const filteredResults = useMemo(() => {
     let results = dynamicIndex;
@@ -173,22 +176,28 @@ function HomeInner() {
       });
     }
 
-    if (selectedCurator !== "all") {
-      results = results.filter((entry) => entry.curator === selectedCurator);
+    if (apyMin.trim().length > 0 || apyMax.trim().length > 0) {
+      const minPct = Number(apyMin);
+      const maxPct = Number(apyMax);
+      const min = Number.isFinite(minPct) ? minPct : null;
+      const max = Number.isFinite(maxPct) ? maxPct : null;
+
+      results = results.filter((entry) => {
+        const apy = typeof entry.apy === "number" ? entry.apy : null;
+        if (apy == null) return false;
+
+        // Normalize to percent for comparison.
+        // Some adapters emit APY as a fraction (0.02 == 2%), others emit percent (2 == 2%).
+        const apyPercent = apy > 1 ? apy : apy * 100;
+
+        if (min != null && apyPercent < min) return false;
+        if (max != null && apyPercent > max) return false;
+        return true;
+      });
     }
 
-    if (apySort !== "default") {
-      const dir = apySort === "asc" ? "asc" : "desc";
-      results = [...results].sort((a, b) => {
-        const aApy = typeof a.apy === "number" ? a.apy : null;
-        const bApy = typeof b.apy === "number" ? b.apy : null;
-
-        if (aApy == null && bApy == null) return 0;
-        if (aApy == null) return 1;
-        if (bApy == null) return -1;
-
-        return dir === "asc" ? aApy - bApy : bApy - aApy;
-      });
+    if (selectedCurator !== "all") {
+      results = results.filter((entry) => entry.curator === selectedCurator);
     }
 
     return results;
@@ -196,40 +205,23 @@ function HomeInner() {
     selectedProtocol,
     selectedChain,
     selectedCurator,
-    apySort,
+    apyMin,
+    apyMax,
     query,
     dynamicIndex,
   ]);
-
-  const updateParams = (newParams: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (
-        value === null ||
-        (value === "all" &&
-          (key === "protocol" || key === "curator" || key === "chain")) ||
-        (value === "default" && key === "apySort") ||
-        (!value && key === "q")
-      ) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
       {/* Central Search Section */}
       <div
         className={cn(
-          "flex flex-col items-center transition-all duration-700 ease-in-out px-6 pt-[25vh] pb-20",
+          "flex flex-col items-center transition-all duration-700 ease-in-out px-6 pt-[18vh] pb-16",
         )}
       >
         <div
           className={cn(
-            "w-full max-w-3xl flex flex-col items-center gap-8 transition-all duration-700",
+            "w-full max-w-3xl flex flex-col items-center gap-6 transition-all duration-700",
           )}
         >
           {/* Logo */}
@@ -242,28 +234,28 @@ function HomeInner() {
             <div
               className={cn(
                 "bg-black rounded-2xl flex items-center justify-center shadow-2xl shadow-black/10 transition-all",
-                "w-20 h-20 mb-2",
+                "w-16 h-16 mb-1",
               )}
             >
-              <Activity className={cn("text-[#00FF85]", "w-10 h-10")} />
+              <Activity className={cn("text-[#00FF85]", "w-8 h-8")} />
             </div>
             <div>
               <h1
                 className={cn(
                   "font-black tracking-tighter uppercase italic leading-none transition-all",
-                  "text-4xl",
+                  "text-3xl",
                 )}
               >
                 Exposure
               </h1>
-              <p className="text-[12px] font-bold text-black/30 uppercase tracking-[0.4em] mt-3">
+              <p className="text-[10px] font-bold text-black/30 uppercase tracking-[0.4em] mt-2">
                 Institutional Risk Registry
               </p>
             </div>
           </div>
 
           {/* Filter Pills Row */}
-          <div className="flex items-center justify-center gap-3 pb-2 -mx-2 px-2 transition-all duration-700">
+          <div className="flex items-center justify-center gap-2 pb-1 -mx-2 px-2 transition-all duration-700">
             <FilterPill
               label="Protocol"
               value={selectedProtocol}
@@ -305,21 +297,68 @@ function HomeInner() {
               }
             />
 
+            <div
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 border rounded-full transition-all duration-200 group",
+                apyMin || apyMax
+                  ? "bg-black text-white border-black shadow-lg shadow-black/10"
+                  : "bg-white border-black/10 hover:border-black/30 text-black",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest whitespace-nowrap",
+                  apyMin || apyMax ? "text-white/40" : "text-black/40",
+                )}
+              >
+                APY
+              </span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  inputMode="decimal"
+                  placeholder="MIN"
+                  value={apyMin}
+                  onChange={(e) => {
+                    updateParams({ apyMin: e.target.value });
+                  }}
+                  className={cn(
+                    "w-10 bg-transparent text-[10px] font-bold uppercase tracking-widest placeholder:text-black/20 focus:outline-none",
+                    apyMin || apyMax
+                      ? "text-white placeholder:text-white/20"
+                      : "text-black",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-[10px] font-bold opacity-20",
+                    apyMin || apyMax ? "text-white" : "text-black",
+                  )}
+                >
+                  -
+                </span>
+                <input
+                  inputMode="decimal"
+                  placeholder="MAX"
+                  value={apyMax}
+                  onChange={(e) => {
+                    updateParams({ apyMax: e.target.value });
+                  }}
+                  className={cn(
+                    "w-10 bg-transparent text-[10px] font-bold uppercase tracking-widest placeholder:text-black/20 focus:outline-none",
+                    apyMin || apyMax
+                      ? "text-white placeholder:text-white/20"
+                      : "text-black",
+                  )}
+                />
+              </div>
+            </div>
+
             <FilterPill
               label="Curator"
               value={selectedCurator}
               options={curators}
               onChange={(v) => updateParams({ curator: v })}
             />
-
-            {isSearchActive && (
-              <FilterPill
-                label="Sort"
-                value={apySort}
-                options={apySortOptions}
-                onChange={(v) => updateParams({ apySort: v })}
-              />
-            )}
           </div>
 
           {/* Search Bar Container */}
@@ -328,7 +367,6 @@ function HomeInner() {
               "relative group transition-all duration-500",
               "w-full max-w-2xl",
             )}
-            ref={dropdownRef}
           >
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-black/20 group-focus-within:text-black transition-colors" />
             <input
@@ -336,19 +374,12 @@ function HomeInner() {
               type="text"
               placeholder="Search assets, protocols, or chains..."
               value={query}
-              onFocus={() => setIsFocused(true)}
               onChange={(e) => {
                 updateParams({ q: e.target.value });
-                setIsFocused(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setIsFocused(false);
-                }
               }}
               className={cn(
-                "w-full pl-14 pr-16 py-5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-[12px] focus:ring-black/[0.015] transition-all placeholder:text-black/10",
-                "text-sm shadow-2xl shadow-black/[0.02]",
+                "w-full pl-14 pr-16 py-3.5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-8 focus:ring-black/[0.01] transition-all placeholder:text-black/10",
+                "text-xs shadow-xl shadow-black/[0.01]",
               )}
             />
             <div className="hidden sm:flex absolute right-6 top-1/2 -translate-y-1/2 items-center gap-2 px-2.5 py-1.5 bg-black/5 border border-black/5 rounded-lg text-[9px] font-black text-black/40 uppercase tracking-widest pointer-events-none">
@@ -364,7 +395,6 @@ function HomeInner() {
                       <Link
                         key={`${result.id}-${result.chain}-${result.protocol}`}
                         href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
-                        onClick={() => setIsFocused(false)}
                         className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
                       >
                         <div className="flex items-center gap-4">

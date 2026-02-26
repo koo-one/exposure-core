@@ -110,7 +110,7 @@ export default function AssetTreeMap({
 
         return node.name;
       })(),
-      value: Math.abs(c.value),
+      value: c.value,
       originalValue: c.edge.allocationUsd,
       percent: c.percent,
       nodeId: c.id,
@@ -123,13 +123,15 @@ export default function AssetTreeMap({
     // Others aggregation logic
     // Goal: group physically small tiles.
     // We approximate physical size via area: tile area ~= percent * containerArea.
-    const MIN_TILE_AREA_PX = 2800; // ~53x53px
-    const MIN_COUNT = 3;
-    const MIN_MAJOR_COUNT = 6;
+    const OTHERS_AGGREGATION_MIN_TILE_AREA_PX = 2800; // ~53x53px
+    const OTHERS_AGGREGATION_MIN_COUNT = 3;
+    const OTHERS_AGGREGATION_MIN_MAJOR_COUNT = 6;
 
     const containerArea = containerSize.width * containerSize.height;
     const minPercentByArea =
-      containerArea > 0 ? MIN_TILE_AREA_PX / containerArea : 0.005;
+      containerArea > 0
+        ? OTHERS_AGGREGATION_MIN_TILE_AREA_PX / containerArea
+        : 0.005;
     const MIN_PERCENT = Math.min(0.02, Math.max(0.001, minPercentByArea));
 
     const sorted = [...mappedChildren].sort((a, b) => b.value - a.value);
@@ -138,13 +140,16 @@ export default function AssetTreeMap({
     let minor = sorted.filter((c) => c.percent < MIN_PERCENT);
 
     // If everything is tiny, keep a few largest tiles visible (avoid a full-screen "OTHERS" tile).
-    if (major.length === 0 && sorted.length > MIN_MAJOR_COUNT) {
-      major = sorted.slice(0, MIN_MAJOR_COUNT);
+    if (
+      major.length === 0 &&
+      sorted.length > OTHERS_AGGREGATION_MIN_MAJOR_COUNT
+    ) {
+      major = sorted.slice(0, OTHERS_AGGREGATION_MIN_MAJOR_COUNT);
       const majorIds = new Set(major.map((c) => c.nodeId));
       minor = sorted.filter((c) => !majorIds.has(c.nodeId));
     }
 
-    if (minor.length >= MIN_COUNT) {
+    if (minor.length >= OTHERS_AGGREGATION_MIN_COUNT) {
       const minorTotalValue = minor.reduce((sum, c) => sum + c.value, 0);
       const minorTotalPercent = minor.reduce((sum, c) => sum + c.percent, 0);
 
