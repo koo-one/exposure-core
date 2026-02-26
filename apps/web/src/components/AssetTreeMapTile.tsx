@@ -1,7 +1,7 @@
 import type React from "react";
 
 import type { GraphNode } from "@/types";
-import { getNodeLogoPath } from "@/lib/logos";
+import { getNodeLogos } from "@/lib/logos";
 import { currencyFormatter } from "@/utils/formatters";
 
 interface TreemapTileDatum extends Record<string, unknown> {
@@ -88,25 +88,21 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const isPressed = pressedNodeId === nodeId;
   const originalValue = dataItem.originalValue ?? value;
 
-  const fill = "#E6EBF8"; 
+  const fill = "#E6EBF8";
   const stroke = "#000000";
   const monoFont = "'JetBrains Mono', monospace";
 
-  const logoPath = getNodeLogoPath(fullNode);
-  const showLogo = logoPath && width > 60 && height > 60;
+  const logoPaths = getNodeLogos(fullNode);
+  const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
 
   const clipId = `clip_${sanitizeSvgId(String(nodeId))}`;
 
   const fontSize = 13;
   const horizontalPadding = 12;
   const availableTextWidth = Math.max(0, width - horizontalPadding * 2);
-  
+
   const displayText = `${name} ${currencyFormatter.format(originalValue)}`;
-  const safeText = ellipsizeToWidth(
-    displayText,
-    availableTextWidth,
-    fontSize,
-  );
+  const safeText = ellipsizeToWidth(displayText, availableTextWidth, fontSize);
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
@@ -140,7 +136,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           <rect x={x} y={y} width={width} height={height} />
         </clipPath>
       </defs>
-      
+
       <rect
         x={x}
         y={y}
@@ -190,23 +186,25 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           vectorEffect="non-scaling-stroke"
         />
       )}
-      
+
       <g clipPath={`url(#${clipId})`}>
-        {showLogo && logoPath && (
-          <image
-            href={logoPath}
-            x={x + 8}
-            y={y + 8}
-            height="12"
-            width="12"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        )}
-        
+        {showLogos &&
+          logoPaths.map((logoPath, idx) => (
+            <image
+              key={logoPath}
+              href={logoPath}
+              x={x + 8 + idx * 12}
+              y={y + 8}
+              height="18"
+              width="18"
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ))}
+
         {width > 40 && height > 20 && (
           <text
-            x={x + 8}
-            y={y + 18}
+            x={showLogos ? x + 16 + logoPaths.length * 12 : x + 8}
+            y={y + 21}
             textAnchor="start"
             fill="#000000"
             fontSize={fontSize}

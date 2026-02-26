@@ -5,10 +5,12 @@ import type { Adapter } from "../types";
 import {
   fetchEulerEarnVaults,
   fetchEulerEvkVaults,
+  fetchEulerLabelEntities,
   fetchEulerLabelsVaults,
   fetchEulerPrices,
   fetchEulerVaultOpenInterest,
   type EulerEarnVault,
+  type EulerLabelEntity,
   type EulerLabelsVault,
   type EulerEvkVault,
 } from "./metrics";
@@ -62,9 +64,32 @@ export interface EulerCatalog {
   earnVaults: EulerEarnVault[];
   evkVaultMap: Map<Address, EulerEvkVault>;
   labelsByVault: Map<string, EulerLabelsVault>;
+  entitiesById: Map<string, EulerLabelEntity>;
+  entityNameByAddress: Map<string, string>;
   pricesByAsset: Map<Address, number>;
   openInterestByLiability: Map<Address, Map<Address, number>>;
 }
+
+const resolveEulerVaultCurator = (
+  labelsByVault: Map<string, EulerLabelsVault>,
+  entitiesById: Map<string, EulerLabelEntity>,
+  vaultId: Address,
+): string | null => {
+  const record = labelsByVault.get(vaultId.toLowerCase());
+  const entity = record?.entity;
+  if (!entity) return null;
+
+  const ids = Array.isArray(entity) ? entity : [entity];
+  const names = ids
+    .map((id) => entitiesById.get(id)?.name ?? id)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (names.length === 0) return null;
+
+  // Stable display string for filtering.
+  return names.join(", ");
+};
 
 export type EulerAllocation =
   | {
@@ -72,6 +97,8 @@ export type EulerAllocation =
       earnVault: EulerEarnVault;
       evkVaultMap: Map<Address, EulerEvkVault>;
       labelsByVault: Map<string, EulerLabelsVault>;
+      entitiesById: Map<string, EulerLabelEntity>;
+      entityNameByAddress: Map<string, string>;
       pricesByAsset: Map<Address, number>;
     }
   | {
@@ -80,6 +107,8 @@ export type EulerAllocation =
       collateralOpenInterestUsd: Map<Address, number>;
       evkVaultMap: Map<Address, EulerEvkVault>;
       labelsByVault: Map<string, EulerLabelsVault>;
+      entitiesById: Map<string, EulerLabelEntity>;
+      entityNameByAddress: Map<string, string>;
       pricesByAsset: Map<Address, number>;
     };
 
@@ -109,14 +138,26 @@ export const createEulerAdapter = (): Adapter<
       const [
         earnVaults,
         labelsByVault,
+        entitiesById,
         pricesByAsset,
         openInterestByLiability,
       ] = await Promise.all([
         fetchEulerEarnVaults(),
         fetchEulerLabelsVaults(1),
+        fetchEulerLabelEntities(1),
         fetchEulerPrices(1),
         fetchEulerVaultOpenInterest(1),
       ]);
+
+      const entityNameByAddress = new Map<string, string>();
+      for (const entity of entitiesById.values()) {
+        const name = entity.name?.trim();
+        if (!name) continue;
+        const addresses = entity.addresses ?? {};
+        for (const addr of Object.keys(addresses)) {
+          entityNameByAddress.set(addr.toLowerCase(), name);
+        }
+      }
 
       // We derive EVK addresses from open-interest (Euler UI weight model) to define the EVK root
       // universe + collateral edges, and we also include Earn strategy EVKs so Earn -> EVK leaves
@@ -151,6 +192,8 @@ export const createEulerAdapter = (): Adapter<
         earnVaults,
         evkVaultMap,
         labelsByVault,
+        entitiesById,
+        entityNameByAddress,
         pricesByAsset,
         openInterestByLiability,
       };
@@ -168,6 +211,8 @@ export const createEulerAdapter = (): Adapter<
             earnVault,
             evkVaultMap: catalog.evkVaultMap,
             labelsByVault: catalog.labelsByVault,
+            entitiesById: catalog.entitiesById,
+            entityNameByAddress: catalog.entityNameByAddress,
             pricesByAsset: catalog.pricesByAsset,
           },
         ];
@@ -189,6 +234,8 @@ export const createEulerAdapter = (): Adapter<
             collateralOpenInterestUsd,
             evkVaultMap: catalog.evkVaultMap,
             labelsByVault: catalog.labelsByVault,
+            entitiesById: catalog.entitiesById,
+            entityNameByAddress: catalog.entityNameByAddress,
             pricesByAsset: catalog.pricesByAsset,
           },
         ];
@@ -224,7 +271,10 @@ export const createEulerAdapter = (): Adapter<
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
-            curator: vault.curator,
+            curator: vault.curator
+              ? (alloc.entityNameByAddress.get(vault.curator.toLowerCase()) ??
+                null)
+              : null,
           },
           tvlUsd,
           apy: 0,
@@ -249,7 +299,15 @@ export const createEulerAdapter = (): Adapter<
         chain: EULER_CHAIN,
         name: getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name,
         protocol: EULER_PROTOCOL,
-        details: { kind: "Lending Market" },
+        details: {
+          kind: "Yield",
+          curator:
+            resolveEulerVaultCurator(
+              alloc.labelsByVault,
+              alloc.entitiesById,
+              vault.id,
+            ) ?? null,
+        },
         tvlUsd,
         apy: parseRayApy(vault.state?.supplyApy),
       } satisfies Node;
@@ -304,7 +362,15 @@ export const createEulerAdapter = (): Adapter<
             chain: EULER_CHAIN,
             name: evkVaultDisplayName ?? evkVault.name,
             protocol: EULER_PROTOCOL,
-            details: { kind: "Lending Market" },
+            details: {
+              kind: "Yield",
+              curator:
+                resolveEulerVaultCurator(
+                  allocation.labelsByVault,
+                  allocation.entitiesById,
+                  evkVault.id ?? strategy.strategy,
+                ) ?? null,
+            },
             apy: parseRayApy(evkVault.state?.supplyApy),
           });
 
@@ -340,7 +406,15 @@ export const createEulerAdapter = (): Adapter<
           chain: EULER_CHAIN,
           name: collateralDisplayName ?? evkVault.name,
           protocol: EULER_PROTOCOL,
-          details: { kind: "Lending Market" },
+          details: {
+            kind: "Yield",
+            curator:
+              resolveEulerVaultCurator(
+                allocation.labelsByVault,
+                allocation.entitiesById,
+                collateralVault,
+              ) ?? null,
+          },
           apy: parseRayApy(evkVault.state?.supplyApy),
         });
 

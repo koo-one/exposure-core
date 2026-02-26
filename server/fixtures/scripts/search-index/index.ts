@@ -10,6 +10,11 @@ interface SnapshotNode {
   id: string;
   name: string;
   protocol?: string;
+  apy?: number | null;
+  details?: {
+    kind?: string;
+    curator?: string | null;
+  } | null;
 }
 
 interface Snapshot {
@@ -22,6 +27,8 @@ interface SearchIndexEntry {
   protocol: string;
   name: string;
   nodeId: string;
+  apy: number | null;
+  curator: string | null;
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -51,6 +58,10 @@ const collectSearchIndexEntries = async (
       const root = snapshot.nodes[0];
       if (!root?.id || !root.name) continue;
 
+      const apy = typeof root.apy === "number" ? root.apy : null;
+      const curator =
+        typeof root.details?.curator === "string" ? root.details.curator : null;
+
       const idParts = root.id.split(":");
       const protocolFromId = idParts[1] ?? "unknown";
       let protocol = (root.protocol ?? protocolFromId).toLowerCase();
@@ -68,6 +79,8 @@ const collectSearchIndexEntries = async (
         protocol,
         name: root.name,
         nodeId: root.id,
+        apy,
+        curator,
       });
     }
   }

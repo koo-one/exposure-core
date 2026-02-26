@@ -4,4 +4,6 @@ export interface SearchIndexEntry {
   protocol: string;
   name: string;
   nodeId: string;
+  apy?: number | null;
+  curator?: string | null;
 }

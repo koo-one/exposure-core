@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GraphSnapshot, GraphNode } from "@/types";
 import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
 import { formatChainLabel } from "@/utils/formatters";
+
 interface UseAssetDataProps {
   id: string;
   chain?: string;
@@ -15,6 +17,9 @@ export function useAssetData({
   protocol,
   focus,
 }: UseAssetDataProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [graphData, setGraphData] = useState<GraphSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [tvl, setTvl] = useState<number | null>(null);
@@ -22,6 +27,21 @@ export function useAssetData({
   const [focusRootNodeId, setFocusRootNodeId] = useState<string | null>(null);
   const [focusStack, setFocusStack] = useState<string[]>([]);
   const [pageTitle, setPageTitle] = useState<string>(id);
+
+  // Synchronize focusRootNodeId with URL
+  useEffect(() => {
+    if (!focusRootNodeId) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (focusRootNodeId === rootNode?.id) {
+      params.delete("focus");
+    } else {
+      params.set("focus", focusRootNodeId);
+    }
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    router.replace(newUrl, { scroll: false });
+  }, [focusRootNodeId]);
 
   useEffect(() => {
     if (!id) return;
@@ -44,28 +64,28 @@ export function useAssetData({
         const json: GraphSnapshot = await response.json();
         setGraphData(json);
 
-        const rootNode = resolveRootNode(json.nodes, id, chain);
+        const resolvedRoot = resolveRootNode(json.nodes, id, chain);
 
-        if (rootNode) {
+        if (resolvedRoot) {
           const normalizedFocus = focus?.toLowerCase();
           const focusNode = normalizedFocus
             ? json.nodes.find((n) => n.id.toLowerCase() === normalizedFocus)
             : undefined;
 
-          const initial = focusNode || rootNode;
+          const initial = focusNode || resolvedRoot;
           setSelectedNode(initial);
           setFocusRootNodeId(initial.id);
           setFocusStack([]);
 
-          const chainLabel = formatChainLabel(rootNode.chain ?? chain);
-          const titleNode = focusNode || rootNode;
+          const chainLabel = formatChainLabel(resolvedRoot.chain ?? chain);
+          const titleNode = focusNode || resolvedRoot;
           setPageTitle(`${chainLabel} ${titleNode.name}`);
 
-          if (rootNode.tvlUsd) {
-            setTvl(rootNode.tvlUsd);
+          if (resolvedRoot.tvlUsd) {
+            setTvl(resolvedRoot.tvlUsd);
           } else {
             const { totalOutgoingUsd } = calculateNodeContext(
-              rootNode,
+              resolvedRoot,
               json.edges,
             );
             setTvl(totalOutgoingUsd);
@@ -105,14 +125,21 @@ export function useAssetData({
     if (!graphData) return;
 
     const prevId = focusStack[focusStack.length - 1];
-    if (!prevId) return;
+    if (!prevId) {
+      // If stack is empty but we are focused on something that isn't the root, reset to root
+      if (rootNode && focusRootNodeId !== rootNode.id) {
+        setFocusRootNodeId(rootNode.id);
+        setSelectedNode(rootNode);
+      }
+      return;
+    }
 
     setFocusStack((prev) => prev.slice(0, -1));
     setFocusRootNodeId(prevId);
 
     const prevNode = graphData.nodes.find((n) => n.id === prevId);
     if (prevNode) setSelectedNode(prevNode);
-  }, [graphData, focusStack]);
+  }, [graphData, focusStack, focusRootNodeId, rootNode]);
 
   return {
     graphData,
@@ -127,6 +154,6 @@ export function useAssetData({
     rootNode,
     applyLocalDrilldown,
     handleBackOneStep,
-    isAtAssetRoot: focusStack.length === 0,
+    isAtAssetRoot: focusRootNodeId === rootNode?.id,
   };
 }
