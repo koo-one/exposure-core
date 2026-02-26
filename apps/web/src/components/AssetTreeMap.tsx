@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
@@ -34,6 +34,27 @@ export default function AssetTreeMap({
   onSelectOthers,
 }: AssetTreeMapProps) {
   const [pressedNodeId, setPressedNodeId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setContainerSize({
+        width: Math.max(0, Math.floor(rect.width)),
+        height: Math.max(0, Math.floor(rect.height)),
+      });
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const chartData = useMemo(() => {
     if (!data || !rootNodeId) return [];
@@ -100,23 +121,33 @@ export default function AssetTreeMap({
     if (isOthersView) return mappedChildren;
 
     // Others aggregation logic
-    const TOP_N = 20;
-    const MIN_PERCENT = 0.005; // 0.5%
+    // Goal: group physically small tiles.
+    // We approximate physical size via area: tile area ~= percent * containerArea.
+    const MIN_TILE_AREA_PX = 2800; // ~53x53px
     const MIN_COUNT = 3;
-    const MIN_TOTAL_PERCENT = 0.01; // 1%
+    const MIN_MAJOR_COUNT = 6;
+
+    const containerArea = containerSize.width * containerSize.height;
+    const minPercentByArea =
+      containerArea > 0 ? MIN_TILE_AREA_PX / containerArea : 0.005;
+    const MIN_PERCENT = Math.min(0.02, Math.max(0.001, minPercentByArea));
 
     const sorted = [...mappedChildren].sort((a, b) => b.value - a.value);
-    const major = sorted.filter(
-      (c, idx) => idx < TOP_N || c.percent >= MIN_PERCENT,
-    );
-    const minor = sorted.filter(
-      (c, idx) => idx >= TOP_N && c.percent < MIN_PERCENT,
-    );
 
-    const minorTotalValue = minor.reduce((sum, c) => sum + c.value, 0);
-    const minorTotalPercent = minor.reduce((sum, c) => sum + c.percent, 0);
+    let major = sorted.filter((c) => c.percent >= MIN_PERCENT);
+    let minor = sorted.filter((c) => c.percent < MIN_PERCENT);
 
-    if (minor.length >= MIN_COUNT && minorTotalPercent >= MIN_TOTAL_PERCENT) {
+    // If everything is tiny, keep a few largest tiles visible (avoid a full-screen "OTHERS" tile).
+    if (major.length === 0 && sorted.length > MIN_MAJOR_COUNT) {
+      major = sorted.slice(0, MIN_MAJOR_COUNT);
+      const majorIds = new Set(major.map((c) => c.nodeId));
+      minor = sorted.filter((c) => !majorIds.has(c.nodeId));
+    }
+
+    if (minor.length >= MIN_COUNT) {
+      const minorTotalValue = minor.reduce((sum, c) => sum + c.value, 0);
+      const minorTotalPercent = minor.reduce((sum, c) => sum + c.percent, 0);
+
       return [
         ...major,
         {
@@ -132,8 +163,8 @@ export default function AssetTreeMap({
       ];
     }
 
-    return mappedChildren;
-  }, [data, rootNodeId, isOthersView]);
+    return sorted;
+  }, [data, rootNodeId, isOthersView, othersChildrenIds, containerSize]);
 
   if (!data || chartData.length === 0) {
     return (
@@ -144,7 +175,7 @@ export default function AssetTreeMap({
   }
 
   return (
-    <div className="w-full h-full bg-[#E6EBF8] relative">
+    <div ref={containerRef} className="w-full h-full bg-[#E6EBF8] relative">
       {isOthersView && (
         <div className="absolute top-10 right-10 z-20 pointer-events-none">
           <div className="px-5 py-2.5 bg-black border border-black text-[9px] font-black text-[#00FF85] uppercase tracking-[0.3em] shadow-xl">

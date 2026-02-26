@@ -41,7 +41,7 @@ function HomeInner() {
   // Active search includes text query OR any filter/sort.
   const isSearchActive = !!(query || hasFilters);
 
-  const showDropdown = isFocused && query.length > 0;
+  const showDropdown = isFocused && (query.length > 0 || hasFilters);
 
   useEffect(() => {
     const load = async () => {
@@ -106,8 +106,24 @@ function HomeInner() {
   }, [dynamicIndex]);
 
   const curators = useMemo(() => {
+    const scope = dynamicIndex.filter((entry) => {
+      if (selectedProtocol !== "all") {
+        if (entry.protocol.toLowerCase() !== selectedProtocol.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if (selectedChain !== "all") {
+        if (entry.chain.toLowerCase() !== selectedChain.toLowerCase()) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     const set = new Set<string>();
-    for (const entry of dynamicIndex) {
+    for (const entry of scope) {
       if (typeof entry.curator !== "string") continue;
       const value = entry.curator.trim();
       if (!value) continue;
@@ -119,7 +135,13 @@ function HomeInner() {
         .sort((a, b) => a.localeCompare(b))
         .map((c) => ({ label: c, value: c })),
     ];
-  }, [dynamicIndex]);
+  }, [dynamicIndex, selectedProtocol, selectedChain]);
+
+  useEffect(() => {
+    if (selectedCurator === "all") return;
+    const isValid = curators.some((c) => c.value === selectedCurator);
+    if (!isValid) updateParams({ curator: "all" });
+  }, [selectedCurator, curators]);
 
   const apySortOptions = [
     { label: "Default", value: "default" },
@@ -240,6 +262,66 @@ function HomeInner() {
             </div>
           </div>
 
+          {/* Filter Pills Row */}
+          <div className="flex items-center justify-center gap-3 pb-2 -mx-2 px-2 transition-all duration-700">
+            <FilterPill
+              label="Protocol"
+              value={selectedProtocol}
+              options={protocols}
+              onChange={(v) => updateParams({ protocol: v })}
+              icon={
+                selectedProtocol !== "all" &&
+                hasProtocolLogo(selectedProtocol) ? (
+                  <Image
+                    src={getProtocolLogoPath(selectedProtocol)}
+                    alt={selectedProtocol}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Globe className="w-3.5 h-3.5 text-black/20" />
+                )
+              }
+            />
+
+            <FilterPill
+              label="Chain"
+              value={selectedChain}
+              options={chains}
+              onChange={(v) => updateParams({ chain: v })}
+              icon={
+                selectedChain !== "all" && hasChainLogo(selectedChain) ? (
+                  <Image
+                    src={getChainLogoPath(selectedChain)}
+                    alt={selectedChain}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Activity className="w-3.5 h-3.5 text-black/20" />
+                )
+              }
+            />
+
+            <FilterPill
+              label="Curator"
+              value={selectedCurator}
+              options={curators}
+              onChange={(v) => updateParams({ curator: v })}
+            />
+
+            {isSearchActive && (
+              <FilterPill
+                label="Sort"
+                value={apySort}
+                options={apySortOptions}
+                onChange={(v) => updateParams({ apySort: v })}
+              />
+            )}
+          </div>
+
           {/* Search Bar Container */}
           <div
             className={cn(
@@ -334,71 +416,6 @@ function HomeInner() {
 
           {/* Stats / Mobile View Logic */}
           <div className="hidden lg:flex items-center gap-6 shrink-0" />
-        </div>
-
-        {/* Filter Pills Row */}
-        <div
-          className={cn(
-            "flex items-center justify-center gap-3 pb-2 -mx-2 px-2 transition-all duration-700",
-            "mt-10",
-          )}
-        >
-          <FilterPill
-            label="Protocol"
-            value={selectedProtocol}
-            options={protocols}
-            onChange={(v) => updateParams({ protocol: v })}
-            icon={
-              selectedProtocol !== "all" &&
-              hasProtocolLogo(selectedProtocol) ? (
-                <Image
-                  src={getProtocolLogoPath(selectedProtocol)}
-                  alt={selectedProtocol}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
-              ) : (
-                <Globe className="w-3.5 h-3.5 text-black/20" />
-              )
-            }
-          />
-
-          <FilterPill
-            label="Chain"
-            value={selectedChain}
-            options={chains}
-            onChange={(v) => updateParams({ chain: v })}
-            icon={
-              selectedChain !== "all" && hasChainLogo(selectedChain) ? (
-                <Image
-                  src={getChainLogoPath(selectedChain)}
-                  alt={selectedChain}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
-              ) : (
-                <Activity className="w-3.5 h-3.5 text-black/20" />
-              )
-            }
-          />
-
-          <FilterPill
-            label="Curator"
-            value={selectedCurator}
-            options={curators}
-            onChange={(v) => updateParams({ curator: v })}
-          />
-
-          {isSearchActive && (
-            <FilterPill
-              label="Sort"
-              value={apySort}
-              options={apySortOptions}
-              onChange={(v) => updateParams({ apySort: v })}
-            />
-          )}
         </div>
       </div>
 

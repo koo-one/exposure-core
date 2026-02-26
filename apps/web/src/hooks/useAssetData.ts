@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GraphSnapshot, GraphNode } from "@/types";
 import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
-import { formatChainLabel } from "@/utils/formatters";
 
 interface UseAssetDataProps {
   id: string;
@@ -87,9 +86,8 @@ export function useAssetData({
           setFocusRootNodeId(initial.id);
           setFocusStack([]);
 
-          const chainLabel = formatChainLabel(resolvedRoot.chain ?? chain);
           const titleNode = focusNode || resolvedRoot;
-          setPageTitle(`${chainLabel} ${titleNode.name}`);
+          setPageTitle(titleNode.name);
 
           if (resolvedRoot.tvlUsd) {
             setTvl(resolvedRoot.tvlUsd);
@@ -110,7 +108,7 @@ export function useAssetData({
     };
 
     fetchData();
-  }, [id, chain, focus, protocol, formatChainLabel]);
+  }, [id, chain, focus, protocol]);
 
   const rootNode = useMemo(() => {
     if (!graphData) return null;
