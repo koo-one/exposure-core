@@ -27,6 +27,25 @@ import type { Address } from "viem";
 const EULER_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-mainnet/latest/gn";
 
+const EULER_LABELS_BASE_URL =
+  "https://raw.githubusercontent.com/euler-xyz/euler-labels/master";
+
+const EULER_INDEXER_BASE_URL = "https://indexer-main.euler.finance";
+
+const EULER_APP_API_BASE_URL = "https://app.euler.finance";
+
+const eulerLabelsVaultsUrl = (chainId: number): string =>
+  `${EULER_LABELS_BASE_URL}/${chainId}/vaults.json`;
+
+const eulerLabelsEntitiesUrl = (chainId: number): string =>
+  `${EULER_LABELS_BASE_URL}/${chainId}/entities.json`;
+
+const eulerOpenInterestUrl = (chainId: number): string =>
+  `${EULER_INDEXER_BASE_URL}/v1/vault/open-interest?chainId=${chainId}`;
+
+const eulerPriceUrl = (chainId: number): string =>
+  `${EULER_APP_API_BASE_URL}/api/v1/price?chainId=${chainId}`;
+
 export interface EulerEarnVault {
   id: Address;
   name: string;
@@ -146,6 +165,14 @@ export interface EulerLabelsVault {
   entity?: string | string[];
 }
 
+export interface EulerLabelEntity {
+  name: string;
+  logo?: string;
+  description?: string;
+  url?: string;
+  addresses?: Record<string, string>;
+}
+
 export interface EulerPriceRecord {
   price: number | string;
   timestamp?: number;
@@ -161,7 +188,7 @@ export interface EulerPriceRecord {
 export const fetchEulerLabelsVaults = async (
   chainId: number,
 ): Promise<Map<string, EulerLabelsVault>> => {
-  const url = `https://raw.githubusercontent.com/euler-xyz/euler-labels/master/${chainId}/vaults.json`;
+  const url = eulerLabelsVaultsUrl(chainId);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -175,6 +202,28 @@ export const fetchEulerLabelsVaults = async (
 
   for (const [address, record] of Object.entries(json)) {
     map.set(address.toLowerCase(), record);
+  }
+
+  return map;
+};
+
+export const fetchEulerLabelEntities = async (
+  chainId: number,
+): Promise<Map<string, EulerLabelEntity>> => {
+  const url = eulerLabelsEntitiesUrl(chainId);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Euler entities error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const json: Record<string, EulerLabelEntity> = await response.json();
+  const map = new Map<string, EulerLabelEntity>();
+
+  for (const [entityId, record] of Object.entries(json)) {
+    map.set(entityId, record);
   }
 
   return map;
@@ -202,7 +251,7 @@ type EulerOpenInterestResponse = Record<string, Record<string, number>>;
 export const fetchEulerVaultOpenInterest = async (
   chainId: number,
 ): Promise<Map<Address, Map<Address, number>>> => {
-  const url = `https://indexer-main.euler.finance/v1/vault/open-interest?chainId=${chainId}`;
+  const url = eulerOpenInterestUrl(chainId);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -248,7 +297,7 @@ export const fetchEulerVaultOpenInterest = async (
 export const fetchEulerPrices = async (
   chainId: number,
 ): Promise<Map<Address, number>> => {
-  const url = `https://app.euler.finance/api/v1/price?chainId=${chainId}`;
+  const url = eulerPriceUrl(chainId);
   const response = await fetch(url);
 
   if (!response.ok) {
