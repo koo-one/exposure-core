@@ -23,6 +23,22 @@ export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
   const shouldUpload = argv.includes("--upload");
 
+  const persistSnapshot = async (rootNodeId: string, snapshot: unknown) => {
+    const outPath = resolve(
+      root,
+      "fixtures",
+      "output",
+      "resolv",
+      `${rootNodeId}.json`,
+    );
+
+    await writeJsonFile(outPath, snapshot);
+
+    if (shouldUpload) {
+      await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
+    }
+  };
+
   const fetchImpl = createMockFetch({
     enabledProviders: ["debank"],
     allowRealFetch: true,
@@ -48,38 +64,14 @@ export const run = async (argv: string[]): Promise<void> => {
         throw new Error(`Missing root node id for asset: ${asset}`);
       }
 
-      const outPath = resolve(
-        root,
-        "fixtures",
-        "output",
-        "resolv",
-        `${rootNodeId}.json`,
-      );
-
-      await writeJsonFile(outPath, snapshot);
-
-      if (shouldUpload) {
-        await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
-      }
+      await persistSnapshot(rootNodeId, snapshot);
 
       const extraDeploymentNodeIds = getResolvDeploymentNodeIds(rootNodeId);
 
       for (const nextRootId of extraDeploymentNodeIds) {
         const depSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
 
-        const depOutPath = resolve(
-          root,
-          "fixtures",
-          "output",
-          "resolv",
-          `${nextRootId}.json`,
-        );
-
-        await writeJsonFile(depOutPath, depSnapshot);
-
-        if (shouldUpload) {
-          await putJsonToBlob(graphSnapshotBlobPath(nextRootId), depSnapshot);
-        }
+        await persistSnapshot(nextRootId, depSnapshot);
       }
     }
   });
