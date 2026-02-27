@@ -32,6 +32,17 @@ export interface ResolvMetrics {
 }
 
 export const fetchResolvMetrics = async (): Promise<ResolvMetrics> => {
+  // Local fixture runners and CI may not have a Dune API key.
+  // Instead of failing the entire `graphs:all` pipeline, return null metrics.
+  // This keeps graph snapshots/search index usable for UI iteration.
+  if (!process.env.DUNE_API_KEY) {
+    return {
+      asOf: new Date().toISOString(),
+      tvl: { usr: null, wstusr: null, rlp: null },
+      apy: { usr: null, rlp: null },
+    };
+  }
+
   const [tvl, stusrApr, rlpApr, stusrShare] = await Promise.all([
     runDuneQueryRow(QUERY_IDS.TVL),
     runDuneQueryRow(QUERY_IDS.STUSR_APR),

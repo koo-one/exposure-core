@@ -89,9 +89,27 @@ export function getNodeLogoPath(
  * If it's a lending market (e.g. "WETH/USDC"), it may return two logos.
  */
 export function getNodeLogos(
-  node: GraphNode | { name: string; protocol?: string | null },
+  node:
+    | GraphNode
+    | { name: string; protocol?: string | null; logoKeys?: string[] },
 ): string[] {
   const logos: string[] = [];
+
+  const logoKeys = (() => {
+    if (typeof node !== "object" || node == null) return null;
+    if (!("logoKeys" in node)) return null;
+    const raw = (node as { logoKeys?: unknown }).logoKeys;
+    if (!Array.isArray(raw)) return null;
+    const keys = raw.filter((v): v is string => typeof v === "string");
+    return keys.length > 0 ? keys : null;
+  })();
+
+  if (logoKeys) {
+    const paths = logoKeys
+      .map((k) => getAssetLogoPath(k))
+      .filter((p) => typeof p === "string" && p.length > 0);
+    if (paths.length > 0) return paths;
+  }
 
   const name = node.name.trim();
 

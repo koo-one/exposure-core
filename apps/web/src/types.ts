@@ -8,6 +8,8 @@ export interface GraphNode {
   id: string;
   chain?: string;
   name: string;
+  displayName?: string;
+  logoKeys?: string[];
   protocol?: string;
   details?: NodeDetails;
   apy?: number | null;

@@ -19,6 +19,29 @@ import {
 
 const EULER_PROTOCOL = "euler";
 
+const extractUnderlyingSymbol = (input: {
+  labelName: string;
+  vaultSymbol?: string | null;
+}): string | null => {
+  const rawSymbol = (input.vaultSymbol ?? "").trim();
+  if (rawSymbol) {
+    // Common Euler pattern: eUSD1-3, eUSDC, eWETH-1 -> USD1, USDC, WETH
+    const stripped = rawSymbol.replace(/^e/i, "");
+    const base = stripped.split(/[-_]/)[0]?.trim() ?? "";
+    if (/^[A-Za-z0-9.]+$/.test(base) && base.length >= 2 && base.length <= 10) {
+      return base;
+    }
+  }
+
+  const parts = input.labelName.trim().split(/\s+/).filter(Boolean);
+  const last = parts[parts.length - 1] ?? "";
+  if (/^[A-Za-z0-9.]+$/.test(last) && last.length >= 2 && last.length <= 10) {
+    return last;
+  }
+
+  return null;
+};
+
 /**
  * EulerEarnVault (subgraph) does not expose the underlying ERC-20 `decimals` for `earnVault.asset`.
  *
@@ -334,10 +357,20 @@ export const createEulerAdapter = (): Adapter<
           price == null ? 0 : totalAssets * price,
         );
 
+        const name =
+          getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name;
+        const underlying = extractUnderlyingSymbol({
+          labelName: name,
+          vaultSymbol: vault.symbol,
+        });
+
         return {
           id: eulerNodeId(chainKey, vault.id),
           chain: chainKey,
-          name: getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name,
+          name,
+          ...(underlying
+            ? { displayName: underlying, logoKeys: [underlying] }
+            : {}),
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
@@ -365,10 +398,20 @@ export const createEulerAdapter = (): Adapter<
       const total = Number(formatUnits(totalBorrows + cash, vault.decimals));
       const tvlUsd = roundToTwoDecimals(price == null ? total : total * price);
 
+      const name =
+        getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name;
+      const underlying = extractUnderlyingSymbol({
+        labelName: name,
+        vaultSymbol: vault.symbol,
+      });
+
       return {
         id: eulerNodeId(chainKey, vault.id),
         chain: chainKey,
-        name: getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name,
+        name,
+        ...(underlying
+          ? { displayName: underlying, logoKeys: [underlying] }
+          : {}),
         protocol: EULER_PROTOCOL,
         details: {
           kind: "Yield",
@@ -436,6 +479,16 @@ export const createEulerAdapter = (): Adapter<
             id: nodeId,
             chain: chainKey,
             name: evkVaultDisplayName ?? evkVault.name,
+            ...(() => {
+              const labelName = (evkVaultDisplayName ?? evkVault.name).trim();
+              const underlying = extractUnderlyingSymbol({
+                labelName,
+                vaultSymbol: evkVault.symbol,
+              });
+              return underlying
+                ? { displayName: underlying, logoKeys: [underlying] }
+                : {};
+            })(),
             protocol: EULER_PROTOCOL,
             details: {
               kind: "Yield",
@@ -482,6 +535,16 @@ export const createEulerAdapter = (): Adapter<
           id: nodeId,
           chain: chainKey,
           name: collateralDisplayName ?? evkVault.name,
+          ...(() => {
+            const labelName = (collateralDisplayName ?? evkVault.name).trim();
+            const underlying = extractUnderlyingSymbol({
+              labelName,
+              vaultSymbol: evkVault.symbol,
+            });
+            return underlying
+              ? { displayName: underlying, logoKeys: [underlying] }
+              : {};
+          })(),
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
