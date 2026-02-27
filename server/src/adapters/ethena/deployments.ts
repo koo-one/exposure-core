@@ -1,5 +1,3 @@
-import { normalizeNodeId, toDeploymentNodeIds } from "../deployments";
-
 const PROTOCOL = "ethena" as const;
 
 const USDE_CANONICAL_ROOT_ID =
@@ -18,25 +16,29 @@ const SUSDE_DEPLOYMENTS = {
   arb: "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
 } as const;
 
-const DEPLOYMENT_CONFIGS = [
-  { canonicalRootId: USDE_CANONICAL_ROOT_ID, chainToAddress: USDE_DEPLOYMENTS },
-  {
-    canonicalRootId: SUSDE_CANONICAL_ROOT_ID,
-    chainToAddress: SUSDE_DEPLOYMENTS,
-  },
-] as const;
+const toDeploymentNodeIds = (
+  canonicalRootId: string,
+  chainToAddress: Record<string, string>,
+): string[] => {
+  const canonical = canonicalRootId.trim().toLowerCase();
+
+  return Object.entries(chainToAddress)
+    .map(
+      ([chain, address]) =>
+        `${chain.trim().toLowerCase()}:${PROTOCOL}:${address.trim().toLowerCase()}`,
+    )
+    .filter((id) => id !== canonical);
+};
 
 export const getEthenaDeploymentNodeIds = (rootNodeId: string): string[] => {
-  const canonical = normalizeNodeId(rootNodeId);
+  const canonical = rootNodeId.trim().toLowerCase();
 
-  for (const config of DEPLOYMENT_CONFIGS) {
-    if (canonical !== normalizeNodeId(config.canonicalRootId)) continue;
+  if (canonical === USDE_CANONICAL_ROOT_ID) {
+    return toDeploymentNodeIds(USDE_CANONICAL_ROOT_ID, USDE_DEPLOYMENTS);
+  }
 
-    return toDeploymentNodeIds(
-      PROTOCOL,
-      config.canonicalRootId,
-      config.chainToAddress,
-    );
+  if (canonical === SUSDE_CANONICAL_ROOT_ID) {
+    return toDeploymentNodeIds(SUSDE_CANONICAL_ROOT_ID, SUSDE_DEPLOYMENTS);
   }
 
   return [];
