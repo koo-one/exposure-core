@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -58,6 +58,47 @@ export default function AssetPage() {
 
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
+
+  const [graphRootIds, setGraphRootIds] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const normalizeId = (value: string): string => value.trim().toLowerCase();
+
+    const load = async () => {
+      try {
+        const res = await fetch("/api/search-index");
+        if (!res.ok) return;
+        const json = (await res.json()) as unknown;
+        if (!Array.isArray(json)) return;
+
+        const set = new Set<string>();
+        for (const item of json) {
+          if (!item || typeof item !== "object") continue;
+          const rec = item as { nodeId?: unknown; id?: unknown };
+          const nodeId =
+            typeof rec.nodeId === "string"
+              ? rec.nodeId
+              : typeof rec.id === "string"
+                ? rec.id
+                : null;
+          if (!nodeId) continue;
+          set.add(normalizeId(nodeId));
+        }
+
+        if (!cancelled) setGraphRootIds(set);
+      } catch {
+        // ignore
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSelectOthers = (childIds: string[]) => {
     setOthersChildrenIds(childIds);
@@ -123,7 +164,9 @@ export default function AssetPage() {
     if (hasChildren) {
       applyLocalDrilldown(node);
     } else {
-      showTerminalToast(`${node.name} has no downstream allocations.`);
+      showTerminalToast(
+        `Terminal Node Reach: ${node.name} has no further downstream allocations.`,
+      );
     }
   };
 
@@ -268,6 +311,7 @@ export default function AssetPage() {
           <AssetTreeMap
             data={graphData}
             rootNodeId={focusRootNodeId || rootNode?.id}
+            graphRootIds={graphRootIds}
             onSelect={handleDrilldownSelect}
             onSelectOthers={handleSelectOthers}
             isOthersView={isOthersView}

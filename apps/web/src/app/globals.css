@@ -62,6 +62,18 @@ body {
   }
 }
 
+@keyframes exposure-tile-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.exposure-tile-shake {
+  animation: exposure-tile-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
