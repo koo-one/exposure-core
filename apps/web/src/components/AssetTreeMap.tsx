@@ -6,10 +6,12 @@ import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
 import { TreemapHoverCard } from "@/components/TreemapHoverCard";
 import { AssetTreeMapTile } from "@/components/AssetTreeMapTile";
+import { normalizeId } from "@/utils/formatters";
 
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
   rootNodeId?: string;
+  graphRootIds?: Set<string> | null;
   onSelect: (
     node: GraphNode,
     meta?: {
@@ -26,6 +28,7 @@ interface AssetTreeMapProps {
 export default function AssetTreeMap({
   data,
   rootNodeId,
+  graphRootIds,
   onSelect,
   selectedNodeId,
   lastClick,
@@ -65,22 +68,32 @@ export default function AssetTreeMap({
     let children = getDirectChildren(root, data.nodes, data.edges);
 
     if (isOthersView && othersChildrenIds) {
-      children = children.filter((c) => othersChildrenIds.includes(c.id));
+      const scope = new Set(
+        othersChildrenIds.map((id) => id.trim().toLowerCase()),
+      );
+      children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
     }
 
-    const nodesById = new Map(data.nodes.map((n) => [n.id, n] as const));
+    const nodesById = new Map(
+      data.nodes.map((n) => [normalizeId(n.id), n] as const),
+    );
     const edgesByFrom = new Map<string, GraphEdge[]>();
     for (const edge of data.edges) {
-      const list = edgesByFrom.get(edge.from);
+      const fromId = normalizeId(edge.from);
+      const list = edgesByFrom.get(fromId);
       if (list) list.push(edge);
-      else edgesByFrom.set(edge.from, [edge]);
+      else edgesByFrom.set(fromId, [edge]);
     }
+
+    const isTerminalNodeId = (nodeId: string): boolean => {
+      return (edgesByFrom.get(normalizeId(nodeId)) ?? []).length === 0;
+    };
 
     const pickTopTokenName = (
       fromId: string,
       lendingPosition: "collateral" | "borrow",
     ): string | null => {
-      const outgoing = edgesByFrom.get(fromId) ?? [];
+      const outgoing = edgesByFrom.get(normalizeId(fromId)) ?? [];
       let best: GraphEdge | null = null;
       for (const e of outgoing) {
         if (e.lendingPosition !== lendingPosition) continue;
@@ -91,32 +104,43 @@ export default function AssetTreeMap({
 
       const to = best?.to;
       if (!to) return null;
-      return nodesById.get(to)?.name ?? null;
+      return nodesById.get(normalizeId(to))?.name ?? null;
     };
+    const canDetectTerminal = graphRootIds instanceof Set;
 
-    const mappedChildren = children.map((c) => ({
-      name: (() => {
-        const node = c.node;
-        if (!node) return c.id;
+    const mappedChildren = children.map((c) => {
+      const isLeafInSnapshot = isTerminalNodeId(c.id);
+      const hasDownstreamGraph = canDetectTerminal
+        ? graphRootIds.has(normalizeId(c.id))
+        : true;
 
-        if (node.details?.kind === "Lending") {
-          const borrow = pickTopTokenName(node.id, "borrow");
-          const collateral = pickTopTokenName(node.id, "collateral");
+      const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
-          if (collateral && borrow) return `${collateral}/${borrow}`;
-          if (collateral) return collateral;
-          if (borrow) return borrow;
-        }
+      return {
+        name: (() => {
+          const node = c.node;
+          if (!node) return c.id;
 
-        return node.name;
-      })(),
-      value: c.value,
-      originalValue: c.edge.allocationUsd,
-      percent: c.percent,
-      nodeId: c.id,
-      fullNode: c.node,
-      lendingPosition: c.edge.lendingPosition,
-    }));
+          if (node.details?.kind === "Lending") {
+            const borrow = pickTopTokenName(node.id, "borrow");
+            const collateral = pickTopTokenName(node.id, "collateral");
+
+            if (collateral && borrow) return `${collateral}/${borrow}`;
+            if (collateral) return collateral;
+            if (borrow) return borrow;
+          }
+
+          return node.name;
+        })(),
+        value: c.value,
+        originalValue: c.edge.allocationUsd,
+        percent: c.percent,
+        nodeId: c.id,
+        fullNode: c.node,
+        lendingPosition: c.edge.lendingPosition,
+        isTerminal,
+      };
+    });
 
     if (isOthersView) return mappedChildren;
 
@@ -169,7 +193,14 @@ export default function AssetTreeMap({
     }
 
     return sorted;
-  }, [data, rootNodeId, isOthersView, othersChildrenIds, containerSize]);
+  }, [
+    data,
+    rootNodeId,
+    isOthersView,
+    othersChildrenIds,
+    containerSize,
+    graphRootIds,
+  ]);
 
   if (!data || chartData.length === 0) {
     return (

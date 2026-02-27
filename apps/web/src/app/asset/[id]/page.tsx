@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,7 +17,7 @@ import { TerminalToast } from "@/components/TerminalToast";
 
 import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
-import { currencyFormatter } from "@/utils/formatters";
+import { currencyFormatter, normalizeId } from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import Image from "next/image";
@@ -58,6 +58,45 @@ export default function AssetPage() {
 
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
+
+  const [graphRootIds, setGraphRootIds] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await fetch("/api/search-index");
+        if (!res.ok) return;
+        const json = (await res.json()) as unknown;
+        if (!Array.isArray(json)) return;
+
+        const set = new Set<string>();
+        for (const item of json) {
+          if (!item || typeof item !== "object") continue;
+          const rec = item as { nodeId?: unknown; id?: unknown };
+          const nodeId =
+            typeof rec.nodeId === "string"
+              ? rec.nodeId
+              : typeof rec.id === "string"
+                ? rec.id
+                : null;
+          if (!nodeId) continue;
+          set.add(normalizeId(nodeId));
+        }
+
+        if (!cancelled) setGraphRootIds(set);
+      } catch (error) {
+        console.error("Failed to load search index:", error);
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSelectOthers = (childIds: string[]) => {
     setOthersChildrenIds(childIds);
@@ -123,7 +162,9 @@ export default function AssetPage() {
     if (hasChildren) {
       applyLocalDrilldown(node);
     } else {
-      showTerminalToast(`${node.name} has no downstream allocations.`);
+      showTerminalToast(
+        `Terminal Node Reach: ${node.name} has no further downstream allocations.`,
+      );
     }
   };
 
@@ -268,6 +309,7 @@ export default function AssetPage() {
           <AssetTreeMap
             data={graphData}
             rootNodeId={focusRootNodeId || rootNode?.id}
+            graphRootIds={graphRootIds}
             onSelect={handleDrilldownSelect}
             onSelectOthers={handleSelectOthers}
             isOthersView={isOthersView}
