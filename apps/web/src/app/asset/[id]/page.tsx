@@ -88,8 +88,8 @@ export default function AssetPage() {
         }
 
         if (!cancelled) setGraphRootIds(set);
-      } catch {
-        // ignore
+      } catch (error) {
+        console.error("Failed to load search index:", error);
       }
     };
 
