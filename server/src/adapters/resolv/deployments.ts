@@ -1,5 +1,3 @@
-import { normalizeNodeId, toDeploymentNodeIds } from "../deployments";
-
 const PROTOCOL = "resolv" as const;
 
 // Source: https://docs.resolv.xyz/litepaper/for-developers/smart-contracts
@@ -47,26 +45,33 @@ const RLP_DEPLOYMENTS = {
   plasma: "0x35533f54740f1f1aa4179e57ba37039dfa16868b",
 } as const;
 
-const DEPLOYMENT_CONFIGS = [
-  { canonicalRootId: USR_CANONICAL_ROOT_ID, chainToAddress: USR_DEPLOYMENTS },
-  {
-    canonicalRootId: WSTUSR_CANONICAL_ROOT_ID,
-    chainToAddress: WSTUSR_DEPLOYMENTS,
-  },
-  { canonicalRootId: RLP_CANONICAL_ROOT_ID, chainToAddress: RLP_DEPLOYMENTS },
-] as const;
+const toDeploymentNodeIds = (
+  canonicalRootId: string,
+  chainToAddress: Record<string, string>,
+): string[] => {
+  const canonical = canonicalRootId.trim().toLowerCase();
+
+  return Object.entries(chainToAddress)
+    .map(
+      ([chain, address]) =>
+        `${chain.trim().toLowerCase()}:${PROTOCOL}:${address.trim().toLowerCase()}`,
+    )
+    .filter((id) => id !== canonical);
+};
 
 export const getResolvDeploymentNodeIds = (rootNodeId: string): string[] => {
-  const canonical = normalizeNodeId(rootNodeId);
+  const canonical = rootNodeId.trim().toLowerCase();
 
-  for (const config of DEPLOYMENT_CONFIGS) {
-    if (canonical !== normalizeNodeId(config.canonicalRootId)) continue;
+  if (canonical === USR_CANONICAL_ROOT_ID) {
+    return toDeploymentNodeIds(USR_CANONICAL_ROOT_ID, USR_DEPLOYMENTS);
+  }
 
-    return toDeploymentNodeIds(
-      PROTOCOL,
-      config.canonicalRootId,
-      config.chainToAddress,
-    );
+  if (canonical === WSTUSR_CANONICAL_ROOT_ID) {
+    return toDeploymentNodeIds(WSTUSR_CANONICAL_ROOT_ID, WSTUSR_DEPLOYMENTS);
+  }
+
+  if (canonical === RLP_CANONICAL_ROOT_ID) {
+    return toDeploymentNodeIds(RLP_CANONICAL_ROOT_ID, RLP_DEPLOYMENTS);
   }
 
   return [];
