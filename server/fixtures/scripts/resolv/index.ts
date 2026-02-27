@@ -73,6 +73,26 @@ export const run = async (argv: string[]): Promise<void> => {
 
         await persistSnapshot(nextRootId, depSnapshot);
       }
+
+      const extraDeploymentNodeIds = getResolvDeploymentNodeIds(rootNodeId);
+
+      for (const nextRootId of extraDeploymentNodeIds) {
+        const depSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
+
+        const depOutPath = resolve(
+          root,
+          "fixtures",
+          "output",
+          "resolv",
+          `${nextRootId}.json`,
+        );
+
+        await writeJsonFile(depOutPath, depSnapshot);
+
+        if (shouldUpload) {
+          await putJsonToBlob(graphSnapshotBlobPath(nextRootId), depSnapshot);
+        }
+      }
     }
   });
 };
