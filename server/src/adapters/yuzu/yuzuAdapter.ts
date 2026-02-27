@@ -14,6 +14,13 @@ const ASSET_YZUSD = "yzUSD" as const;
 const ASSET_SYZUSD = "sYzuUSD" as const;
 const ASSET_YZPP = "yzPP" as const;
 
+const PLASMA_CHAIN = "plasma" as const;
+
+const YUZU_YZUSD_PLASMA = "0x6695c0f8706c5ace3bdf8995073179cca47926dc" as const;
+const YUZU_SYZUSD_PLASMA =
+  "0xc8a8df9b210243c55d31c73090f06787ad0a1bf6" as const;
+const YUZU_YZPP_PLASMA = "0xebfc8c2fe73c431ef2a371aea9132110aab50dca" as const;
+
 export interface YuzuCatalog {
   wallets: string[];
   metrics: YuzuMetrics;
@@ -55,8 +62,8 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_YZUSD) {
         return {
-          id: "global:yuzu:yzusd",
-          chain: "global",
+          id: `${PLASMA_CHAIN}:yuzu:${YUZU_YZUSD_PLASMA}`,
+          chain: PLASMA_CHAIN,
           name: "yzUSD",
           protocol: "yuzu",
           details: { kind: "Deposit" },
@@ -66,8 +73,8 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_SYZUSD) {
         return {
-          id: "global:yuzu:syzusd",
-          chain: "global",
+          id: `${PLASMA_CHAIN}:yuzu:${YUZU_SYZUSD_PLASMA}`,
+          chain: PLASMA_CHAIN,
           name: "syzUSD",
           protocol: "yuzu",
           details: { kind: "Yield", curator: "yuzu" },
@@ -78,8 +85,8 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_YZPP) {
         return {
-          id: "global:yuzu:yzpp",
-          chain: "global",
+          id: `${PLASMA_CHAIN}:yuzu:${YUZU_YZPP_PLASMA}`,
+          chain: PLASMA_CHAIN,
           name: "yzPP",
           protocol: "yuzu",
           details: { kind: "Protection", curator: "yuzu" },

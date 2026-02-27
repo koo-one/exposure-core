@@ -2,11 +2,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { adapterFactories } from "../../../src/adapters/registry";
+import { getEthenaDeploymentNodeIds } from "../../../src/adapters/ethena/deployments";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 
-import { writeJsonFile } from "../core/io";
+import { writeJsonFile, cloneSnapshotWithRootId } from "../core/io";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
@@ -36,6 +37,26 @@ export const run = async (argv: string[]): Promise<void> => {
 
     if (shouldUpload) {
       await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
+    }
+
+    const extraDeploymentNodeIds = getEthenaDeploymentNodeIds(rootNodeId);
+
+    for (const nextRootId of extraDeploymentNodeIds) {
+      const depSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
+
+      const depOutPath = resolve(
+        root,
+        "fixtures",
+        "output",
+        "ethena",
+        `${nextRootId}.json`,
+      );
+
+      await writeJsonFile(depOutPath, depSnapshot);
+
+      if (shouldUpload) {
+        await putJsonToBlob(graphSnapshotBlobPath(nextRootId), depSnapshot);
+      }
     }
   }
 };
