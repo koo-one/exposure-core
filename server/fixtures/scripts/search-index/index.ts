@@ -71,8 +71,6 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
 
   const weights = new Map<string, number>();
 
-  const isUpper = (v: string): boolean => /^[A-Z0-9.]+$/.test(v.trim());
-
   for (const e of edges) {
     if (e.from !== root.id) continue;
     const toNode = nodesById.get(e.to);
@@ -100,6 +98,7 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     if (dashParts.length === 2) {
       const base = dashParts[0];
       const quote = dashParts[1];
+      const isUpper = (v: string): boolean => /^[A-Z0-9.]+$/.test(v.trim());
       if (
         base &&
         quote &&
