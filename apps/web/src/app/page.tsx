@@ -23,27 +23,6 @@ import Image from "next/image";
 import { FilterPill } from "@/components/FilterPill";
 import { cn } from "@/lib/utils";
 
-const usdCompactFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-const chainShortLabel = (chain: string): string => {
-  const c = chain.trim().toLowerCase();
-  if (c === "ethereum" || c === "eth") return "eth";
-  if (c === "arbitrum" || c === "arb" || c === "arbitrum-one") return "arb";
-  if (c === "optimism" || c === "op") return "op";
-  if (c === "base") return "base";
-  if (c === "polygon" || c === "matic") return "polygon";
-  if (c === "avalanche" || c === "avax") return "avax";
-  if (c === "bera" || c === "berachain") return "bera";
-  if (c === "bnb" || c === "bsc") return "bnb";
-  if (c === "unichain" || c === "uni") return "uni";
-  return c || "unknown";
-};
-
 function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -237,120 +216,6 @@ function HomeInner() {
     dynamicIndex,
   ]);
 
-  const groupedResults = useMemo(() => {
-    interface GroupedResult {
-      key: string;
-      name: string;
-      protocol: string;
-      chainLabel: string;
-      tvlUsd: number | null;
-      logoKeys?: string[];
-      typeLabel?: string;
-      representative: SearchIndexEntry;
-    }
-
-    const groups: Record<
-      string,
-      {
-        tvlSum: number;
-        tvlSeen: boolean;
-        best: SearchIndexEntry;
-        bestTvl: number;
-        chainTvl: Record<string, { tvlSum: number; tvlSeen: boolean }>;
-      }
-    > = {};
-
-    for (const entry of filteredResults) {
-      const protocolKey = entry.protocol.trim().toLowerCase();
-      const nameKey = entry.name.trim().toLowerCase();
-      const key = `${protocolKey}|${nameKey}`;
-
-      const tvl =
-        typeof entry.tvlUsd === "number" && Number.isFinite(entry.tvlUsd)
-          ? entry.tvlUsd
-          : null;
-
-      const chainKey = chainShortLabel(entry.chain);
-
-      const existing = groups[key];
-      if (!existing) {
-        groups[key] = {
-          tvlSum: tvl ?? 0,
-          tvlSeen: tvl != null,
-          best: entry,
-          bestTvl: tvl ?? 0,
-          chainTvl: chainKey
-            ? {
-                [chainKey]: { tvlSum: tvl ?? 0, tvlSeen: tvl != null },
-              }
-            : {},
-        };
-        continue;
-      }
-
-      if (tvl != null) {
-        // Some adapters clone per-chain snapshots while preserving the same root
-        // TVL on each clone. Summing across deployments would inflate TVL.
-        // Use max TVL within the group instead.
-        existing.tvlSum = Math.max(existing.tvlSum, tvl);
-        existing.tvlSeen = true;
-      }
-
-      if (chainKey) {
-        const agg = existing.chainTvl[chainKey];
-        if (!agg) {
-          existing.chainTvl[chainKey] = {
-            tvlSum: tvl ?? 0,
-            tvlSeen: tvl != null,
-          };
-        } else if (tvl != null) {
-          agg.tvlSum = Math.max(agg.tvlSum, tvl);
-          agg.tvlSeen = true;
-        }
-      }
-
-      if ((tvl ?? 0) > existing.bestTvl) {
-        existing.best = entry;
-        existing.bestTvl = tvl ?? 0;
-      }
-    }
-
-    const collapsed: GroupedResult[] = [];
-    for (const key in groups) {
-      const group = groups[key];
-      if (!group) continue;
-
-      const chainParts: string[] = [];
-      for (const c in group.chainTvl) chainParts.push(c);
-      chainParts.sort((a, b) => {
-        const at = group.chainTvl[a]?.tvlSeen ? group.chainTvl[a]?.tvlSum : -1;
-        const bt = group.chainTvl[b]?.tvlSeen ? group.chainTvl[b]?.tvlSum : -1;
-        if (bt !== at) return bt - at;
-        return a.localeCompare(b);
-      });
-
-      collapsed.push({
-        key,
-        name: group.best.name,
-        protocol: group.best.protocol,
-        chainLabel: chainParts.join("/"),
-        tvlUsd: group.tvlSeen ? group.tvlSum : null,
-        logoKeys: group.best.logoKeys,
-        typeLabel: group.best.typeLabel,
-        representative: group.best,
-      });
-    }
-
-    collapsed.sort((a, b) => {
-      const av = a.tvlUsd ?? -1;
-      const bv = b.tvlUsd ?? -1;
-      if (bv !== av) return bv - av;
-      return a.name.localeCompare(b.name);
-    });
-
-    return collapsed;
-  }, [filteredResults]);
-
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
       {/* Central Search Section */}
@@ -530,23 +395,18 @@ function HomeInner() {
             {showDropdown && (
               <div className="absolute top-full left-0 right-0 mt-4 bg-white border border-black/[0.08] rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-2">
-                  {groupedResults.length > 0 ? (
-                    groupedResults.slice(0, 8).map((result) => {
+                  {filteredResults.length > 0 ? (
+                    filteredResults.slice(0, 8).map((result) => {
                       const logoPaths = getNodeLogos({
                         name: result.name,
                         protocol: result.protocol,
                         logoKeys: result.logoKeys,
                       }).slice(0, 2);
 
-                      const protocolFallbackPath =
-                        result.protocol && hasProtocolLogo(result.protocol)
-                          ? getProtocolLogoPath(result.protocol)
-                          : "";
-
                       return (
                         <Link
-                          key={result.key}
-                          href={`/asset/${result.representative.id}?chain=${result.representative.chain}&protocol=${encodeURIComponent(result.representative.protocol)}`}
+                          key={`${result.id}-${result.chain}-${result.protocol}`}
+                          href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
                           className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
                         >
                           <div className="flex items-center gap-4">
@@ -565,17 +425,6 @@ function HomeInner() {
                                         width={18}
                                         height={18}
                                         className="object-contain"
-                                        onError={(e) => {
-                                          if (!protocolFallbackPath) return;
-                                          const img = e.currentTarget;
-                                          if (
-                                            img.dataset.fallbackApplied === "1"
-                                          ) {
-                                            return;
-                                          }
-                                          img.dataset.fallbackApplied = "1";
-                                          img.src = protocolFallbackPath;
-                                        }}
                                       />
                                     </div>
                                   ))}
@@ -591,21 +440,11 @@ function HomeInner() {
                                 {result.name}
                               </div>
                               <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5">
-                                {result.protocol} • {result.chainLabel}
-                                {result.typeLabel
-                                  ? ` • ${result.typeLabel}`
-                                  : ""}
+                                {result.protocol} • {result.chain}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-[10px] font-mono font-black text-black/30 tabular-nums">
-                              {typeof result.tvlUsd === "number"
-                                ? usdCompactFormatter.format(result.tvlUsd)
-                                : "—"}
-                            </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
-                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
                         </Link>
                       );
                     })
@@ -617,10 +456,10 @@ function HomeInner() {
                     </div>
                   )}
                 </div>
-                {groupedResults.length > 8 && (
+                {filteredResults.length > 8 && (
                   <div className="p-4 bg-black/[0.01] border-t border-black/[0.03] text-center">
                     <p className="text-[9px] font-black text-black/20 uppercase tracking-[0.3em]">
-                      +{groupedResults.length - 8} more results available
+                      +{filteredResults.length - 8} more results available
                     </p>
                   </div>
                 )}
