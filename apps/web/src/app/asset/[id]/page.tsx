@@ -17,7 +17,7 @@ import { TerminalToast } from "@/components/TerminalToast";
 
 import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
-import { currencyFormatter } from "@/utils/formatters";
+import { currencyFormatter, normalizeId } from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import Image from "next/image";
@@ -63,8 +63,6 @@ export default function AssetPage() {
 
   useEffect(() => {
     let cancelled = false;
-
-    const normalizeId = (value: string): string => value.trim().toLowerCase();
 
     const load = async () => {
       try {

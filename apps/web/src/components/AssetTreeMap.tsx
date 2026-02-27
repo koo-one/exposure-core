@@ -6,6 +6,7 @@ import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
 import { TreemapHoverCard } from "@/components/TreemapHoverCard";
 import { AssetTreeMapTile } from "@/components/AssetTreeMapTile";
+import { normalizeId } from "@/utils/formatters";
 
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
@@ -73,8 +74,6 @@ export default function AssetTreeMap({
       children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
     }
 
-    const normalizeId = (id: string): string => id.trim().toLowerCase();
-
     const nodesById = new Map(
       data.nodes.map((n) => [normalizeId(n.id), n] as const),
     );
@@ -133,7 +132,7 @@ export default function AssetTreeMap({
 
           return node.name;
         })(),
-        value: Math.abs(c.value),
+        value: c.value,
         originalValue: c.edge.allocationUsd,
         percent: c.percent,
         nodeId: c.id,

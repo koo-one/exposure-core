@@ -1,12 +1,14 @@
-export const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  notation: 'compact',
-  compactDisplay: 'short',
+export const normalizeId = (id: string): string => id.trim().toLowerCase();
+
+export const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  compactDisplay: "short",
 });
 
-export const percentFormatter = new Intl.NumberFormat('en-US', {
-  style: 'percent',
+export const percentFormatter = new Intl.NumberFormat("en-US", {
+  style: "percent",
   maximumFractionDigits: 2,
 });
 
