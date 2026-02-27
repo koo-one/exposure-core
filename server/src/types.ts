@@ -13,6 +13,8 @@ interface LendingMarketDetail {
 interface YieldDetail {
   kind: "Yield";
   curator: string | null;
+  subtype?: string;
+  underlyingSymbol?: string;
 }
 
 interface DepositDetail {
@@ -58,9 +60,11 @@ export type NodeDetails =
 
 export interface Node {
   id: string;
-  chain?: "global" | string;
+  chain?: string;
   name: string;
   protocol?: string;
+  displayName?: string;
+  logoKeys?: string[];
   apy?: number | null;
   tvlUsd?: number | null;
   details?: NodeDetails | null;
