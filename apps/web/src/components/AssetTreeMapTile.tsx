@@ -1,7 +1,11 @@
 import * as React from "react";
 
 import type { GraphNode } from "@/types";
-import { getNodeLogos } from "@/lib/logos";
+import {
+  getNodeLogos,
+  getProtocolLogoPath,
+  hasProtocolLogo,
+} from "@/lib/logos";
 import { cn } from "@/lib/utils";
 import { currencyFormatter } from "@/utils/formatters";
 
@@ -121,6 +125,11 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
   const logoPaths = fullNode ? getNodeLogos(fullNode) : [];
   const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
+
+  const protocolFallbackPath =
+    fullNode?.protocol && hasProtocolLogo(fullNode.protocol)
+      ? getProtocolLogoPath(fullNode.protocol)
+      : "";
 
   const clipId = `clip_${sanitizeSvgId(String(nodeId))}`;
   const patternId = `pattern_${sanitizeSvgId(String(nodeId))}`;
@@ -308,6 +317,19 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
             <image
               key={logoPath}
               href={logoPath}
+              onError={(e) => {
+                if (!protocolFallbackPath) return;
+                const el = e.currentTarget;
+                const alreadyApplied =
+                  el.getAttribute("data-fallback-applied") === "1";
+                if (alreadyApplied) return;
+
+                const current = el.getAttribute("href") || "";
+                if (current === protocolFallbackPath) return;
+
+                el.setAttribute("data-fallback-applied", "1");
+                el.setAttribute("href", protocolFallbackPath);
+              }}
               x={x + 8 + idx * 12}
               y={y + 8}
               height="18"
