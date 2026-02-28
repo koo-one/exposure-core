@@ -8,6 +8,7 @@ import { currencyFormatter } from "@/utils/formatters";
 interface TreemapTileDatum extends Record<string, unknown> {
   nodeId?: string;
   fullNode?: GraphNode;
+  typeLabel?: string;
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
   isOthers?: boolean;
@@ -29,6 +30,7 @@ interface CustomContentProps extends Record<string, unknown> {
   rank?: number;
   nodeId?: string;
   fullNode?: GraphNode;
+  typeLabel?: string;
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
   isTerminal?: boolean;
@@ -67,6 +69,25 @@ const ellipsizeToWidth = (
   return value.slice(0, maxChars - 1) + "…";
 };
 
+const estimateTextWidthPx = (value: string, fontSizePx: number): number => {
+  // Simple approximation for uppercase-heavy UI labels.
+  return Math.ceil(value.length * fontSizePx * 0.62);
+};
+
+const estimateBadgeTextWidthPx = (
+  value: string,
+  fontSizePx: number,
+  letterSpacingEm: number,
+): number => {
+  const len = value.length;
+  if (len <= 0) return 0;
+
+  // Approximate glyph width + letter spacing between characters.
+  const base = len * fontSizePx * 0.62;
+  const spacing = Math.max(0, len - 1) * fontSizePx * letterSpacingEm;
+  return Math.ceil(base + spacing);
+};
+
 export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const typed = props as CustomContentProps;
   const {
@@ -99,6 +120,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const isSelected = selectedNodeId === nodeId;
   const isPressed = pressedNodeId === nodeId;
   const originalValue = dataItem.originalValue ?? value;
+  const typeLabel =
+    typeof dataItem?.typeLabel === "string" ? dataItem.typeLabel.trim() : "";
 
   // Refined terminal color palette - Muted Red (Clear "End of Path" signal)
   const terminalFill = "#FFF1F2"; // Rose 50
@@ -127,12 +150,114 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
   const fontSize = 13;
   const horizontalPadding = 12;
-  const availableTextWidth = Math.max(0, width - horizontalPadding * 2);
 
-  const displayText = isOthers
-    ? `${name} (${dataItem.childCount}) ${currencyFormatter.format(originalValue)}`
-    : `${name} ${currencyFormatter.format(originalValue)}`;
-  const safeText = ellipsizeToWidth(displayText, availableTextWidth, fontSize);
+  const typeBadge = (() => {
+    if (isOthers) return null;
+    if (!typeLabel) return null;
+    if (width < 140 || height < 42) return null;
+
+    const kind =
+      typeof fullNode?.details?.kind === "string"
+        ? fullNode.details.kind.trim().toLowerCase()
+        : "";
+    const subtype =
+      typeof fullNode?.details?.subtype === "string"
+        ? fullNode.details.subtype.trim().toLowerCase()
+        : "";
+    const lowerLabel = typeLabel.toLowerCase();
+
+    // Badge color criteria (match top bar):
+    // - Yield-related vaults: yield / vault products
+    // - Lending-related: lending position / lending markets
+    // - Staked/Locked: staked or locked positions
+    const isYieldVault =
+      kind === "yield" ||
+      subtype.includes("vault") ||
+      lowerLabel.includes("vault");
+    const isLending =
+      kind.includes("lending") || lowerLabel.includes("lending");
+    const isStakedOrLocked =
+      kind === "staked" ||
+      kind === "locked" ||
+      lowerLabel.includes("staked") ||
+      lowerLabel.includes("locked");
+
+    const colors = (() => {
+      if (isYieldVault) {
+        return {
+          fill: "#ECFDF5", // emerald-50
+          stroke: "#A7F3D0", // emerald-200
+          text: "#047857", // emerald-700
+        };
+      }
+      if (isLending) {
+        return {
+          fill: "#EFF6FF", // blue-50
+          stroke: "#BFDBFE", // blue-200
+          text: "#1D4ED8", // blue-700
+        };
+      }
+      if (isStakedOrLocked) {
+        return {
+          fill: "#FFFBEB", // amber-50
+          stroke: "#FDE68A", // amber-200
+          text: "#B45309", // amber-700
+        };
+      }
+
+      return {
+        fill: "rgba(0,0,0,0.02)",
+        stroke: "rgba(0,0,0,0.10)",
+        text: "rgba(0,0,0,0.60)",
+      };
+    })();
+
+    const text = typeLabel.toUpperCase();
+    const fontSizePx = 8;
+    const padX = 10;
+    const heightPx = 16;
+    const letterSpacingEm = 0.22;
+    const widthPx = Math.min(
+      Math.max(
+        56,
+        estimateBadgeTextWidthPx(text, fontSizePx, letterSpacingEm) + padX * 2,
+      ),
+      Math.max(56, Math.floor(width - horizontalPadding * 2)),
+    );
+
+    return {
+      text,
+      fontSizePx,
+      padX,
+      heightPx,
+      widthPx,
+      letterSpacingEm,
+      colors,
+    };
+  })();
+
+  const baseTextX = showLogos ? x + 16 + logoPaths.length * 12 : x + 8;
+  const badgeGapPx = typeBadge ? 10 : 0;
+  const reservedRightPx = typeBadge ? badgeGapPx + typeBadge.widthPx : 0;
+
+  const displayText = (() => {
+    if (isOthers) {
+      return `${name} (${dataItem.childCount}) ${currencyFormatter.format(originalValue)}`;
+    }
+
+    return `${name} ${currencyFormatter.format(originalValue)}`;
+  })();
+
+  const safeText = (() => {
+    const maxTextWidthPx = Math.max(
+      0,
+      x + width - 8 - baseTextX - reservedRightPx,
+    );
+    return ellipsizeToWidth(displayText, maxTextWidthPx, fontSize);
+  })();
+
+  const safeTextWidthPx = estimateTextWidthPx(safeText, fontSize);
+  const badgeX = baseTextX + safeTextWidthPx + badgeGapPx;
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
@@ -318,7 +443,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
         {width > 40 && height > 20 && (
           <text
-            x={showLogos ? x + 16 + logoPaths.length * 12 : x + 8}
+            x={baseTextX}
             y={y + 21}
             textAnchor="start"
             fill={textColor}
@@ -328,6 +453,41 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           >
             {safeText}
           </text>
+        )}
+
+        {typeBadge && width > 40 && height > 20 && (
+          <g pointerEvents="none">
+            <rect
+              x={badgeX}
+              y={y + 21 - typeBadge.heightPx + 2}
+              width={typeBadge.widthPx}
+              height={typeBadge.heightPx}
+              rx={typeBadge.heightPx / 2}
+              ry={typeBadge.heightPx / 2}
+              style={{
+                fill: typeBadge.colors.fill,
+                stroke: typeBadge.colors.stroke,
+                strokeWidth: 1,
+              }}
+              vectorEffect="non-scaling-stroke"
+            />
+            <text
+              x={badgeX + typeBadge.padX}
+              y={y + 21 - typeBadge.heightPx + 2 + typeBadge.heightPx / 2}
+              textAnchor="start"
+              dominantBaseline="middle"
+              fill={typeBadge.colors.text}
+              fontSize={typeBadge.fontSizePx}
+              fontWeight={900}
+              style={{
+                fontFamily:
+                  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+                letterSpacing: `${typeBadge.letterSpacingEm}em`,
+              }}
+            >
+              {typeBadge.text}
+            </text>
+          </g>
         )}
       </g>
     </g>

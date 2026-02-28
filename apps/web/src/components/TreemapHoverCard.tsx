@@ -37,11 +37,18 @@ export const TreemapHoverCard = ({
   const isTerminal = dataItem?.isTerminal;
   const childCount = dataItem?.childCount;
 
-  const kind = isOthers
+  const baseKind = isOthers
     ? `Aggregate (${childCount} Items)`
     : isTerminal
       ? "Terminal Asset"
       : String(dataItem?.fullNode?.details?.kind ?? "");
+
+  const subtype =
+    typeof dataItem?.fullNode?.details?.subtype === "string"
+      ? dataItem.fullNode.details.subtype.trim()
+      : "";
+
+  const kind = subtype && !isOthers ? `${baseKind} • ${subtype}` : baseKind;
 
   return (
     <div

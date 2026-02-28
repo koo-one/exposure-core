@@ -81,6 +81,11 @@ export default function AssetDetailPanel({
     return selectedNode.protocol.toUpperCase();
   })();
 
+  const subtypeLabel =
+    typeof selectedNode.details?.subtype === "string"
+      ? selectedNode.details.subtype.trim()
+      : "";
+
   const logoPaths = getNodeLogos(selectedNode);
   const chainLogoPath = hasChainLogo(selectedNode.chain)
     ? getChainLogoPath(selectedNode.chain)
@@ -143,6 +148,11 @@ export default function AssetDetailPanel({
               <span className="px-2 py-0.5 border border-black text-black text-[9px] font-black uppercase tracking-widest bg-white">
                 {protocolLabel}
               </span>
+              {subtypeLabel && (
+                <span className="px-2 py-0.5 border border-black/10 text-black/60 text-[9px] font-black uppercase tracking-widest bg-white">
+                  {subtypeLabel.toUpperCase()}
+                </span>
+              )}
               {chainLogoPath && (
                 <Image
                   src={chainLogoPath}

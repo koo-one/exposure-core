@@ -116,6 +116,21 @@ export default function AssetTreeMap({
 
       const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
+      const typeLabel = (() => {
+        const node = c.node;
+        if (!node) return "";
+        const subtype =
+          typeof node.details?.subtype === "string"
+            ? node.details.subtype.trim()
+            : "";
+        if (subtype) return subtype;
+        const kind =
+          typeof node.details?.kind === "string"
+            ? node.details.kind.trim()
+            : "";
+        return kind;
+      })();
+
       return {
         name: (() => {
           const node = c.node;
@@ -139,6 +154,7 @@ export default function AssetTreeMap({
         fullNode: c.node,
         lendingPosition: c.edge.lendingPosition,
         isTerminal,
+        typeLabel,
       };
     });
 

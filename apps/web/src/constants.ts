@@ -7,4 +7,6 @@ export interface SearchIndexEntry {
   apy?: number | null;
   curator?: string | null;
   tvlUsd?: number | null;
+  logoKeys?: string[];
+  typeLabel?: string;
 }

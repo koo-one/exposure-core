@@ -341,6 +341,7 @@ export const createEulerAdapter = (): Adapter<
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
+            subtype: "Earn Vault",
             curator: vault.curator
               ? (alloc.entityNameByAddress.get(vault.curator.toLowerCase()) ??
                 null)
@@ -372,6 +373,7 @@ export const createEulerAdapter = (): Adapter<
         protocol: EULER_PROTOCOL,
         details: {
           kind: "Yield",
+          subtype: "EVK Vault",
           curator:
             resolveEulerVaultCurator(
               alloc.labelsByVault,
@@ -439,6 +441,7 @@ export const createEulerAdapter = (): Adapter<
             protocol: EULER_PROTOCOL,
             details: {
               kind: "Yield",
+              subtype: "EVK Vault",
               curator:
                 resolveEulerVaultCurator(
                   allocation.labelsByVault,
@@ -485,6 +488,7 @@ export const createEulerAdapter = (): Adapter<
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
+            subtype: "EVK Vault",
             curator:
               resolveEulerVaultCurator(
                 allocation.labelsByVault,

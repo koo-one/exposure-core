@@ -89,9 +89,44 @@ export function getNodeLogoPath(
  * If it's a lending market (e.g. "WETH/USDC"), it may return two logos.
  */
 export function getNodeLogos(
-  node: GraphNode | { name: string; protocol?: string | null },
+  node:
+    | GraphNode
+    | { name: string; protocol?: string | null; logoKeys?: string[] },
 ): string[] {
   const logos: string[] = [];
+
+  const explicitLogoKeys = (() => {
+    if (typeof node !== "object" || node == null) return null;
+    if (!("logoKeys" in node)) return null;
+    const raw = (node as { logoKeys?: unknown }).logoKeys;
+    if (!Array.isArray(raw)) return null;
+    const keys = raw.filter((v): v is string => typeof v === "string");
+    return keys.length > 0 ? keys : null;
+  })();
+
+  const underlyingSymbol = (() => {
+    if (typeof node !== "object" || node == null) return "";
+    if (!("details" in node)) return "";
+    const details = (node as { details?: unknown }).details;
+    if (typeof details !== "object" || details == null) return "";
+    const raw = (details as { underlyingSymbol?: unknown }).underlyingSymbol;
+    return typeof raw === "string" ? raw.trim() : "";
+  })();
+
+  const primaryAssetKeys =
+    explicitLogoKeys ?? (underlyingSymbol ? [underlyingSymbol] : null);
+
+  if (primaryAssetKeys) {
+    const assetPaths = primaryAssetKeys
+      .map((k) => getAssetLogoPath(k))
+      .filter((p) => typeof p === "string" && p.length > 0);
+
+    if (node.protocol && hasProtocolLogo(node.protocol)) {
+      assetPaths.push(getProtocolLogoPath(node.protocol));
+    }
+
+    if (assetPaths.length > 0) return assetPaths;
+  }
 
   const name = node.name.trim();
 

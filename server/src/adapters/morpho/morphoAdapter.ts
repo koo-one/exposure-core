@@ -124,6 +124,47 @@ export const createMorphoAdapter = (): Adapter<
 
       if (!vault) return null;
 
+      const underlyingSymbol = (() => {
+        let bestSymbol: string | null = null;
+        let bestUsd = 0;
+
+        const consider = (symbol: string | null | undefined, usd: number) => {
+          const s = typeof symbol === "string" ? symbol.trim() : "";
+          if (!s) return;
+          if (!Number.isFinite(usd) || usd <= 0) return;
+          if (!isAllocationUsdEligible(usd)) return;
+          if (!bestSymbol || usd > bestUsd) {
+            bestSymbol = s;
+            bestUsd = usd;
+          }
+        };
+
+        for (const entry of allocations) {
+          if ("allocation" in entry) {
+            const usd = resolveAllocationUsd(entry.allocation);
+            consider(entry.allocation.market.loanAsset.symbol, usd);
+            continue;
+          }
+
+          const adapter = entry.adapter;
+
+          if (adapter.type === "MorphoMarketV1") {
+            const positions = adapter.positions.items ?? [];
+            const fallbackUsd = adapter.assetsUsd ?? 0;
+            const canFallbackToAdapterTotal = positions.length === 1;
+
+            for (const pos of positions) {
+              const usd =
+                pos.state?.supplyAssetsUsd ??
+                (canFallbackToAdapterTotal ? fallbackUsd : 0);
+              consider(pos.market.loanAsset.symbol, usd);
+            }
+          }
+        }
+
+        return bestSymbol;
+      })();
+
       const refinedVault = ((): {
         version: "v1" | "v2";
         chain: string;
@@ -173,7 +214,9 @@ export const createMorphoAdapter = (): Adapter<
         protocol: `morpho-${refinedVault.version}`,
         details: {
           kind: "Yield",
+          subtype: refinedVault.version === "v2" ? "MetaMorpho Vault" : "Vault",
           curator: refinedVault.curator,
+          ...(underlyingSymbol ? { underlyingSymbol } : {}),
         },
         apy: refinedVault.apy,
         tvlUsd: refinedVault.tvlUsd,
@@ -292,7 +335,11 @@ export const createMorphoAdapter = (): Adapter<
             chain,
             name: target.name.trim(),
             protocol: "morpho-v1",
-            details: { kind: "Yield", curator: null },
+            details: {
+              kind: "Yield",
+              subtype: "MetaMorpho Vault",
+              curator: null,
+            },
           };
 
           nodes.push(allocationNode);

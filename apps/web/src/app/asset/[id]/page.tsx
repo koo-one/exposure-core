@@ -178,6 +178,60 @@ export default function AssetPage() {
   }, [origin, id, pageTitle]);
 
   const chainLogoPath = hasChainLogo(chain) ? getChainLogoPath(chain) : null;
+  const activeNodeType = (() => {
+    const node = selectedNode ?? rootNode;
+    if (!node) return { label: "", kind: "", subtype: "" };
+    const subtype =
+      typeof node.details?.subtype === "string"
+        ? node.details.subtype.trim()
+        : "";
+    const kind =
+      typeof node.details?.kind === "string" ? node.details.kind.trim() : "";
+    const label = subtype || kind;
+    return { label, kind, subtype };
+  })();
+
+  const activeNodeTypeLabel = activeNodeType.label;
+
+  const typeBadgeClassName = (() => {
+    const label = activeNodeType.label;
+    if (!label) return "";
+
+    const base =
+      "px-2.5 py-1 border text-[8px] uppercase font-black tracking-[0.22em] rounded-full";
+
+    // Badge color criteria:
+    // - Yield-related vaults: yield / vault products
+    // - Lending-related: lending position / lending markets
+    // - Staked/Locked: staked or locked positions
+    const kind = activeNodeType.kind.toLowerCase();
+    const subtype = activeNodeType.subtype.toLowerCase();
+    const lowerLabel = label.toLowerCase();
+
+    const isYieldVault =
+      kind === "yield" ||
+      subtype.includes("vault") ||
+      lowerLabel.includes("vault");
+    const isLending =
+      kind.includes("lending") || lowerLabel.includes("lending");
+    const isStakedOrLocked =
+      kind === "staked" ||
+      kind === "locked" ||
+      lowerLabel.includes("staked") ||
+      lowerLabel.includes("locked");
+
+    if (isYieldVault) {
+      return `${base} bg-emerald-50 border-emerald-200 text-emerald-700`;
+    }
+    if (isLending) {
+      return `${base} bg-blue-50 border-blue-200 text-blue-700`;
+    }
+    if (isStakedOrLocked) {
+      return `${base} bg-amber-50 border-amber-200 text-amber-700`;
+    }
+
+    return `${base} bg-black/[0.02] border-black/10 text-black/60`;
+  })();
 
   if (loading) {
     return (
@@ -256,6 +310,11 @@ export default function AssetPage() {
               <h1 className="text-xl font-bold text-black tracking-tight uppercase">
                 {pageTitle}
               </h1>
+              {activeNodeTypeLabel && (
+                <div className={typeBadgeClassName} title={activeNodeTypeLabel}>
+                  {activeNodeTypeLabel}
+                </div>
+              )}
               {chainLogoPath && (
                 <Image
                   src={chainLogoPath}

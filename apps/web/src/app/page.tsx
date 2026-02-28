@@ -396,40 +396,57 @@ function HomeInner() {
               <div className="absolute top-full left-0 right-0 mt-4 bg-white border border-black/[0.08] rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-2">
                   {filteredResults.length > 0 ? (
-                    filteredResults.slice(0, 8).map((result) => (
-                      <Link
-                        key={`${result.id}-${result.chain}-${result.protocol}`}
-                        href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
-                        className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-black/[0.03] rounded-xl flex items-center justify-center shrink-0">
-                            {getNodeLogos(result)[0] ? (
-                              <Image
-                                src={getNodeLogos(result)[0]}
-                                alt={result.name}
-                                width={20}
-                                height={20}
-                                className="object-contain"
-                              />
-                            ) : (
-                              <span className="text-[10px] font-black">
-                                {result.name.charAt(0)}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors">
-                              {result.name}
+                    filteredResults.slice(0, 8).map((result) => {
+                      const logoPaths = getNodeLogos(result).slice(0, 2);
+
+                      return (
+                        <Link
+                          key={`${result.id}-${result.chain}-${result.protocol}`}
+                          href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
+                          className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-black/[0.03] rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                              {logoPaths.length > 0 ? (
+                                <div className="flex items-center -space-x-2">
+                                  {logoPaths.map((logoPath, idx) => (
+                                    <div
+                                      key={logoPath}
+                                      className="w-6 h-6 bg-white border border-black/10 rounded-full flex items-center justify-center p-1"
+                                      style={{ zIndex: 10 - idx }}
+                                    >
+                                      <Image
+                                        src={logoPath}
+                                        alt={result.name}
+                                        width={18}
+                                        height={18}
+                                        className="object-contain"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-black">
+                                  {result.name.charAt(0)}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5">
-                              {result.protocol} • {result.chain}
+                            <div>
+                              <div className="text-[11px] font-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors">
+                                {result.name}
+                              </div>
+                              <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5">
+                                {result.protocol} • {result.chain}
+                                {result.typeLabel
+                                  ? ` • ${result.typeLabel}`
+                                  : ""}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
-                      </Link>
-                    ))
+                          <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
+                        </Link>
+                      );
+                    })
                   ) : (
                     <div className="p-8 text-center">
                       <p className="text-[10px] font-bold text-black/30 uppercase tracking-[0.2em]">

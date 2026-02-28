@@ -32,6 +32,16 @@ export interface ResolvMetrics {
 }
 
 export const fetchResolvMetrics = async (): Promise<ResolvMetrics> => {
+  // Local fixture generation should not require paid Dune access.
+  // If no key is present, return null metrics so `pnpm graphs:all` can proceed.
+  if (!process.env.DUNE_API_KEY) {
+    return {
+      asOf: new Date().toISOString(),
+      tvl: { usr: null, wstusr: null, rlp: null },
+      apy: { usr: null, rlp: null },
+    };
+  }
+
   const [tvl, stusrApr, rlpApr, stusrShare] = await Promise.all([
     runDuneQueryRow(QUERY_IDS.TVL),
     runDuneQueryRow(QUERY_IDS.STUSR_APR),

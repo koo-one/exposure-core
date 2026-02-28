@@ -2,6 +2,8 @@ export interface NodeDetails {
   kind?: string;
   curator?: string | null;
   healthRate?: number;
+  subtype?: string;
+  underlyingSymbol?: string;
 }
 
 export interface GraphNode {
