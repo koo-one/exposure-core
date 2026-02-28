@@ -403,6 +403,11 @@ function HomeInner() {
                         logoKeys: result.logoKeys,
                       }).slice(0, 2);
 
+                      const protocolFallbackPath =
+                        result.protocol && hasProtocolLogo(result.protocol)
+                          ? getProtocolLogoPath(result.protocol)
+                          : "";
+
                       return (
                         <Link
                           key={`${result.id}-${result.chain}-${result.protocol}`}
@@ -425,6 +430,17 @@ function HomeInner() {
                                         width={18}
                                         height={18}
                                         className="object-contain"
+                                        onError={(e) => {
+                                          if (!protocolFallbackPath) return;
+                                          const img = e.currentTarget;
+                                          if (
+                                            img.dataset.fallbackApplied === "1"
+                                          ) {
+                                            return;
+                                          }
+                                          img.dataset.fallbackApplied = "1";
+                                          img.src = protocolFallbackPath;
+                                        }}
                                       />
                                     </div>
                                   ))}
