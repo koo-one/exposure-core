@@ -1,9 +1,8 @@
 import { readdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import { adapterFactories } from "../../../src/adapters/registry";
-import type { GraphSnapshot } from "../../../src/types";
+import type { GraphSnapshot } from "../../../types";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
@@ -11,15 +10,12 @@ import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 import { readJson, writeJsonFile } from "../core/io";
 import { createMockFetch, withMockFetch } from "../core/mock-fetch";
 import { createDebankHandler } from "../resolvers/debank/mock";
-import { createMidasAllocationsHandler, type MidasAllocationFixture } from "./mock";
+import { createMidasAllocationsHandler } from "./mock";
 
 interface Scenario {
   name: string;
   assets: string[];
 }
-
-const here = dirname(fileURLToPath(import.meta.url));
-const serverDir = resolve(here, "..", "..", "..");
 
 const getFlagValue = (argv: string[], flag: string): string | null => {
   const idx = argv.indexOf(flag);
@@ -28,7 +24,7 @@ const getFlagValue = (argv: string[], flag: string): string | null => {
 };
 
 const loadScenarios = async (argv: string[]): Promise<Scenario[]> => {
-  const root = serverDir;
+  const root = process.cwd();
   const scenariosDir = resolve(root, "fixtures", "scenarios");
 
   const scenarioName = getFlagValue(argv, "--scenario");
@@ -57,7 +53,7 @@ const loadScenarios = async (argv: string[]): Promise<Scenario[]> => {
 };
 
 export const run = async (argv: string[]): Promise<void> => {
-  const root = serverDir;
+  const root = process.cwd();
   const shouldUpload = argv.includes("--upload");
 
   const scenarios = await loadScenarios(argv);
@@ -73,7 +69,7 @@ export const run = async (argv: string[]): Promise<void> => {
     "midas",
     "allocations.json",
   );
-  const allocations = await readJson<MidasAllocationFixture[]>(allocationsPath);
+  const allocations = await readJson<unknown[]>(allocationsPath);
 
   if (!Array.isArray(allocations)) {
     throw new Error(

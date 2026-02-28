@@ -4,10 +4,6 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": [
-    "server/fixtures/scripts/**/*.ts",
-    "server/src/**/*.ts",
-    "server/api/**/*.ts"
-  ],
+  "include": ["fixtures/scripts/**/*.ts", "src/**/*.ts", "api/**/*.ts"],
   "exclude": ["node_modules"]
 }

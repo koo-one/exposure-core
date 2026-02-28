@@ -52,10 +52,8 @@ export const createMidasAdapter = (): Adapter<
         0,
       );
 
-      const slug = toSlug(asset);
-
       const node: Node = {
-        id: `global:midas:${slug}`,
+        id: `global:midas:${toSlug(asset)}`,
         chain: "global",
         name: asset,
         protocol: "midas",

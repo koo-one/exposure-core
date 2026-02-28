@@ -6,7 +6,7 @@ import { tryHeadBlobUrl } from "@/lib/vercelBlob";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     // Local/dev path: prefer the repo-level generated fixtures index so it stays
     // in sync with adapters without requiring manual updates under /public.
@@ -25,7 +25,7 @@ export async function GET(): Promise<Response> {
       return NextResponse.json(
         {
           error: "Search index not found (fixtures)",
-          hint: "Generate fixtures under server/fixtures/output and retry",
+           hint: "Generate fixtures under server/fixtures/output and retry",
         },
         { status: 404 },
       );

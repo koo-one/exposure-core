@@ -8,14 +8,10 @@ const serverDir = resolve(here, "..", "..");
 const scriptsRoot = resolve(serverDir, "fixtures", "scripts");
 
 const run = (scriptPath: string) => {
-  const { status } = spawnSync(
-    "pnpm",
-    ["-s", "exec", "tsx", scriptPath, ...process.argv.slice(2)],
-    {
-      cwd: serverDir,
-      stdio: "inherit",
-    },
-  );
+  const { status } = spawnSync("pnpm", ["-s", "exec", "tsx", scriptPath], {
+    cwd: serverDir,
+    stdio: "inherit",
+  });
   if (status) process.exit(status);
 };
 

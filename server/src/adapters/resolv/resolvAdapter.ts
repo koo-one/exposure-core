@@ -58,8 +58,8 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_USR) {
         return {
-          id: `eth:resolv:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110`,
-          chain: "eth",
+          id: `global:resolv:usr`,
+          chain: "global",
           name: "USR",
           protocol: "resolv",
           details: {
@@ -71,8 +71,8 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_WSTUSR) {
         return {
-          id: `eth:resolv:0x1202f5c7b4b9e47a1a484e8b270be34dbbc75055`,
-          chain: "eth",
+          id: `global:resolv:wstusr`,
+          chain: "global",
           name: "wstUSR",
           protocol: "resolv",
           details: {
@@ -85,8 +85,8 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_RLP) {
         return {
-          id: `eth:resolv:0x4956b52ae2ff65d74ca2d61207523288e4528f96`,
-          chain: "eth",
+          id: `global:resolv:rlp`,
+          chain: "global",
           name: "RLP",
           protocol: "resolv",
           details: { kind: "Protection", curator: "resolv" },

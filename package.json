@@ -9,13 +9,12 @@
     "build:web": "pnpm -C apps/web build",
     "start:web": "pnpm -C apps/web start",
     "lint:web": "pnpm -C apps/web lint",
-    "graphs:all": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
+    "graphs:all": "tsx server/fixtures/scripts/graphs-all.ts --env-file=.env.local",
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "lint-staged": {
-    "**/*.{js,mjs,ts,tsx,json,md}": "prettier --write",
     "**/*.{ts,tsx}": "eslint --fix"
   },
   "keywords": [],
@@ -37,10 +36,8 @@
     "@types/node": "^25.0.3",
     "@vercel/node": "^5.3.10",
     "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"
