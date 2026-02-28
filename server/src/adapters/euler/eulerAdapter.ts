@@ -3,18 +3,44 @@ import { roundToTwoDecimals } from "../../utils";
 import { formatUnits, type Address } from "viem";
 import type { Adapter } from "../types";
 import {
+  EULER_CHAIN_CONFIGS,
+  type EulerChainConfig,
   fetchEulerEarnVaults,
   fetchEulerEvkVaults,
+  fetchEulerLabelEntities,
   fetchEulerLabelsVaults,
   fetchEulerPrices,
   fetchEulerVaultOpenInterest,
   type EulerEarnVault,
+  type EulerLabelEntity,
   type EulerLabelsVault,
   type EulerEvkVault,
 } from "./metrics";
 
 const EULER_PROTOCOL = "euler";
-const EULER_CHAIN = "eth";
+
+const extractUnderlyingSymbol = (input: {
+  labelName: string;
+  vaultSymbol?: string | null;
+}): string | null => {
+  const rawSymbol = (input.vaultSymbol ?? "").trim();
+  if (rawSymbol) {
+    // Common Euler pattern: eUSD1-3, eUSDC, eWETH-1 -> USD1, USDC, WETH
+    const stripped = rawSymbol.replace(/^e/i, "");
+    const base = stripped.split(/[-_]/)[0]?.trim() ?? "";
+    if (/^[A-Za-z0-9.]+$/.test(base) && base.length >= 2 && base.length <= 10) {
+      return base;
+    }
+  }
+
+  const parts = input.labelName.trim().split(/\s+/).filter(Boolean);
+  const last = parts[parts.length - 1] ?? "";
+  if (/^[A-Za-z0-9.]+$/.test(last) && last.length >= 2 && last.length <= 10) {
+    return last;
+  }
+
+  return null;
+};
 
 /**
  * EulerEarnVault (subgraph) does not expose the underlying ERC-20 `decimals` for `earnVault.asset`.
@@ -55,36 +81,68 @@ const getVaultLabelName = (
   return vault.name;
 };
 
-const eulerNodeId = (address: Address): string =>
-  `${EULER_CHAIN}:${EULER_PROTOCOL}:${address.toLowerCase()}`;
+const eulerNodeId = (chainKey: string, address: Address): string =>
+  `${chainKey}:${EULER_PROTOCOL}:${address.toLowerCase()}`;
 
-export interface EulerCatalog {
+export interface EulerChainCatalog {
+  chainId: number;
+  chainKey: string;
+  subgraphUrl: string;
   earnVaults: EulerEarnVault[];
   evkVaultMap: Map<Address, EulerEvkVault>;
   labelsByVault: Map<string, EulerLabelsVault>;
+  entitiesById: Map<string, EulerLabelEntity>;
+  entityNameByAddress: Map<string, string>;
   pricesByAsset: Map<Address, number>;
   openInterestByLiability: Map<Address, Map<Address, number>>;
 }
 
+const resolveEulerVaultCurator = (
+  labelsByVault: Map<string, EulerLabelsVault>,
+  entitiesById: Map<string, EulerLabelEntity>,
+  vaultId: Address,
+): string | null => {
+  const record = labelsByVault.get(vaultId.toLowerCase());
+  const entity = record?.entity;
+  if (!entity) return null;
+
+  const ids = Array.isArray(entity) ? entity : [entity];
+  const names = ids
+    .map((id) => entitiesById.get(id)?.name ?? id)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (names.length === 0) return null;
+
+  // Stable display string for filtering.
+  return names.join(", ");
+};
+
 export type EulerAllocation =
   | {
       type: "earnVault";
+      chainKey: string;
       earnVault: EulerEarnVault;
       evkVaultMap: Map<Address, EulerEvkVault>;
       labelsByVault: Map<string, EulerLabelsVault>;
+      entitiesById: Map<string, EulerLabelEntity>;
+      entityNameByAddress: Map<string, string>;
       pricesByAsset: Map<Address, number>;
     }
   | {
       type: "evkVault";
+      chainKey: string;
       evkVault: EulerEvkVault;
       collateralOpenInterestUsd: Map<Address, number>;
       evkVaultMap: Map<Address, EulerEvkVault>;
       labelsByVault: Map<string, EulerLabelsVault>;
+      entitiesById: Map<string, EulerLabelEntity>;
+      entityNameByAddress: Map<string, string>;
       pricesByAsset: Map<Address, number>;
     };
 
 export const createEulerAdapter = (): Adapter<
-  EulerCatalog,
+  EulerChainCatalog[],
   EulerAllocation
 > => {
   /**
@@ -106,92 +164,173 @@ export const createEulerAdapter = (): Adapter<
   return {
     id: EULER_PROTOCOL,
     async fetchCatalog() {
-      const [
-        earnVaults,
-        labelsByVault,
-        pricesByAsset,
-        openInterestByLiability,
-      ] = await Promise.all([
-        fetchEulerEarnVaults(),
-        fetchEulerLabelsVaults(1),
-        fetchEulerPrices(1),
-        fetchEulerVaultOpenInterest(1),
-      ]);
+      const fetchChainCatalog = async (
+        config: EulerChainConfig,
+      ): Promise<EulerChainCatalog> => {
+        const [
+          earnVaults,
+          labelsByVault,
+          entitiesById,
+          pricesByAsset,
+          openInterestByLiability,
+        ] = await Promise.all([
+          fetchEulerEarnVaults(config.subgraphUrl),
+          fetchEulerLabelsVaults(config.chainId),
+          fetchEulerLabelEntities(config.chainId),
+          fetchEulerPrices(config.chainId),
+          fetchEulerVaultOpenInterest(config.chainId),
+        ]);
 
-      // We derive EVK addresses from open-interest (Euler UI weight model) to define the EVK root
-      // universe + collateral edges, and we also include Earn strategy EVKs so Earn -> EVK leaves
-      // have metadata (name/apy/decimals) and we can compute a strategy-weighted Earn APY proxy.
-      const evkVaultAddresses: Address[] = [];
+        const entityNameByAddress = new Map<string, string>();
+        for (const entity of entitiesById.values()) {
+          const name = entity.name?.trim();
+          if (!name) continue;
+          const addresses = entity.addresses ?? {};
+          for (const addr of Object.keys(addresses)) {
+            entityNameByAddress.set(addr.toLowerCase(), name);
+          }
+        }
 
-      for (const [
-        liabilityVault,
-        collateralVaults,
-      ] of openInterestByLiability) {
-        evkVaultAddresses.push(liabilityVault);
+        // We derive EVK addresses from open-interest (Euler UI weight model) to define the EVK root
+        // universe + collateral edges, and we also include Earn strategy EVKs so Earn -> EVK leaves
+        // have metadata (name/apy/decimals) and we can compute a strategy-weighted Earn APY proxy.
+        const evkVaultAddresses: Address[] = [];
 
-        for (const collateralVault of collateralVaults.keys())
-          evkVaultAddresses.push(collateralVault);
-      }
+        for (const [
+          liabilityVault,
+          collateralVaults,
+        ] of openInterestByLiability) {
+          evkVaultAddresses.push(liabilityVault);
 
-      for (const earnVault of earnVaults) {
-        for (const { strategy } of earnVault.strategies)
-          evkVaultAddresses.push(strategy);
-      }
+          for (const collateralVault of collateralVaults.keys())
+            evkVaultAddresses.push(collateralVault);
+        }
 
-      const evkVaults = await fetchEulerEvkVaults([
-        ...new Set([...evkVaultAddresses]),
-      ]);
+        for (const earnVault of earnVaults) {
+          for (const { strategy } of earnVault.strategies)
+            evkVaultAddresses.push(strategy);
+        }
 
-      //mapping evk vault addr with evk vault info (e.g name, supplyApy)
-      const evkVaultMap = new Map(
-        evkVaults.map((evkVault) => [evkVault.id, evkVault] as const),
+        const unique = [
+          ...new Set(evkVaultAddresses.map((a) => a.toLowerCase())),
+        ];
+        const evkVaults = await fetchEulerEvkVaults(
+          unique as Address[],
+          config.subgraphUrl,
+        );
+
+        // mapping evk vault addr with evk vault info (e.g name, supplyApy)
+        const evkVaultMap = new Map(
+          evkVaults.map((evkVault) => [evkVault.id, evkVault] as const),
+        );
+
+        return {
+          chainId: config.chainId,
+          chainKey: config.chainKey,
+          subgraphUrl: config.subgraphUrl,
+          earnVaults,
+          evkVaultMap,
+          labelsByVault,
+          entitiesById,
+          entityNameByAddress,
+          pricesByAsset,
+          openInterestByLiability,
+        };
+      };
+
+      const settled = await Promise.allSettled(
+        EULER_CHAIN_CONFIGS.map((config) => fetchChainCatalog(config)),
       );
 
-      return {
-        earnVaults,
-        evkVaultMap,
-        labelsByVault,
-        pricesByAsset,
-        openInterestByLiability,
-      };
-    },
-    getAssetByAllocations(catalog) {
-      const result: Record<Address, EulerAllocation[]> = {};
+      const catalogs: EulerChainCatalog[] = [];
+      const failures: { chainId: number; chainKey: string; reason: unknown }[] =
+        [];
 
-      //process allocations about earn vaults
-      for (const earnVault of catalog.earnVaults) {
-        if (earnVault.strategies.length === 0) continue;
+      for (const [idx, res] of settled.entries()) {
+        const config = EULER_CHAIN_CONFIGS[idx];
+        if (!config) continue;
 
-        result[earnVault.id] = [
-          {
-            type: "earnVault" as const,
-            earnVault,
-            evkVaultMap: catalog.evkVaultMap,
-            labelsByVault: catalog.labelsByVault,
-            pricesByAsset: catalog.pricesByAsset,
-          },
-        ];
+        if (res.status === "fulfilled") {
+          catalogs.push(res.value);
+        } else {
+          failures.push({
+            chainId: config.chainId,
+            chainKey: config.chainKey,
+            reason: res.reason,
+          });
+        }
       }
 
-      //process allocations about evk vaults
-      for (const [
-        liabilityAddr,
-        collateralOpenInterestUsd,
-      ] of catalog.openInterestByLiability) {
-        const evkVault = catalog.evkVaultMap.get(liabilityAddr);
+      if (failures.length > 0 && catalogs.length > 0) {
+        // Keep partial results, but surface per-chain failures.
+        console.warn(
+          `Euler: ${failures.length} chain catalog fetch(es) failed`,
+          failures.map((f) => ({
+            chainId: f.chainId,
+            chainKey: f.chainKey,
+            reason: String(f.reason),
+          })),
+        );
+      }
 
-        if (!evkVault) continue;
+      if (catalogs.length === 0) {
+        throw new Error(
+          `Euler: no chain catalogs fetched${failures.length > 0 ? ` (errors: ${failures.map((f) => `${f.chainKey}:${f.chainId} ${String(f.reason)}`).join("; ")})` : ""}`,
+        );
+      }
 
-        result[evkVault.id] = [
-          {
-            type: "evkVault" as const,
-            evkVault,
-            collateralOpenInterestUsd,
-            evkVaultMap: catalog.evkVaultMap,
-            labelsByVault: catalog.labelsByVault,
-            pricesByAsset: catalog.pricesByAsset,
-          },
-        ];
+      return catalogs;
+    },
+    getAssetByAllocations(catalog) {
+      const result: Record<string, EulerAllocation[]> = {};
+
+      for (const chainCatalog of catalog) {
+        const chainKey = chainCatalog.chainKey;
+
+        // process allocations about earn vaults
+        for (const earnVault of chainCatalog.earnVaults) {
+          if (earnVault.strategies.length === 0) continue;
+
+          const assetKey = eulerNodeId(chainKey, earnVault.id);
+
+          result[assetKey] = [
+            {
+              type: "earnVault" as const,
+              chainKey,
+              earnVault,
+              evkVaultMap: chainCatalog.evkVaultMap,
+              labelsByVault: chainCatalog.labelsByVault,
+              entitiesById: chainCatalog.entitiesById,
+              entityNameByAddress: chainCatalog.entityNameByAddress,
+              pricesByAsset: chainCatalog.pricesByAsset,
+            },
+          ];
+        }
+
+        // process allocations about evk vaults
+        for (const [
+          liabilityAddr,
+          collateralOpenInterestUsd,
+        ] of chainCatalog.openInterestByLiability) {
+          const evkVault = chainCatalog.evkVaultMap.get(liabilityAddr);
+          if (!evkVault) continue;
+
+          const assetKey = eulerNodeId(chainKey, evkVault.id);
+
+          result[assetKey] = [
+            {
+              type: "evkVault" as const,
+              chainKey,
+              evkVault,
+              collateralOpenInterestUsd,
+              evkVaultMap: chainCatalog.evkVaultMap,
+              labelsByVault: chainCatalog.labelsByVault,
+              entitiesById: chainCatalog.entitiesById,
+              entityNameByAddress: chainCatalog.entityNameByAddress,
+              pricesByAsset: chainCatalog.pricesByAsset,
+            },
+          ];
+        }
       }
 
       return result;
@@ -202,6 +341,7 @@ export const createEulerAdapter = (): Adapter<
       if (!alloc) return null;
 
       if (alloc.type === "earnVault") {
+        const chainKey = alloc.chainKey;
         const vault = alloc.earnVault;
         const earnVaultDecimals = getEarnAssetDecimals(
           vault,
@@ -217,14 +357,27 @@ export const createEulerAdapter = (): Adapter<
           price == null ? 0 : totalAssets * price,
         );
 
+        const name =
+          getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name;
+        const underlying = extractUnderlyingSymbol({
+          labelName: name,
+          vaultSymbol: vault.symbol,
+        });
+
         return {
-          id: eulerNodeId(vault.id),
-          chain: EULER_CHAIN,
-          name: getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name,
+          id: eulerNodeId(chainKey, vault.id),
+          chain: chainKey,
+          name,
+          ...(underlying
+            ? { displayName: underlying, logoKeys: [underlying] }
+            : {}),
           protocol: EULER_PROTOCOL,
           details: {
             kind: "Yield",
-            curator: vault.curator,
+            curator: vault.curator
+              ? (alloc.entityNameByAddress.get(vault.curator.toLowerCase()) ??
+                null)
+              : null,
           },
           tvlUsd,
           apy: 0,
@@ -232,6 +385,7 @@ export const createEulerAdapter = (): Adapter<
       }
 
       //evk vault branch
+      const chainKey = alloc.chainKey;
       const vault = alloc.evkVault;
 
       // underlying assets currently lent out (outstanding borrows, includes accrual as interest compounds)
@@ -244,12 +398,30 @@ export const createEulerAdapter = (): Adapter<
       const total = Number(formatUnits(totalBorrows + cash, vault.decimals));
       const tvlUsd = roundToTwoDecimals(price == null ? total : total * price);
 
+      const name =
+        getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name;
+      const underlying = extractUnderlyingSymbol({
+        labelName: name,
+        vaultSymbol: vault.symbol,
+      });
+
       return {
-        id: eulerNodeId(vault.id),
-        chain: EULER_CHAIN,
-        name: getVaultLabelName(alloc.labelsByVault, vault.id) ?? vault.name,
+        id: eulerNodeId(chainKey, vault.id),
+        chain: chainKey,
+        name,
+        ...(underlying
+          ? { displayName: underlying, logoKeys: [underlying] }
+          : {}),
         protocol: EULER_PROTOCOL,
-        details: { kind: "Lending Market" },
+        details: {
+          kind: "Yield",
+          curator:
+            resolveEulerVaultCurator(
+              alloc.labelsByVault,
+              alloc.entitiesById,
+              vault.id,
+            ) ?? null,
+        },
         tvlUsd,
         apy: parseRayApy(vault.state?.supplyApy),
       } satisfies Node;
@@ -271,6 +443,7 @@ export const createEulerAdapter = (): Adapter<
       if (!allocation) return { nodes, edges };
 
       if (allocation.type === "earnVault") {
+        const chainKey = allocation.chainKey;
         const vault = allocation.earnVault;
 
         const underlyingDecimals = getEarnAssetDecimals(
@@ -290,7 +463,10 @@ export const createEulerAdapter = (): Adapter<
             evkVault.id ?? strategy.strategy,
           );
 
-          const nodeId = eulerNodeId(evkVault?.id ?? strategy.strategy);
+          const nodeId = eulerNodeId(
+            chainKey,
+            evkVault?.id ?? strategy.strategy,
+          );
           const allocated = Number(
             formatUnits(BigInt(strategy.allocatedAssets), underlyingDecimals),
           );
@@ -301,10 +477,28 @@ export const createEulerAdapter = (): Adapter<
 
           nodes.push({
             id: nodeId,
-            chain: EULER_CHAIN,
+            chain: chainKey,
             name: evkVaultDisplayName ?? evkVault.name,
+            ...(() => {
+              const labelName = (evkVaultDisplayName ?? evkVault.name).trim();
+              const underlying = extractUnderlyingSymbol({
+                labelName,
+                vaultSymbol: evkVault.symbol,
+              });
+              return underlying
+                ? { displayName: underlying, logoKeys: [underlying] }
+                : {};
+            })(),
             protocol: EULER_PROTOCOL,
-            details: { kind: "Lending Market" },
+            details: {
+              kind: "Yield",
+              curator:
+                resolveEulerVaultCurator(
+                  allocation.labelsByVault,
+                  allocation.entitiesById,
+                  evkVault.id ?? strategy.strategy,
+                ) ?? null,
+            },
             apy: parseRayApy(evkVault.state?.supplyApy),
           });
 
@@ -320,6 +514,8 @@ export const createEulerAdapter = (): Adapter<
 
       //evk vaults allocation process
 
+      const chainKey = allocation.chainKey;
+
       for (const [
         collateralVault,
         openInterestUsd,
@@ -333,14 +529,32 @@ export const createEulerAdapter = (): Adapter<
           collateralVault,
         );
 
-        const nodeId = eulerNodeId(collateralVault);
+        const nodeId = eulerNodeId(chainKey, collateralVault);
 
         nodes.push({
           id: nodeId,
-          chain: EULER_CHAIN,
+          chain: chainKey,
           name: collateralDisplayName ?? evkVault.name,
+          ...(() => {
+            const labelName = (collateralDisplayName ?? evkVault.name).trim();
+            const underlying = extractUnderlyingSymbol({
+              labelName,
+              vaultSymbol: evkVault.symbol,
+            });
+            return underlying
+              ? { displayName: underlying, logoKeys: [underlying] }
+              : {};
+          })(),
           protocol: EULER_PROTOCOL,
-          details: { kind: "Lending Market" },
+          details: {
+            kind: "Yield",
+            curator:
+              resolveEulerVaultCurator(
+                allocation.labelsByVault,
+                allocation.entitiesById,
+                collateralVault,
+              ) ?? null,
+          },
           apy: parseRayApy(evkVault.state?.supplyApy),
         });
 
