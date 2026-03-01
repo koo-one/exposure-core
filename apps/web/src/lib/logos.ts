@@ -111,6 +111,22 @@ export function getNodeLogos(
     if (paths.length > 0) return paths;
   }
 
+  const underlyingSymbol = (() => {
+    if (typeof node !== "object" || node == null) return null;
+    if (!("details" in node)) return null;
+    const details = (node as { details?: unknown }).details;
+    if (!details || typeof details !== "object") return null;
+    if (!("underlyingSymbol" in details)) return null;
+    const value = (details as { underlyingSymbol?: unknown }).underlyingSymbol;
+    const symbol = typeof value === "string" ? value.trim() : "";
+    return symbol ? symbol : null;
+  })();
+
+  if (underlyingSymbol) {
+    const assetLogo = getAssetLogoPath(underlyingSymbol);
+    if (assetLogo) return [assetLogo];
+  }
+
   const name = node.name.trim();
 
   const isTokenLike = (value: string): boolean => {
