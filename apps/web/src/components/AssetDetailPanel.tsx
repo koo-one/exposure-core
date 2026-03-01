@@ -45,6 +45,37 @@ const extractHexAddress = (id: string): string | null => {
   }
 };
 
+const extractHexBytes32 = (id: string): string | null => {
+  const parts = id.split(":");
+  const candidate = (parts[parts.length - 1] ?? "").trim();
+  return /^0x[a-fA-F0-9]{64}$/.test(candidate) ? candidate : null;
+};
+
+const slugify = (input: string): string =>
+  input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+
+const morphoChainPath = (chain: string): string => {
+  const c = chain.trim().toLowerCase();
+  const chainMap: Record<string, string> = {
+    eth: "ethereum",
+    ethereum: "ethereum",
+    arb: "arbitrum",
+    arbitrum: "arbitrum",
+    "arbitrum-one": "arbitrum",
+    op: "optimism",
+    optimism: "optimism",
+    matic: "polygon",
+    polygon: "polygon",
+    base: "base",
+  };
+  return chainMap[c] ?? c;
+};
+
 const chainMeta = (
   chain: string,
 ): {
@@ -86,32 +117,110 @@ const chainMeta = (
   return null;
 };
 
+const protocolUrlBuilders: {
+  match: (protocol: string) => boolean;
+  build: (node: GraphNode) => string | null;
+}[] = [
+  {
+    match: (protocol) => protocol.includes("ethena"),
+    build: () => "https://app.ethena.fi/",
+  },
+  {
+    match: (protocol) => protocol.includes("gauntlet"),
+    build: () => "https://app.gauntlet.xyz/vaults/gtusda",
+  },
+  {
+    match: (protocol) => protocol.includes("infinifi"),
+    build: () => "https://app.infinifi.xyz/deposit",
+  },
+  {
+    match: (protocol) => protocol.includes("midas"),
+    build: (node) => {
+      const parts = node.id.split(":");
+      const candidate = (parts[parts.length - 1] ?? "").trim();
+      const key = slugify(candidate);
+      return key ? `https://midas.app/${key}` : "https://midas.app/";
+    },
+  },
+  {
+    match: (protocol) => protocol.includes("resolv"),
+    build: () => "https://app.resolv.xyz/overview",
+  },
+  {
+    match: (protocol) => protocol.includes("sky"),
+    build: () => "https://app.sky.money/?network=ethereum",
+  },
+  {
+    match: (protocol) => protocol.includes("yuzu"),
+    build: () => "https://app.yuzu.money/",
+  },
+  {
+    match: (protocol) => protocol.includes("morpho"),
+    build: (node) => {
+      const chainPath = morphoChainPath(
+        typeof node.chain === "string" ? node.chain : "",
+      );
+      if (!chainPath) return null;
+
+      const kind = (node.details?.kind ?? "").trim().toLowerCase();
+
+      // Morpho markets use the bytes32 market id as identifier.
+      if (kind === "lending market") {
+        const marketId = extractHexBytes32(node.id);
+        if (!marketId) return null;
+
+        const slug = (() => {
+          // Morpho UI slugs for markets appear to use collateral-loan order.
+          const parts = (node.name ?? "").split("/").map((p) => p.trim());
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            return slugify(`${parts[1]}-${parts[0]}`);
+          }
+          return slugify(node.name ?? "");
+        })();
+
+        return `https://app.morpho.org/${chainPath}/market/${marketId}/${slug}`;
+      }
+
+      const addr = extractHexAddress(node.id);
+      if (!addr) return null;
+
+      const slug = slugify(node.name ?? "");
+      return `https://app.morpho.org/${chainPath}/vault/${addr}/${slug}`;
+    },
+  },
+  {
+    match: (protocol) => protocol.includes("euler"),
+    build: (node) => {
+      const chain = typeof node.chain === "string" ? node.chain : "";
+      const meta = chainMeta(chain);
+      if (!meta) return null;
+
+      const addr = extractHexAddress(node.id);
+      if (!addr) return null;
+
+      const network = encodeURIComponent(meta.eulerNetwork);
+      const name = (node.name ?? "").trim().toLowerCase();
+
+      // Euler has distinct app routes for Earn vaults vs EVK vaults.
+      // Example expected by product: https://app.euler.finance/earn/<vaultAddress>?network=base
+      const isEulerEarn = name.includes("euler earn");
+      if (isEulerEarn) {
+        return `https://app.euler.finance/earn/${addr}?network=${network}`;
+      }
+
+      return `https://app.euler.finance/vault/${addr}?chainid=${meta.chainId}&network=${network}`;
+    },
+  },
+];
+
 const getProtocolAppUrl = (node: GraphNode): string | null => {
   const protocol = (node.protocol ?? "").trim().toLowerCase();
   if (!protocol) return null;
 
-  const addr = extractHexAddress(node.id);
-  if (!addr) return null;
+  const builder = protocolUrlBuilders.find((entry) => entry.match(protocol));
+  if (!builder) return null;
 
-  const chain = typeof node.chain === "string" ? node.chain : "";
-  const meta = chainMeta(chain);
-  if (!meta) return null;
-
-  if (protocol.includes("euler")) {
-    const network = encodeURIComponent(meta.eulerNetwork);
-    const name = (node.name ?? "").trim().toLowerCase();
-
-    // Euler has distinct app routes for Earn vaults vs EVK vaults.
-    // Example expected by product: https://app.euler.finance/earn/<vaultAddress>?network=base
-    const isEulerEarn = name.includes("euler earn");
-    if (isEulerEarn) {
-      return `https://app.euler.finance/earn/${addr}?network=${network}`;
-    }
-
-    return `https://app.euler.finance/vault/${addr}?chainid=${meta.chainId}&network=${network}`;
-  }
-
-  return null;
+  return builder.build(node);
 };
 
 const getExplorerUrl = (node: GraphNode): string | null => {
@@ -210,6 +319,7 @@ export default function AssetDetailPanel({
   const protocolAppUrl = getProtocolAppUrl(selectedNode);
   const protocolAuditUrl = getProtocolAuditUrl(selectedNode);
   const explorerUrl = getExplorerUrl(selectedNode);
+  const primaryExternalUrl = protocolAppUrl ?? explorerUrl;
 
   return (
     <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
@@ -305,28 +415,17 @@ export default function AssetDetailPanel({
           </div>
         </div>
 
-        {(protocolAppUrl || explorerUrl || protocolAuditUrl) && (
+        {(primaryExternalUrl || protocolAuditUrl) && (
           <div className="flex items-center gap-3 mt-8">
-            {protocolAppUrl && (
+            {primaryExternalUrl && (
               <a
-                href={protocolAppUrl}
+                href={primaryExternalUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
                 Open Protocol
-              </a>
-            )}
-            {!protocolAppUrl && explorerUrl && (
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Open Address
               </a>
             )}
             {protocolAuditUrl && (
