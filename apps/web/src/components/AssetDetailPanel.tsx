@@ -45,6 +45,31 @@ const extractHexAddress = (id: string): string | null => {
   }
 };
 
+const extractHexBytes32 = (id: string): string | null => {
+  const parts = id.split(":");
+  const candidate = (parts[parts.length - 1] ?? "").trim();
+  return /^0x[a-fA-F0-9]{64}$/.test(candidate) ? candidate : null;
+};
+
+const slugify = (input: string): string =>
+  input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+
+const morphoChainPath = (chain: string): string => {
+  const c = chain.trim().toLowerCase();
+  if (c === "eth" || c === "ethereum") return "ethereum";
+  if (c === "arb" || c === "arbitrum" || c === "arbitrum-one")
+    return "arbitrum";
+  if (c === "op" || c === "optimism") return "optimism";
+  if (c === "matic" || c === "polygon") return "polygon";
+  if (c === "base") return "base";
+  return c;
+};
+
 const chainMeta = (
   chain: string,
 ): {
@@ -90,12 +115,43 @@ const getProtocolAppUrl = (node: GraphNode): string | null => {
   const protocol = (node.protocol ?? "").trim().toLowerCase();
   if (!protocol) return null;
 
-  const addr = extractHexAddress(node.id);
-  if (!addr) return null;
-
   const chain = typeof node.chain === "string" ? node.chain : "";
+
+  if (protocol.includes("morpho")) {
+    const chainPath = morphoChainPath(chain);
+    if (!chainPath) return null;
+
+    const kind = (node.details?.kind ?? "").trim().toLowerCase();
+
+    // Morpho markets use the bytes32 market id as identifier.
+    if (kind === "lending market") {
+      const marketId = extractHexBytes32(node.id);
+      if (!marketId) return null;
+
+      const slug = (() => {
+        // Morpho UI slugs for markets appear to use collateral-loan order.
+        const parts = (node.name ?? "").split("/").map((p) => p.trim());
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          return slugify(`${parts[1]}-${parts[0]}`);
+        }
+        return slugify(node.name ?? "");
+      })();
+
+      return `https://app.morpho.org/${chainPath}/market/${marketId}/${slug}`;
+    }
+
+    const addr = extractHexAddress(node.id);
+    if (!addr) return null;
+
+    const slug = slugify(node.name ?? "");
+    return `https://app.morpho.org/${chainPath}/vault/${addr}/${slug}`;
+  }
+
   const meta = chainMeta(chain);
   if (!meta) return null;
+
+  const addr = extractHexAddress(node.id);
+  if (!addr) return null;
 
   if (protocol.includes("euler")) {
     const network = encodeURIComponent(meta.eulerNetwork);
