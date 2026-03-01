@@ -17,7 +17,7 @@ import { TerminalToast } from "@/components/TerminalToast";
 
 import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
-import { currencyFormatter, normalizeId } from "@/utils/formatters";
+import { normalizeId } from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
@@ -299,15 +299,7 @@ export default function AssetPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-16">
-          <div className="text-right">
-            <p className="text-[9px] text-black/30 uppercase font-black tracking-[0.2em] mb-1">
-              Distribution Aggregate
-            </p>
-            <p className="font-bold text-black text-2xl tracking-tighter font-mono">
-              {tvl ? currencyFormatter.format(tvl) : "—"}
-            </p>
-          </div>
+        <div className="flex items-center gap-6">
           {origin && (
             <Link
               href={`/asset/${origin}`}
@@ -324,7 +316,7 @@ export default function AssetPage() {
       </header>
 
       {/* Primary Layout */}
-      <main className="flex-grow flex flex-col lg:flex-row overflow-hidden">
+      <main className="flex-grow flex flex-col lg:flex-row">
         {/* Visualization Region */}
         <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-[#E6EBF8] overflow-hidden border-r border-black">
           <div className="absolute top-10 left-10 z-20 pointer-events-none">
@@ -347,12 +339,13 @@ export default function AssetPage() {
         </div>
 
         {/* Intelligence Region */}
-        <aside className="lg:w-[450px] h-[35vh] lg:h-auto bg-white flex flex-col z-20 overflow-hidden shadow-[-20px_0_60px_rgba(0,0,0,0.05)]">
+        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)]">
           <AssetDetailPanel
             selectedNode={selectedNode}
             edges={graphData.edges}
             rootNodeId={focusRootNodeId || rootNode?.id}
             originId={origin}
+            tvl={tvl}
             onReset={
               !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
             }

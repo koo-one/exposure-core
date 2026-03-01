@@ -1,17 +1,5 @@
 import type { GraphNode } from "@/types";
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
-
-const hasLogoKeys = (value: unknown): value is { logoKeys: unknown } => {
-  return isRecord(value) && "logoKeys" in value;
-};
-
-const hasDetails = (value: unknown): value is { details: unknown } => {
-  return isRecord(value) && "details" in value;
-};
-
 export function normalizeLogoKey(input: string): string {
   return input.trim().toLowerCase().replace(/^w/, ""); // handle WETH -> ETH, etc
 }
@@ -107,35 +95,36 @@ export function getNodeLogos(
 ): string[] {
   const logos: string[] = [];
 
-  const explicitLogoKeys = (() => {
-    if (!hasLogoKeys(node)) return null;
-    const raw = node.logoKeys;
+  const logoKeys = (() => {
+    if (typeof node !== "object" || node == null) return null;
+    if (!("logoKeys" in node)) return null;
+    const raw = (node as { logoKeys?: unknown }).logoKeys;
     if (!Array.isArray(raw)) return null;
     const keys = raw.filter((v): v is string => typeof v === "string");
     return keys.length > 0 ? keys : null;
   })();
 
-  const underlyingSymbol = (() => {
-    if (!hasDetails(node)) return "";
-    const details = node.details;
-    if (!isRecord(details)) return "";
-    const raw = details["underlyingSymbol"];
-    return typeof raw === "string" ? raw.trim() : "";
-  })();
-
-  const primaryAssetKeys =
-    explicitLogoKeys ?? (underlyingSymbol ? [underlyingSymbol] : null);
-
-  if (primaryAssetKeys) {
-    const assetPaths = primaryAssetKeys
+  if (logoKeys) {
+    const paths = logoKeys
       .map((k) => getAssetLogoPath(k))
       .filter((p) => typeof p === "string" && p.length > 0);
+    if (paths.length > 0) return paths;
+  }
 
-    if (node.protocol && hasProtocolLogo(node.protocol)) {
-      assetPaths.push(getProtocolLogoPath(node.protocol));
-    }
+  const underlyingSymbol = (() => {
+    if (typeof node !== "object" || node == null) return null;
+    if (!("details" in node)) return null;
+    const details = (node as { details?: unknown }).details;
+    if (!details || typeof details !== "object") return null;
+    if (!("underlyingSymbol" in details)) return null;
+    const value = (details as { underlyingSymbol?: unknown }).underlyingSymbol;
+    const symbol = typeof value === "string" ? value.trim() : "";
+    return symbol ? symbol : null;
+  })();
 
-    if (assetPaths.length > 0) return assetPaths;
+  if (underlyingSymbol) {
+    const assetLogo = getAssetLogoPath(underlyingSymbol);
+    if (assetLogo) return [assetLogo];
   }
 
   const name = node.name.trim();

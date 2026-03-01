@@ -32,8 +32,9 @@ export interface ResolvMetrics {
 }
 
 export const fetchResolvMetrics = async (): Promise<ResolvMetrics> => {
-  // Local fixture generation should not require paid Dune access.
-  // If no key is present, return null metrics so `pnpm graphs:all` can proceed.
+  // Local fixture runners and CI may not have a Dune API key.
+  // Instead of failing the entire `graphs:all` pipeline, return null metrics.
+  // This keeps graph snapshots/search index usable for UI iteration.
   if (!process.env.DUNE_API_KEY) {
     return {
       asOf: new Date().toISOString(),
