@@ -212,7 +212,7 @@ export default function AssetDetailPanel({
   const explorerUrl = getExplorerUrl(selectedNode);
 
   return (
-    <div className="h-full flex flex-col bg-white border-l border-black">
+    <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
       {/* Institutional Header */}
       <div className="p-10 border-b border-black/5 bg-gradient-to-b from-black/[0.02] to-transparent">
         <div className="flex items-center gap-6 mb-8">
