@@ -10,7 +10,13 @@ import {
   ArrowLeft,
   RotateCcw,
 } from "lucide-react";
-import { getNodeLogos, hasChainLogo, getChainLogoPath } from "@/lib/logos";
+import {
+  getNodeLogos,
+  getProtocolLogoPath,
+  hasProtocolLogo,
+  hasChainLogo,
+  getChainLogoPath,
+} from "@/lib/logos";
 import { currencyFormatter, percentFormatter } from "@/utils/formatters";
 import Link from "next/link";
 import Image from "next/image";
@@ -87,6 +93,10 @@ export default function AssetDetailPanel({
       : "";
 
   const logoPaths = getNodeLogos(selectedNode);
+  const protocolFallbackPath =
+    selectedNode.protocol && hasProtocolLogo(selectedNode.protocol)
+      ? getProtocolLogoPath(selectedNode.protocol)
+      : "";
   const chainLogoPath = hasChainLogo(selectedNode.chain)
     ? getChainLogoPath(selectedNode.chain)
     : null;
@@ -129,6 +139,13 @@ export default function AssetDetailPanel({
                     src={logoPath}
                     alt=""
                     className="w-full h-full object-contain"
+                    onError={(e) => {
+                      if (!protocolFallbackPath) return;
+                      const img = e.currentTarget;
+                      if (img.dataset.fallbackApplied === "1") return;
+                      img.dataset.fallbackApplied = "1";
+                      img.src = protocolFallbackPath;
+                    }}
                   />
                 </div>
               ))

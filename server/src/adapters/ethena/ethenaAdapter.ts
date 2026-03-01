@@ -57,8 +57,8 @@ export const createEthenaAdapter = (): Adapter<
         })();
 
         return {
-          id: "global:ethena:usde",
-          chain: "global",
+          id: "eth:ethena:0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          chain: "eth",
           name: ASSET_USDE,
           protocol: ETHENA_PROTOCOL,
           details: { kind: "Deposit" },
@@ -75,8 +75,8 @@ export const createEthenaAdapter = (): Adapter<
         })();
 
         return {
-          id: "global:ethena:susde",
-          chain: "global",
+          id: "eth:ethena:0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          chain: "eth",
           name: ASSET_SUSDE,
           protocol: ETHENA_PROTOCOL,
           details: { kind: "Staked" },

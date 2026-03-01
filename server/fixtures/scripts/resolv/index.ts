@@ -23,14 +23,21 @@ export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
   const shouldUpload = argv.includes("--upload");
 
-  // Resolv metrics depend on Dune; allow other fixture scripts to run when the
-  // key is not configured.
-  if (!process.env.DUNE_API_KEY) {
-    console.warn(
-      "[fixtures:resolv] Skipping: missing DUNE_API_KEY (set in env.local.sh to enable)",
+  const persistSnapshot = async (rootNodeId: string, snapshot: unknown) => {
+    const outPath = resolve(
+      root,
+      "fixtures",
+      "output",
+      "resolv",
+      `${rootNodeId}.json`,
     );
-    return;
-  }
+
+    await writeJsonFile(outPath, snapshot);
+
+    if (shouldUpload) {
+      await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
+    }
+  };
 
   const fetchImpl = createMockFetch({
     enabledProviders: ["debank"],
@@ -57,18 +64,14 @@ export const run = async (argv: string[]): Promise<void> => {
         throw new Error(`Missing root node id for asset: ${asset}`);
       }
 
-      const outPath = resolve(
-        root,
-        "fixtures",
-        "output",
-        "resolv",
-        `${rootNodeId}.json`,
-      );
+      await persistSnapshot(rootNodeId, snapshot);
 
-      await writeJsonFile(outPath, snapshot);
+      const extraDeploymentNodeIds = getResolvDeploymentNodeIds(rootNodeId);
 
-      if (shouldUpload) {
-        await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
+      for (const nextRootId of extraDeploymentNodeIds) {
+        const depSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
+
+        await persistSnapshot(nextRootId, depSnapshot);
       }
 
       const extraDeploymentNodeIds = getResolvDeploymentNodeIds(rootNodeId);
