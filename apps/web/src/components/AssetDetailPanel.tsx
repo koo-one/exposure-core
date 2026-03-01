@@ -117,6 +117,37 @@ const getProtocolAppUrl = (node: GraphNode): string | null => {
 
   const chain = typeof node.chain === "string" ? node.chain : "";
 
+  if (protocol.includes("ethena")) {
+    return "https://app.ethena.fi/";
+  }
+
+  if (protocol.includes("gauntlet")) {
+    return "https://app.gauntlet.xyz/vaults/gtusda";
+  }
+
+  if (protocol.includes("infinifi")) {
+    return "https://app.infinifi.xyz/deposit";
+  }
+
+  if (protocol.includes("midas")) {
+    const parts = node.id.split(":");
+    const candidate = (parts[parts.length - 1] ?? "").trim();
+    const key = slugify(candidate);
+    return key ? `https://midas.app/${key}` : "https://midas.app/";
+  }
+
+  if (protocol.includes("resolv")) {
+    return "https://app.resolv.xyz/overview";
+  }
+
+  if (protocol.includes("sky")) {
+    return "https://app.sky.money/?network=ethereum";
+  }
+
+  if (protocol.includes("yuzu")) {
+    return "https://app.yuzu.money/";
+  }
+
   if (protocol.includes("morpho")) {
     const chainPath = morphoChainPath(chain);
     if (!chainPath) return null;
