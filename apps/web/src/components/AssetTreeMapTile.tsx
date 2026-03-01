@@ -4,6 +4,7 @@ import type { GraphNode } from "@/types";
 import { getNodeLogos } from "@/lib/logos";
 import { cn } from "@/lib/utils";
 import { currencyFormatter } from "@/utils/formatters";
+import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 
 interface TreemapTileDatum extends Record<string, unknown> {
   nodeId?: string;
@@ -156,48 +157,26 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     if (!typeLabel) return null;
     if (width < 140 || height < 42) return null;
 
-    const kind =
-      typeof fullNode?.details?.kind === "string"
-        ? fullNode.details.kind.trim().toLowerCase()
-        : "";
-    const subtype =
-      typeof fullNode?.details?.subtype === "string"
-        ? fullNode.details.subtype.trim().toLowerCase()
-        : "";
-    const lowerLabel = typeLabel.toLowerCase();
-
-    // Badge color criteria (match top bar):
-    // - Yield-related vaults: yield / vault products
-    // - Lending-related: lending position / lending markets
-    // - Staked/Locked: staked or locked positions
-    const isYieldVault =
-      kind === "yield" ||
-      subtype.includes("vault") ||
-      lowerLabel.includes("vault");
-    const isLending =
-      kind.includes("lending") || lowerLabel.includes("lending");
-    const isStakedOrLocked =
-      kind === "staked" ||
-      kind === "locked" ||
-      lowerLabel.includes("staked") ||
-      lowerLabel.includes("locked");
+    const category = classifyNodeType(
+      getNodeTypeParts(fullNode?.details ?? null, typeLabel),
+    );
 
     const colors = (() => {
-      if (isYieldVault) {
+      if (category === "yield-vault") {
         return {
           fill: "#ECFDF5", // emerald-50
           stroke: "#A7F3D0", // emerald-200
           text: "#047857", // emerald-700
         };
       }
-      if (isLending) {
+      if (category === "lending") {
         return {
           fill: "#EFF6FF", // blue-50
           stroke: "#BFDBFE", // blue-200
           text: "#1D4ED8", // blue-700
         };
       }
-      if (isStakedOrLocked) {
+      if (category === "staked-locked") {
         return {
           fill: "#FFFBEB", // amber-50
           stroke: "#FDE68A", // amber-200

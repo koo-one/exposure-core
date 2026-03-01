@@ -1,5 +1,17 @@
 import type { GraphNode } from "@/types";
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null;
+};
+
+const hasLogoKeys = (value: unknown): value is { logoKeys: unknown } => {
+  return isRecord(value) && "logoKeys" in value;
+};
+
+const hasDetails = (value: unknown): value is { details: unknown } => {
+  return isRecord(value) && "details" in value;
+};
+
 export function normalizeLogoKey(input: string): string {
   return input.trim().toLowerCase().replace(/^w/, ""); // handle WETH -> ETH, etc
 }
@@ -96,20 +108,18 @@ export function getNodeLogos(
   const logos: string[] = [];
 
   const explicitLogoKeys = (() => {
-    if (typeof node !== "object" || node == null) return null;
-    if (!("logoKeys" in node)) return null;
-    const raw = (node as { logoKeys?: unknown }).logoKeys;
+    if (!hasLogoKeys(node)) return null;
+    const raw = node.logoKeys;
     if (!Array.isArray(raw)) return null;
     const keys = raw.filter((v): v is string => typeof v === "string");
     return keys.length > 0 ? keys : null;
   })();
 
   const underlyingSymbol = (() => {
-    if (typeof node !== "object" || node == null) return "";
-    if (!("details" in node)) return "";
-    const details = (node as { details?: unknown }).details;
-    if (typeof details !== "object" || details == null) return "";
-    const raw = (details as { underlyingSymbol?: unknown }).underlyingSymbol;
+    if (!hasDetails(node)) return "";
+    const details = node.details;
+    if (!isRecord(details)) return "";
+    const raw = details["underlyingSymbol"];
     return typeof raw === "string" ? raw.trim() : "";
   })();
 

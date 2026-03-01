@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
+import { getNodeTypeLabel } from "@/lib/nodeType";
 import { TreemapHoverCard } from "@/components/TreemapHoverCard";
 import { AssetTreeMapTile } from "@/components/AssetTreeMapTile";
 import { normalizeId } from "@/utils/formatters";
@@ -116,20 +117,7 @@ export default function AssetTreeMap({
 
       const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
-      const typeLabel = (() => {
-        const node = c.node;
-        if (!node) return "";
-        const subtype =
-          typeof node.details?.subtype === "string"
-            ? node.details.subtype.trim()
-            : "";
-        if (subtype) return subtype;
-        const kind =
-          typeof node.details?.kind === "string"
-            ? node.details.kind.trim()
-            : "";
-        return kind;
-      })();
+      const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
 
       return {
         name: (() => {

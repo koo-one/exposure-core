@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { searchIndexBlobPath } from "../../../api/exposure/paths";
 import { readJson, writeJsonFile } from "../core/io";
+import { getNodeTypeLabel } from "../../../src/core/nodeType";
 
 interface SnapshotNode {
   id: string;
@@ -125,18 +126,6 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
   return best ? [best.key] : [];
 };
 
-const getTypeLabel = (root: SnapshotNode): string => {
-  const subtype =
-    typeof root.details?.subtype === "string"
-      ? root.details.subtype.trim()
-      : "";
-  if (subtype) return subtype;
-
-  const kind =
-    typeof root.details?.kind === "string" ? root.details.kind.trim() : "";
-  return kind;
-};
-
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
 
@@ -170,7 +159,7 @@ const collectSearchIndexEntries = async (
         typeof root.details?.curator === "string" ? root.details.curator : null;
 
       const logoKeys = inferLogoKeys(snapshot, root);
-      const typeLabel = getTypeLabel(root);
+      const typeLabel = getNodeTypeLabel(root.details);
 
       const idParts = root.id.split(":");
       const protocolFromId = idParts[1] ?? "unknown";
