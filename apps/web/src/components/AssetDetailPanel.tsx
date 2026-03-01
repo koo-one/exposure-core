@@ -20,20 +20,126 @@ import {
 import { currencyFormatter, percentFormatter } from "@/utils/formatters";
 import Link from "next/link";
 import Image from "next/image";
+import { getAddress } from "viem";
 
 interface AssetDetailPanelProps {
   selectedNode: GraphNode | null;
   edges: GraphEdge[];
   rootNodeId?: string;
   originId?: string;
+  tvl?: number | null;
   onReset?: () => void;
 }
+
+const extractHexAddress = (id: string): string | null => {
+  const parts = id.split(":");
+  const candidate = (parts[parts.length - 1] ?? "").trim();
+  if (!/^0x[a-fA-F0-9]{40}$/.test(candidate)) return null;
+
+  // Euler app routing appears to expect a checksummed address in the URL path.
+  try {
+    return getAddress(candidate);
+  } catch (error) {
+    console.warn("Invalid address for external link:", candidate, error);
+    return null;
+  }
+};
+
+const chainMeta = (
+  chain: string,
+): {
+  chainId: number;
+  eulerNetwork: string;
+  explorerBase: string;
+} | null => {
+  const c = chain.trim().toLowerCase();
+  if (c === "ethereum" || c === "eth")
+    return {
+      chainId: 1,
+      eulerNetwork: "ethereum",
+      explorerBase: "https://etherscan.io",
+    };
+  if (c === "arbitrum" || c === "arb" || c === "arbitrum-one")
+    return {
+      chainId: 42161,
+      eulerNetwork: "arbitrum",
+      explorerBase: "https://arbiscan.io",
+    };
+  if (c === "optimism" || c === "op")
+    return {
+      chainId: 10,
+      eulerNetwork: "optimism",
+      explorerBase: "https://optimistic.etherscan.io",
+    };
+  if (c === "base")
+    return {
+      chainId: 8453,
+      eulerNetwork: "base",
+      explorerBase: "https://basescan.org",
+    };
+  if (c === "polygon" || c === "matic")
+    return {
+      chainId: 137,
+      eulerNetwork: "polygon",
+      explorerBase: "https://polygonscan.com",
+    };
+  return null;
+};
+
+const getProtocolAppUrl = (node: GraphNode): string | null => {
+  const protocol = (node.protocol ?? "").trim().toLowerCase();
+  if (!protocol) return null;
+
+  const addr = extractHexAddress(node.id);
+  if (!addr) return null;
+
+  const chain = typeof node.chain === "string" ? node.chain : "";
+  const meta = chainMeta(chain);
+  if (!meta) return null;
+
+  if (protocol.includes("euler")) {
+    const network = encodeURIComponent(meta.eulerNetwork);
+    const name = (node.name ?? "").trim().toLowerCase();
+
+    // Euler has distinct app routes for Earn vaults vs EVK vaults.
+    // Example expected by product: https://app.euler.finance/earn/<vaultAddress>?network=base
+    const isEulerEarn = name.includes("euler earn");
+    if (isEulerEarn) {
+      return `https://app.euler.finance/earn/${addr}?network=${network}`;
+    }
+
+    return `https://app.euler.finance/vault/${addr}?chainid=${meta.chainId}&network=${network}`;
+  }
+
+  return null;
+};
+
+const getExplorerUrl = (node: GraphNode): string | null => {
+  const addr = extractHexAddress(node.id);
+  if (!addr) return null;
+
+  const chain = typeof node.chain === "string" ? node.chain : "";
+  const meta = chainMeta(chain);
+  if (!meta) return null;
+
+  return `${meta.explorerBase}/address/${addr}`;
+};
+
+const getProtocolAuditUrl = (node: GraphNode): string | null => {
+  const protocol = (node.protocol ?? "").trim().toLowerCase();
+  if (protocol.includes("euler"))
+    return "https://docs.euler.finance/security/audits";
+  if (protocol.includes("ethena"))
+    return "https://docs.ethena.fi/resources/audits";
+  return null;
+};
 
 export default function AssetDetailPanel({
   selectedNode,
   edges,
   rootNodeId,
   originId,
+  tvl,
   onReset,
 }: AssetDetailPanelProps) {
   if (!selectedNode) {
@@ -101,8 +207,12 @@ export default function AssetDetailPanel({
     ? getChainLogoPath(selectedNode.chain)
     : null;
 
+  const protocolAppUrl = getProtocolAppUrl(selectedNode);
+  const protocolAuditUrl = getProtocolAuditUrl(selectedNode);
+  const explorerUrl = getExplorerUrl(selectedNode);
+
   return (
-    <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
+    <div className="h-full flex flex-col bg-white border-l border-black">
       {/* Institutional Header */}
       <div className="p-10 border-b border-black/5 bg-gradient-to-b from-black/[0.02] to-transparent">
         <div className="flex items-center gap-6 mb-8">
@@ -126,62 +236,112 @@ export default function AssetDetailPanel({
           )}
         </div>
 
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0 flex items-center -space-x-4 relative">
-            {logoPaths.length > 0 ? (
-              logoPaths.map((logoPath, idx) => (
-                <div
-                  key={logoPath}
-                  className="w-14 h-14 bg-white border border-black flex items-center justify-center p-3 rounded-full overflow-hidden shadow-lg z-[10] relative"
-                  style={{ zIndex: 10 - idx }}
-                >
-                  <img
-                    src={logoPath}
-                    alt=""
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      if (!protocolFallbackPath) return;
-                      const img = e.currentTarget;
-                      if (img.dataset.fallbackApplied === "1") return;
-                      img.dataset.fallbackApplied = "1";
-                      img.src = protocolFallbackPath;
-                    }}
-                  />
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex items-start gap-6">
+            <div className="flex-shrink-0 flex items-center -space-x-4 relative">
+              {logoPaths.length > 0 ? (
+                logoPaths.map((logoPath, idx) => (
+                  <div
+                    key={logoPath}
+                    className="w-14 h-14 bg-white border border-black flex items-center justify-center p-3 rounded-full overflow-hidden shadow-lg z-[10] relative"
+                    style={{ zIndex: 10 - idx }}
+                  >
+                    <img
+                      src={logoPath}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        if (!protocolFallbackPath) return;
+                        const img = e.currentTarget;
+                        if (img.dataset.fallbackApplied === "1") return;
+                        img.dataset.fallbackApplied = "1";
+                        img.src = protocolFallbackPath;
+                      }}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="w-14 h-14 bg-black/[0.03] border border-black flex items-center justify-center p-3 relative group">
+                  <div className="w-full h-full bg-black/5 flex items-center justify-center text-black/20 font-black text-xl relative z-10">
+                    {selectedNode.name.charAt(0)}
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="w-14 h-14 bg-black/[0.03] border border-black flex items-center justify-center p-3 relative group">
-                <div className="w-full h-full bg-black/5 flex items-center justify-center text-black/20 font-black text-xl relative z-10">
-                  {selectedNode.name.charAt(0)}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex-grow pt-1">
-            <h2 className="text-2xl font-bold text-black leading-none mb-3 tracking-tighter uppercase italic">
-              {selectedNode.name}
-            </h2>
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="px-2 py-0.5 border border-black text-black text-[9px] font-black uppercase tracking-widest bg-white">
-                {protocolLabel}
-              </span>
-              {subtypeLabel && (
-                <span className="px-2 py-0.5 border border-black/10 text-black/60 text-[9px] font-black uppercase tracking-widest bg-white">
-                  {subtypeLabel.toUpperCase()}
-                </span>
-              )}
-              {chainLogoPath && (
-                <Image
-                  src={chainLogoPath}
-                  alt={selectedNode.chain || ""}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
               )}
             </div>
+
+            <div className="flex-grow pt-1">
+              <h2 className="text-2xl font-bold text-black leading-none mb-3 tracking-tighter uppercase italic">
+                {selectedNode.name}
+              </h2>
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="px-2 py-0.5 border border-black text-black text-[9px] font-black uppercase tracking-widest bg-white">
+                  {protocolLabel}
+                </span>
+                {subtypeLabel && (
+                  <span className="px-2 py-0.5 border border-black/10 text-black/60 text-[9px] font-black uppercase tracking-widest bg-white">
+                    {subtypeLabel.toUpperCase()}
+                  </span>
+                )}
+                {chainLogoPath && (
+                  <Image
+                    src={chainLogoPath}
+                    alt={selectedNode.chain || ""}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className="text-[9px] text-black/30 uppercase font-black tracking-[0.2em] mb-1">
+              TVL
+            </p>
+            <p className="font-bold text-black text-2xl tracking-tighter font-mono">
+              {typeof tvl === "number" ? currencyFormatter.format(tvl) : "—"}
+            </p>
           </div>
         </div>
+
+        {(protocolAppUrl || explorerUrl || protocolAuditUrl) && (
+          <div className="flex items-center gap-3 mt-8">
+            {protocolAppUrl && (
+              <a
+                href={protocolAppUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open Protocol
+              </a>
+            )}
+            {!protocolAppUrl && explorerUrl && (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open Address
+              </a>
+            )}
+            {protocolAuditUrl && (
+              <a
+                href={protocolAuditUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                Audit Report
+              </a>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-px bg-black/10 mt-10 border border-black/10">
           <div className="bg-white p-6">
