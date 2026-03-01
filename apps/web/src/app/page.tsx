@@ -289,7 +289,10 @@ function HomeInner() {
       }
 
       if (tvl != null) {
-        existing.tvlSum += tvl;
+        // Some adapters clone per-chain snapshots while preserving the same root
+        // TVL on each clone. Summing across deployments would inflate TVL.
+        // Use max TVL within the group instead.
+        existing.tvlSum = Math.max(existing.tvlSum, tvl);
         existing.tvlSeen = true;
       }
 
@@ -301,7 +304,7 @@ function HomeInner() {
             tvlSeen: tvl != null,
           };
         } else if (tvl != null) {
-          agg.tvlSum += tvl;
+          agg.tvlSum = Math.max(agg.tvlSum, tvl);
           agg.tvlSeen = true;
         }
       }
