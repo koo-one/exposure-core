@@ -2,11 +2,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { adapterFactories } from "../../../src/adapters/registry";
+import { getGauntletDeploymentNodeIds } from "../../../src/adapters/gauntlet/deployments";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 
-import { writeJsonFile } from "../core/io";
+import { writeJsonFile, cloneSnapshotWithRootId } from "../core/io";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
@@ -15,7 +16,9 @@ export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
   const shouldUpload = argv.includes("--upload");
 
-  const draftGraphs = await buildDraftGraphsByAsset([adapterFactories.gauntlet]);
+  const draftGraphs = await buildDraftGraphsByAsset([
+    adapterFactories.gauntlet,
+  ]);
 
   for (const [, store] of draftGraphs) {
     const snapshot = store.toSnapshot({ sources: ["gauntlet"] });
@@ -25,19 +28,37 @@ export const run = async (argv: string[]): Promise<void> => {
       throw new Error("Missing root node id for gauntlet snapshot");
     }
 
-    const outPath = resolve(
-      root,
-      "fixtures",
-      "output",
-      "gauntlet",
-      `${rootNodeId}.json`,
-    );
+    const persistSnapshot = async (
+      nextRootId: string,
+      payload: unknown,
+    ): Promise<void> => {
+      const outPath = resolve(
+        root,
+        "fixtures",
+        "output",
+        "gauntlet",
+        `${nextRootId}.json`,
+      );
 
-    await writeJsonFile(outPath, snapshot);
+      await writeJsonFile(outPath, payload);
 
-    if (shouldUpload) {
-      await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
+      if (shouldUpload) {
+        await putJsonToBlob(graphSnapshotBlobPath(nextRootId), payload);
+      }
+    };
+
+    const deploymentNodeIds = getGauntletDeploymentNodeIds();
+
+    if (deploymentNodeIds.length > 0) {
+      for (const nextRootId of deploymentNodeIds) {
+        const depSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
+
+        await persistSnapshot(nextRootId, depSnapshot);
+      }
+      continue;
     }
+
+    await persistSnapshot(rootNodeId, snapshot);
   }
 };
 

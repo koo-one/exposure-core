@@ -65,8 +65,8 @@ export const createSkyAdapter = (): Adapter<SkyCatalog, SkyAllocation> => {
             : { kind: "Yield" as const, curator: SKY_PROTOCOL };
 
       return {
-        id: `global:${SKY_PROTOCOL}:${slug}`,
-        chain: "global",
+        id: `eth:${SKY_PROTOCOL}:${slug}`,
+        chain: "eth",
         name: asset,
         protocol: SKY_PROTOCOL,
         details,
@@ -93,11 +93,11 @@ export const createSkyAdapter = (): Adapter<SkyCatalog, SkyAllocation> => {
       const edges: Edge[] = [];
 
       for (const ilk of ilks) {
-        const nodeId = `global:${SKY_PROTOCOL}:${toSlug(ilk.ilk)}`;
+        const nodeId = `eth:${SKY_PROTOCOL}:${toSlug(ilk.ilk)}`;
 
         nodes.push({
           id: nodeId,
-          chain: "global",
+          chain: "eth",
           name: ilk.ilk,
           details: { kind: "Investment" },
         });
