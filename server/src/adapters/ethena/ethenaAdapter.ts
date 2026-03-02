@@ -13,13 +13,17 @@ export interface EthenaAllocation {
   data: EthenaCatalog;
 }
 
-const buildBackingNodeId = (exchange: string, asset: string): string => {
+const buildBackingNodeId = (
+  chain: string,
+  exchange: string,
+  asset: string,
+): string => {
   const exchangeSlug = toSlug(exchange);
   const assetSlug = toSlug(asset);
 
   // Keep IDs stable and unique across the whole graph while reflecting the
   // requested shape: "<exchange>:<asset>".
-  return `global:${ETHENA_PROTOCOL}:${exchangeSlug}:${assetSlug}`;
+  return `${chain}:${ETHENA_PROTOCOL}:${exchangeSlug}:${assetSlug}`;
 };
 
 export const createEthenaAdapter = (): Adapter<
@@ -110,6 +114,11 @@ export const createEthenaAdapter = (): Adapter<
       const collateral =
         alloc.data.backing.collateral_metrics.latest.data.collateral;
 
+      const rootChain =
+        typeof root.chain === "string" && root.chain.trim().length > 0
+          ? root.chain.trim().toLowerCase()
+          : "eth";
+
       const entries = collateral
         .map((entry) => ({
           exchange: entry.exchange,
@@ -120,8 +129,8 @@ export const createEthenaAdapter = (): Adapter<
 
       for (const entry of entries) {
         const allocationNode: Node = {
-          id: buildBackingNodeId(entry.exchange, entry.asset),
-          chain: "global",
+          id: buildBackingNodeId(rootChain, entry.exchange, entry.asset),
+          chain: rootChain,
           name: `${entry.exchange}: ${entry.asset}`,
           details: { kind: "Investment" },
         };

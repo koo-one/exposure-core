@@ -16,3 +16,17 @@ export const getGauntletDeploymentNodeIds = (): string[] => {
       `${normalizeChain(chain)}:${GAUNTLET_PROTOCOL}:${address.toLowerCase()}`,
   );
 };
+
+export const getGauntletPrimaryDeployment = (): {
+  chain: string;
+  address: string;
+} => {
+  const chain = normalizeChain("base");
+  const fallback = Object.values(GTUSDA_DEPLOYMENTS)[0] ?? "";
+  const address = GTUSDA_DEPLOYMENTS.base ?? fallback;
+
+  return {
+    chain,
+    address: address.trim().toLowerCase(),
+  };
+};

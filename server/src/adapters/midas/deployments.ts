@@ -92,3 +92,26 @@ export const getMidasDeploymentNodeIds = (asset: string): string[] => {
         .toLowerCase()}`,
   );
 };
+
+export const getMidasPrimaryDeployment = (
+  asset: string,
+): { chain: string; address: string } | null => {
+  const key = toSlug(asset);
+  const chainToAddress = MIDAS_DEPLOYMENTS[key];
+  if (!chainToAddress) return null;
+
+  if (chainToAddress.eth) {
+    return {
+      chain: normalizeChain("eth"),
+      address: chainToAddress.eth.trim().toLowerCase(),
+    };
+  }
+
+  const [chain, address] = Object.entries(chainToAddress)[0] ?? [];
+  if (!chain || !address) return null;
+
+  return {
+    chain: normalizeChain(chain),
+    address: address.trim().toLowerCase(),
+  };
+};
