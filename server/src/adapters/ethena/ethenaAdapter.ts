@@ -114,10 +114,7 @@ export const createEthenaAdapter = (): Adapter<
       const collateral =
         alloc.data.backing.collateral_metrics.latest.data.collateral;
 
-      const rootChain =
-        typeof root.chain === "string" && root.chain.trim().length > 0
-          ? root.chain.trim().toLowerCase()
-          : "eth";
+      const rootChain = root.chain ?? "eth";
 
       const entries = collateral
         .map((entry) => ({

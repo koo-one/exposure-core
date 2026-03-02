@@ -48,6 +48,8 @@ const shortChainLabel = (value: string): string => {
     case "hyper":
     case "hyperliquid":
       return "HYPER";
+    case "global":
+      return "GLOBAL";
     default:
       return formatChainLabel(v).toUpperCase();
   }
@@ -60,7 +62,6 @@ const buildChainLabel = (
     new Set(
       chains
         .map((c) => shortChainLabel(c.chain))
-        .filter((label) => label.toLowerCase() !== "global")
         .filter((label) => label.length > 0),
     ),
   );
@@ -166,7 +167,6 @@ function HomeInner() {
     return [
       { label: "Any Chain", value: "all" },
       ...Array.from(set)
-        .filter((c) => c.trim().toLowerCase() !== "global")
         .sort()
         .map((c) => ({ label: c, value: c })),
     ];

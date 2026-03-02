@@ -53,15 +53,12 @@ export const createMidasAdapter = (): Adapter<
         0,
       );
 
-      const slug = toSlug(asset);
       const primaryDeployment = getMidasPrimaryDeployment(asset);
       const chain = primaryDeployment?.chain ?? "eth";
-      const nodeId = primaryDeployment
-        ? `${primaryDeployment.chain}:midas:${primaryDeployment.address}`
-        : `eth:midas:${slug}`;
+      const address = primaryDeployment?.address ?? toSlug(asset);
 
       const node: Node = {
-        id: nodeId,
+        id: `${chain}:midas:${address}`,
         chain,
         name: asset,
         protocol: "midas",
