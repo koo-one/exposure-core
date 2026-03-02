@@ -5,6 +5,7 @@ import {
 } from "../../resolvers/debank/debankResolver";
 import { toSlug } from "../../utils";
 import { getCuratorForAsset } from "./curators";
+import { getMidasPrimaryDeployment } from "./deployments";
 import type { Adapter } from "../types";
 
 export interface MidasAllocation {
@@ -52,11 +53,13 @@ export const createMidasAdapter = (): Adapter<
         0,
       );
 
-      const slug = toSlug(asset);
+      const primaryDeployment = getMidasPrimaryDeployment(asset);
+      const chain = primaryDeployment?.chain ?? "eth";
+      const address = primaryDeployment?.address ?? toSlug(asset);
 
       const node: Node = {
-        id: `global:midas:${slug}`,
-        chain: "global",
+        id: `${chain}:midas:${address}`,
+        chain,
         name: asset,
         protocol: "midas",
         details: {

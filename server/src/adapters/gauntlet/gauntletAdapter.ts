@@ -4,6 +4,7 @@ import { isAllocationUsdEligible } from "../../resolvers/debank/utils";
 import { buildProtocolListItemId } from "../../resolvers/debank/utils";
 import { normalizeProtocol, roundToTwoDecimals, toSlug } from "../../utils";
 import { fetchGauntletMetrics, type GauntletMetrics } from "./metrics";
+import { getGauntletPrimaryDeployment } from "./deployments";
 
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 const ASSET_GAUNLET_USD_ALPHA = "gtUSDa" as const;
@@ -72,9 +73,11 @@ export const createGauntletAdapter = (): Adapter<
 
       if (!entry) return null;
 
+      const primaryDeployment = getGauntletPrimaryDeployment();
+
       const node: Node = {
-        id: `global:${GAUNTLET_PROTOCOL}:gtusda`,
-        chain: "global",
+        id: `${primaryDeployment.chain}:${GAUNTLET_PROTOCOL}:${primaryDeployment.address}`,
+        chain: primaryDeployment.chain,
         name: "Gauntlet USD Alpha",
         protocol: GAUNTLET_PROTOCOL,
         details: { kind: "Yield", curator: GAUNTLET_PROTOCOL },

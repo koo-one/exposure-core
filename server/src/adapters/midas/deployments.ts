@@ -87,8 +87,31 @@ export const getMidasDeploymentNodeIds = (asset: string): string[] => {
 
   return Object.entries(chainToAddress).map(
     ([chain, address]) =>
-      `${normalizeChain(chain)}:${MIDAS_PROTOCOL}:${address
-        .trim()
-        .toLowerCase()}`,
+      `${normalizeChain(chain)}:${MIDAS_PROTOCOL}:${address}`,
   );
+};
+
+export const getMidasPrimaryDeployment = (
+  asset: string,
+): { chain: string; address: string } | null => {
+  const key = toSlug(asset);
+  const chainToAddress = MIDAS_DEPLOYMENTS[key];
+  if (!chainToAddress) return null;
+
+  if (chainToAddress.eth) {
+    return {
+      chain: normalizeChain("eth"),
+      address: chainToAddress.eth,
+    };
+  }
+
+  const firstEntry = Object.entries(chainToAddress)[0];
+  if (!firstEntry) return null;
+
+  const [chain, address] = firstEntry;
+
+  return {
+    chain: normalizeChain(chain),
+    address,
+  };
 };
