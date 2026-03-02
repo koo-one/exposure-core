@@ -10,9 +10,12 @@ export function normalizeLogoKey(input: string): string {
  */
 export function normalizeProtocolKey(protocol: string): string {
   if (!protocol) return "";
-  const normalized = protocol.trim().toLowerCase();
+  let normalized = protocol.trim().toLowerCase();
+  normalized = normalized.replace(/\s+/g, " ");
+  normalized = normalized.replace(/\s+\d+$/, "");
   if (normalized.startsWith("morpho")) return "morpho";
-  return normalized;
+  if (normalized === "fireblock") return "fireblocks";
+  return normalized.replace(/\s+/g, "-");
 }
 
 /**
@@ -47,13 +50,24 @@ export function getAssetLogoPath(assetId: string): string {
 
 // Keep this list in sync with apps/web/public/logos/protocols/*.svg.
 const PROTOCOL_LOGO_KEYS = new Set<string>([
+  "aster",
+  "asterdex",
+  "binance",
+  "bybit",
   "ethena",
   "euler",
+  "fireblocks",
+  "fordefi",
   "gauntlet",
+  "hyperliquid",
   "infinifi",
+  "lighter",
   "midas",
   "morpho",
+  "okx",
+  "prime-broker",
   "resolv",
+  "safe",
   "sky",
   "yuzu",
 ]);
@@ -139,10 +153,19 @@ export function getNodeLogos(
     return /^[A-Z0-9.]+$/.test(v) && v.length >= 2 && v.length <= 10;
   };
 
+  const protocolCandidate = (() => {
+    if (name.includes(":")) return name.split(":")[0]?.trim() ?? "";
+    return name;
+  })();
+
+  if (protocolCandidate && hasProtocolLogo(protocolCandidate)) {
+    return [getProtocolLogoPath(protocolCandidate)];
+  }
+
   // 1. Prefer known hyphenated single-symbol asset keys (e.g. "mf-one")
-  const isLowerHyphenatedAssetKey =
-    /^[a-z0-9.]+(?:-[a-z0-9.]+)+$/.test(name) && name.length <= 20;
-  if (isLowerHyphenatedAssetKey) {
+  const isHyphenatedAssetKey =
+    /^[A-Za-z0-9.]+(?:-[A-Za-z0-9.]+)+$/.test(name) && name.length <= 20;
+  if (isHyphenatedAssetKey) {
     return [getAssetLogoPath(name)];
   }
 
