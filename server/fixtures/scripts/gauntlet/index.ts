@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { adapterFactories } from "../../../src/adapters/registry";
 import { getGauntletDeploymentNodeIds } from "../../../src/adapters/gauntlet/deployments";
+import type { GraphSnapshot } from "../../../src/types";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
@@ -30,7 +31,7 @@ export const run = async (argv: string[]): Promise<void> => {
 
     const persistSnapshot = async (
       nextRootId: string,
-      payload: unknown,
+      payload: GraphSnapshot,
     ): Promise<void> => {
       const outPath = resolve(
         root,
@@ -55,10 +56,11 @@ export const run = async (argv: string[]): Promise<void> => {
 
         await persistSnapshot(nextRootId, depSnapshot);
       }
-      continue;
     }
 
-    await persistSnapshot(rootNodeId, snapshot);
+    if (!deploymentNodeIds.includes(rootNodeId)) {
+      await persistSnapshot(rootNodeId, snapshot);
+    }
   }
 };
 

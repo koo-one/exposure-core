@@ -1,3 +1,5 @@
+import { normalizeChain } from "../../utils";
+
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 
 // Source: https://vaultbook.gauntlet.xyz/vaults/gauntlet-usd-alpha-vault/how-to-integrate-with-gauntlet-usd-alpha
@@ -11,6 +13,6 @@ const GTUSDA_DEPLOYMENTS: Record<string, string> = {
 export const getGauntletDeploymentNodeIds = (): string[] => {
   return Object.entries(GTUSDA_DEPLOYMENTS).map(
     ([chain, address]) =>
-      `${chain}:${GAUNTLET_PROTOCOL}:${address.toLowerCase()}`,
+      `${normalizeChain(chain)}:${GAUNTLET_PROTOCOL}:${address.toLowerCase()}`,
   );
 };

@@ -1,4 +1,4 @@
-import { toSlug } from "../../utils";
+import { normalizeChain, toSlug } from "../../utils";
 
 const MIDAS_PROTOCOL = "midas" as const;
 
@@ -87,6 +87,8 @@ export const getMidasDeploymentNodeIds = (asset: string): string[] => {
 
   return Object.entries(chainToAddress).map(
     ([chain, address]) =>
-      `${chain.trim().toLowerCase()}:${MIDAS_PROTOCOL}:${address.trim().toLowerCase()}`,
+      `${normalizeChain(chain)}:${MIDAS_PROTOCOL}:${address
+        .trim()
+        .toLowerCase()}`,
   );
 };

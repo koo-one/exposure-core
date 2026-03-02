@@ -195,7 +195,7 @@ const createDebankMultiAssetHandler = (config: {
     );
   };
 
-  return async (url) => {
+  return async (url: string) => {
     let fileName: string | null = null;
     if (url.includes("/user/complex_protocol_list")) {
       fileName = "complex-protocol-list.json";
@@ -301,10 +301,11 @@ export const run = async (argv: string[]): Promise<void> => {
 
           await persistSnapshot(nextRootId, depSnapshot);
         }
-        continue;
       }
 
-      await persistSnapshot(rootNodeId, snapshot);
+      if (!deploymentNodeIds.includes(rootNodeId)) {
+        await persistSnapshot(rootNodeId, snapshot);
+      }
     }
   });
 };
