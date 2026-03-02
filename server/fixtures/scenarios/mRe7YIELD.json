@@ -1,0 +1,13 @@
+{
+  "name": "mRe7YIELD",
+  "assets": ["mRe7YIELD"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mRe7YIELD"
+    }
+  },
+  "overrides": []
+}

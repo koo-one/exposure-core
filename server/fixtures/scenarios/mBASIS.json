@@ -1,0 +1,13 @@
+{
+  "name": "mBASIS",
+  "assets": ["mBASIS"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mBASIS"
+    }
+  },
+  "overrides": []
+}

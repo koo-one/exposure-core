@@ -1,0 +1,17 @@
+[
+  {
+    "id": "usd",
+    "chain": "eth",
+    "name": "USD",
+    "symbol": "USD",
+    "decimals": 2,
+    "logo_url": null,
+    "display_symbol": "USD",
+    "optimized_symbol": "USD",
+    "protocol_id": "midas",
+    "price": 1,
+    "is_core": true,
+    "time_at": null,
+    "amount": 2000
+  }
+]

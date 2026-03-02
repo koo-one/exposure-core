@@ -1,0 +1,13 @@
+{
+  "name": "mXRP",
+  "assets": ["mXRP"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mXRP"
+    }
+  },
+  "overrides": []
+}

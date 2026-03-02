@@ -1,0 +1,13 @@
+{
+  "name": "mWildUSD",
+  "assets": ["mWildUSD"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mWildUSD"
+    }
+  },
+  "overrides": []
+}

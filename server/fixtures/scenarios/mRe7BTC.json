@@ -1,0 +1,13 @@
+{
+  "name": "mRe7BTC",
+  "assets": ["mRe7BTC"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mRe7BTC"
+    }
+  },
+  "overrides": []
+}

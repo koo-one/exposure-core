@@ -1,0 +1,13 @@
+{
+  "name": "mBTC",
+  "assets": ["mBTC"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mBTC"
+    }
+  },
+  "overrides": []
+}

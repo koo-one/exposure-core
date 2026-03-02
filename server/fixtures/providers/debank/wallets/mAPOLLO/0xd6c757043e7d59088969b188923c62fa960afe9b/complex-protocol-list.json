@@ -1,0 +1,114 @@
+[
+  {
+    "chain": "eth",
+    "id": "morphoblue",
+    "name": "Morpho",
+    "logo_url": null,
+    "site_url": "https://app.morpho.org",
+    "has_supported_portfolio": true,
+    "portfolio_item_list": [
+      {
+        "name": "Yield",
+        "stats": {
+          "asset_usd_value": 5200000,
+          "debt_usd_value": 0,
+          "net_usd_value": 5200000
+        },
+        "update_at": 1770000000,
+        "detail_types": ["common"],
+        "detail": {
+          "description": "USDC Vault",
+          "supply_token_list": [
+            {
+              "id": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "chain": "eth",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "decimals": 6,
+              "logo_url": null,
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "protocol_id": "circle",
+              "price": 1,
+              "is_core": true,
+              "time_at": null,
+              "amount": 5200000
+            }
+          ]
+        },
+        "pool": {
+          "chain": "eth",
+          "project_id": "morphoblue",
+          "id": "0x1111111111111111111111111111111111111111",
+          "controller": "0x1111111111111111111111111111111111111111"
+        },
+        "proxy_detail": {}
+      }
+    ]
+  },
+  {
+    "chain": "eth",
+    "id": "euler2",
+    "name": "Euler",
+    "logo_url": null,
+    "site_url": "https://app.euler.finance",
+    "has_supported_portfolio": true,
+    "portfolio_item_list": [
+      {
+        "name": "Lending",
+        "position_index": "position-1",
+        "stats": {
+          "asset_usd_value": 4000000,
+          "debt_usd_value": 1000000,
+          "net_usd_value": 3000000
+        },
+        "update_at": 1770000000,
+        "detail_types": ["lending"],
+        "detail": {
+          "health_rate": 1.42,
+          "supply_token_list": [
+            {
+              "id": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+              "chain": "eth",
+              "name": "Tether USD",
+              "symbol": "USDT",
+              "decimals": 6,
+              "logo_url": null,
+              "display_symbol": null,
+              "optimized_symbol": "USDT",
+              "protocol_id": "tether",
+              "price": 1,
+              "is_core": true,
+              "time_at": null,
+              "amount": 4000000
+            }
+          ],
+          "borrow_token_list": [
+            {
+              "id": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "chain": "eth",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "decimals": 6,
+              "logo_url": null,
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "protocol_id": "circle",
+              "price": 1,
+              "is_core": true,
+              "time_at": null,
+              "amount": 1000000
+            }
+          ]
+        },
+        "pool": {
+          "chain": "eth",
+          "project_id": "euler2",
+          "id": "0x2222222222222222222222222222222222222222",
+          "controller": "0x2222222222222222222222222222222222222222"
+        },
+        "proxy_detail": {}
+      }
+    ]
+  }
+]

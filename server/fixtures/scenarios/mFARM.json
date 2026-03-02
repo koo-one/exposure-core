@@ -1,0 +1,13 @@
+{
+  "name": "mFARM",
+  "assets": ["mFARM"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mFARM"
+    }
+  },
+  "overrides": []
+}

@@ -1,0 +1,63 @@
+[
+  {
+    "chain": "eth",
+    "id": "uniswap",
+    "name": "Uniswap",
+    "logo_url": null,
+    "site_url": "https://app.uniswap.org",
+    "has_supported_portfolio": true,
+    "portfolio_item_list": [
+      {
+        "name": "Liquidity Pool",
+        "stats": {
+          "asset_usd_value": 2100000,
+          "debt_usd_value": 0,
+          "net_usd_value": 2100000
+        },
+        "update_at": 1770000000,
+        "detail_types": ["common"],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "chain": "eth",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "decimals": 6,
+              "logo_url": null,
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "protocol_id": "circle",
+              "price": 1,
+              "is_core": true,
+              "time_at": null,
+              "amount": 1050000
+            },
+            {
+              "id": "0x6b175474e89094c44da98b954eedeac495271d0f",
+              "chain": "eth",
+              "name": "Dai Stablecoin",
+              "symbol": "DAI",
+              "decimals": 18,
+              "logo_url": null,
+              "display_symbol": null,
+              "optimized_symbol": "DAI",
+              "protocol_id": "maker",
+              "price": 1,
+              "is_core": true,
+              "time_at": null,
+              "amount": 1050000
+            }
+          ]
+        },
+        "pool": {
+          "chain": "eth",
+          "project_id": "uniswap",
+          "id": "0x3333333333333333333333333333333333333333",
+          "controller": "0x3333333333333333333333333333333333333333"
+        },
+        "proxy_detail": {}
+      }
+    ]
+  }
+]

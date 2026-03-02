@@ -1,0 +1,13 @@
+{
+  "name": "mevBTC",
+  "assets": ["mevBTC"],
+  "providers": {
+    "midas": {
+      "allocations": "providers/midas/allocations.json"
+    },
+    "debank": {
+      "walletsDir": "providers/debank/wallets/mevBTC"
+    }
+  },
+  "overrides": []
+}
