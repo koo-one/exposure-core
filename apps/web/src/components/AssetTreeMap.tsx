@@ -218,6 +218,10 @@ export default function AssetTreeMap({
         allocationsByNodeId.get(fallbackKey) ?? localAllocations;
 
       const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
+      const kind = (c.node?.details?.kind ?? "").toLowerCase();
+      const subtype = (c.node?.details?.subtype ?? "").toLowerCase();
+      const isVault =
+        kind === "yield" || kind === "lending" || subtype.includes("vault");
 
       return {
         name: (() => {
@@ -243,6 +247,7 @@ export default function AssetTreeMap({
         lendingPosition: c.edge.lendingPosition,
         isTerminal,
         typeLabel,
+        isVault,
         directLeavesCount,
         allocations,
       };

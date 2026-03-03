@@ -10,22 +10,18 @@ interface UseAssetDataProps {
   focus?: string;
 }
 
-export function useAssetData({
-  id,
-  chain,
-  protocol,
-  focus,
-}: UseAssetDataProps) {
+export function useAssetData(props: UseAssetDataProps | null) {
+  const { id, chain, protocol, focus } = props || {};
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [graphData, setGraphData] = useState<GraphSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [tvl, setTvl] = useState<number | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [focusRootNodeId, setFocusRootNodeId] = useState<string | null>(null);
   const [focusStack, setFocusStack] = useState<string[]>([]);
-  const [pageTitle, setPageTitle] = useState<string>(id);
+  const [pageTitle, setPageTitle] = useState<string>(id || "");
 
   // Others view state
   const [isOthersView, setIsOthersView] = useState(false);
@@ -33,7 +29,7 @@ export function useAssetData({
 
   // Synchronize focusRootNodeId with URL
   useEffect(() => {
-    if (!focusRootNodeId) return;
+    if (!focusRootNodeId || !id) return;
 
     const params = new URLSearchParams(searchParams.toString());
     if (focusRootNodeId === rootNode?.id) {
@@ -44,7 +40,7 @@ export function useAssetData({
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     router.replace(newUrl, { scroll: false });
-  }, [focusRootNodeId]);
+  }, [focusRootNodeId, id]);
 
   // Reset Others view when focusRootNodeId changes
   useEffect(() => {
@@ -53,7 +49,11 @@ export function useAssetData({
   }, [focusRootNodeId]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setGraphData(null);
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
@@ -111,7 +111,7 @@ export function useAssetData({
   }, [id, chain, focus, protocol]);
 
   const rootNode = useMemo(() => {
-    if (!graphData) return null;
+    if (!graphData || !id) return null;
     return resolveRootNode(graphData.nodes, id, chain);
   }, [graphData, id, chain]);
 

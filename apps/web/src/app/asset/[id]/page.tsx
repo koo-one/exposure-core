@@ -1,27 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Loader2,
-  Activity,
-  ChevronRight,
-  RotateCcw,
-} from "lucide-react";
+import { Loader2, Activity, ChevronRight, RotateCcw } from "lucide-react";
 
 import AssetTreeMap from "@/components/AssetTreeMap";
-import AssetDetailPanel from "@/components/AssetDetailPanel";
 import { TerminalToast } from "@/components/TerminalToast";
+import { FloatingNodeInfo } from "@/components/FloatingNodeInfo";
+import { AppHeader } from "@/components/AppHeader";
 
 import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
-import { normalizeId } from "@/utils/formatters";
 import { GraphNode } from "@/types";
+import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import Image from "next/image";
+
+const shortChainLabel = (v: string): string => v.toUpperCase();
+
+const buildChainLabel = (
+  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
+): string => {
+  const chainNames = Array.from(
+    new Set(
+      chains
+        .map((c) => shortChainLabel(c.chain))
+        .filter((label) => label.length > 0),
+    ),
+  );
+
+  if (chainNames.length <= 1) return chainNames[0] ?? "";
+  if (chainNames.length <= 3) return chainNames.join("/");
+  return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
+};
+
+const shouldGroupAcrossChains = (protocol: string): boolean => {
+  const value = protocol.trim().toLowerCase();
+  return value !== "morpho" && value !== "euler";
+};
 
 export default function AssetPage() {
   const params = useParams();
@@ -35,6 +53,15 @@ export default function AssetPage() {
 
   // Origin tracking
   const origin = searchParams.get("origin") ?? undefined;
+
+  // Header State & Search Logic
+  const [dynamicIndex, setDynamicIndex] = useState<SearchIndexEntry[]>([]);
+  const selectedProtocol = searchParams.get("protocol") || "all";
+  const selectedChain = searchParams.get("chain") || "all";
+  const selectedCurator = searchParams.get("curator") || "all";
+  const apyMin = searchParams.get("apyMin") || "";
+  const apyMax = searchParams.get("apyMax") || "";
+  const query = searchParams.get("q") || "";
 
   const {
     graphData,
@@ -68,56 +95,232 @@ export default function AssetPage() {
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
 
-  const [graphRootIds, setGraphRootIds] = useState<Set<string> | null>(null);
+  const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    let cancelled = false;
-
     const load = async () => {
       try {
-        const res = await fetch("/api/search-index");
-        if (!res.ok) return;
-        const json = (await res.json()) as unknown;
+        const response = await fetch("/api/search-index");
+        if (!response.ok) return;
+        const json = (await response.json()) as SearchIndexEntry[];
         if (!Array.isArray(json)) return;
-
-        const set = new Set<string>();
-        for (const item of json) {
-          if (!item || typeof item !== "object") continue;
-          const rec = item as { nodeId?: unknown; id?: unknown };
-          const nodeId =
-            typeof rec.nodeId === "string"
-              ? rec.nodeId
-              : typeof rec.id === "string"
-                ? rec.id
-                : null;
-          if (!nodeId) continue;
-          set.add(normalizeId(nodeId));
-        }
-
-        if (!cancelled) setGraphRootIds(set);
-      } catch (error) {
-        console.error("Failed to load search index:", error);
+        setDynamicIndex(json);
+        setGraphRootIds(new Set(json.map((e) => e.id.toLowerCase())));
+      } catch {
+        /* ignore */
       }
     };
-
     void load();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  const updateParams = useCallback(
+    (newParams: Record<string, string | null>) => {
+      // If navigating to a different asset, redirect to that asset page
+      if (newParams.id && newParams.id.toLowerCase() !== id.toLowerCase()) {
+        const p = new URLSearchParams();
+        if (newParams.assetChain) p.set("chain", newParams.assetChain);
+        if (newParams.assetProtocol) p.set("protocol", newParams.assetProtocol);
+        router.push(
+          `/asset/${encodeURIComponent(newParams.id)}${p.size ? `?${p.toString()}` : ""}`,
+        );
+        return;
+      }
+
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (
+          value === null ||
+          (value === "all" &&
+            (key === "protocol" || key === "curator" || key === "chain")) ||
+          (value === "" &&
+            (key === "q" || key === "apyMin" || key === "apyMax"))
+        ) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams, id],
+  );
+
+  const protocols = useMemo(() => {
+    const set = new Set(dynamicIndex.map((e) => e.protocol));
+    return [
+      { label: "All Protocols", value: "all" },
+      ...Array.from(set)
+        .sort()
+        .map((p) => ({ label: p, value: p })),
+    ];
+  }, [dynamicIndex]);
+
+  const chains = useMemo(() => {
+    const set = new Set(dynamicIndex.map((e) => e.chain));
+    return [
+      { label: "Any Chain", value: "all" },
+      ...Array.from(set)
+        .sort()
+        .map((c) => ({ label: c, value: c })),
+    ];
+  }, [dynamicIndex]);
+
+  const curators = useMemo(() => {
+    const scope = dynamicIndex.filter((entry) => {
+      const protocolMatch =
+        selectedProtocol === "all" ||
+        entry.protocol.toLowerCase() === selectedProtocol.toLowerCase();
+      const chainMatch =
+        selectedChain === "all" ||
+        entry.chain.toLowerCase() === selectedChain.toLowerCase();
+      return protocolMatch && chainMatch;
+    });
+    const set = new Set<string>();
+    for (const entry of scope) {
+      if (typeof entry.curator !== "string") continue;
+      const value = entry.curator.trim();
+      if (!value) continue;
+      set.add(value);
+    }
+    return [
+      { label: "Anyone", value: "all" },
+      ...Array.from(set)
+        .sort((a, b) => a.localeCompare(b))
+        .map((c) => ({ label: c, value: c })),
+    ];
+  }, [dynamicIndex, selectedProtocol, selectedChain]);
+
+  const filteredResults = useMemo(() => {
+    let results = dynamicIndex;
+    if (selectedProtocol !== "all")
+      results = results.filter(
+        (e) => e.protocol.toLowerCase() === selectedProtocol.toLowerCase(),
+      );
+    if (selectedChain !== "all")
+      results = results.filter(
+        (e) => e.chain.toLowerCase() === selectedChain.toLowerCase(),
+      );
+    if (query) {
+      const q = query.toLowerCase();
+      results = results.filter((entry) =>
+        `${entry.name} ${entry.id} ${entry.protocol} ${entry.chain}`
+          .toLowerCase()
+          .includes(q),
+      );
+    }
+    // Simple APY filter logic
+    if (apyMin || apyMax) {
+      const min = apyMin ? parseFloat(apyMin) : -Infinity;
+      const max = apyMax ? parseFloat(apyMax) : Infinity;
+      results = results.filter((e) => {
+        const a =
+          typeof e.apy === "number" ? (e.apy > 1 ? e.apy : e.apy * 100) : null;
+        if (a === null) return false;
+        return a >= min && a <= max;
+      });
+    }
+    if (selectedCurator !== "all")
+      results = results.filter((entry) => entry.curator === selectedCurator);
+    return results;
+  }, [
+    selectedProtocol,
+    selectedChain,
+    selectedCurator,
+    apyMin,
+    apyMax,
+    query,
+    dynamicIndex,
+  ]);
+
+  const dropdownResults = useMemo(() => {
+    interface GroupInternal {
+      key: string;
+      protocol: string;
+      name: string;
+      logoKeys?: string[];
+      primary: SearchIndexEntry;
+      entries: Map<
+        string,
+        { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
+      >;
+    }
+    const groups = new Map<string, GroupInternal>();
+    const safeTvl = (v: unknown): number | null =>
+      typeof v === "number" && Number.isFinite(v) ? v : null;
+
+    for (const entry of filteredResults) {
+      const protocol = (entry.protocol ?? "").trim();
+      const name = (entry.name ?? "").trim();
+      const chain = (entry.chain ?? "global").trim().toLowerCase();
+      const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
+      const key = shouldGroupAcrossChains(protocol)
+        ? baseKey
+        : `${baseKey}|${entry.id.trim().toLowerCase()}`;
+      const tvlUsd = safeTvl(entry.tvlUsd);
+      const existing = groups.get(key);
+      if (!existing) {
+        const entries = new Map<
+          string,
+          { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
+        >();
+        const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+        entries.set(entryKey, { chain, entry, tvlUsd });
+        groups.set(key, {
+          key,
+          protocol,
+          name: name || entry.name,
+          logoKeys: entry.logoKeys,
+          primary: entry,
+          entries,
+        });
+        continue;
+      }
+      const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+      const current = existing.entries.get(entryKey);
+      if (!current || (tvlUsd ?? -1) > (current.tvlUsd ?? -1))
+        existing.entries.set(entryKey, { chain, entry, tvlUsd });
+      const primaryTvl = safeTvl(existing.primary.tvlUsd) ?? -1;
+      const nextTvl = tvlUsd ?? -1;
+      if (nextTvl > primaryTvl) existing.primary = entry;
+    }
+
+    const result = Array.from(groups.values()).map((g) => {
+      const chains = Array.from(g.entries.values()).map((rec) => ({
+        chain: rec.chain,
+        entry: rec.entry,
+        tvlUsd: rec.tvlUsd,
+      }));
+      chains.sort((a, b) => (b.tvlUsd ?? -1) - (a.tvlUsd ?? -1));
+      const finiteTvls = chains
+        .map((c) => c.tvlUsd)
+        .filter(
+          (v): v is number => typeof v === "number" && Number.isFinite(v),
+        );
+      const totalTvlUsd = (() => {
+        if (!finiteTvls.length) return null;
+        if (finiteTvls.length === 1) return finiteTvls[0] ?? null;
+        return finiteTvls.reduce((sum, v) => sum + v, 0);
+      })();
+      return {
+        key: g.key,
+        protocol: g.protocol,
+        name: g.name,
+        logoKeys: g.logoKeys,
+        chains,
+        totalTvlUsd,
+        primary: g.primary,
+      };
+    });
+    result.sort((a, b) => (b.totalTvlUsd ?? -1) - (a.totalTvlUsd ?? -1));
+    return result;
+  }, [filteredResults]);
 
   const handleSelectOthers = (childIds: string[]) => {
     setOthersChildrenIds(childIds);
     setIsOthersView(true);
   };
 
-  const handleDrilldownSelect = async (
-    node: GraphNode,
-    meta?: {
-      lendingPosition?: "collateral" | "borrow";
-    },
-  ) => {
+  const handleDrilldownSelect = async (node: GraphNode) => {
     if (!node?.id) return;
 
     tileClickSeq.current += 1;
@@ -125,45 +328,20 @@ export default function AssetPage() {
     setSelectedNode(node);
 
     const normalizedNodeId = node.id.trim().toLowerCase();
-    const normalizedAssetId = id.trim().toLowerCase();
+    const isKnownAsset = graphRootIds.has(normalizedNodeId);
 
-    const canNavigateToChildGraph =
-      normalizedNodeId.length > 0 && normalizedNodeId !== normalizedAssetId;
-    const isLendingEdge = Boolean(meta?.lendingPosition);
-    const isLendingNode =
-      (node.details?.kind ?? "").toLowerCase() === "lending";
-    const shouldAttemptRouteNavigation =
-      canNavigateToChildGraph && !isLendingEdge && !isLendingNode;
-
-    if (shouldAttemptRouteNavigation) {
+    if (isKnownAsset && normalizedNodeId !== id.toLowerCase()) {
       const queryParams = new URLSearchParams();
       const nextProtocol = (node.protocol ?? protocol)?.trim();
       const nextChain = (node.chain ?? chain)?.trim();
       if (nextProtocol) queryParams.set("protocol", nextProtocol);
       if (nextChain) queryParams.set("chain", nextChain);
+      queryParams.set("origin", origin || id);
 
-      // Persist or set origin
-      const currentOrigin = origin || id;
-      queryParams.set("origin", currentOrigin);
-
-      const headUrl = `/api/graph/${encodeURIComponent(normalizedNodeId)}${
-        queryParams.size ? `?${queryParams.toString()}` : ""
-      }`;
-
-      try {
-        const res = await fetch(headUrl, { method: "HEAD" });
-        if (res.ok) {
-          await new Promise((r) => setTimeout(r, 150));
-          router.push(
-            `/asset/${encodeURIComponent(normalizedNodeId)}${
-              queryParams.size ? `?${queryParams.toString()}` : ""
-            }`,
-          );
-          return;
-        }
-      } catch {
-        // Fallback
-      }
+      router.push(
+        `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
+      );
+      return;
     }
 
     const hasChildren =
@@ -179,16 +357,12 @@ export default function AssetPage() {
 
   const breadcrumbs = useMemo(() => {
     const items = [];
-
-    // 1. Origin link (if any)
     if (origin && origin !== id) {
       items.push({
         label: origin.toUpperCase(),
         href: `/asset/${encodeURIComponent(origin)}`,
       });
     }
-
-    // 2. Root of current graph
     if (rootNode) {
       items.push({
         label: rootNode.name.toUpperCase(),
@@ -196,27 +370,18 @@ export default function AssetPage() {
         onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
       });
     }
-
-    // 3. Path from root to parent of current focus
     if (graphData && focusStack && focusStack.length > 0) {
       focusStack.forEach((nodeId) => {
-        // Skip root if already added
         if (rootNode && nodeId === rootNode.id) return;
-
         const node = nodesById.get(nodeId);
-        if (node) {
+        if (node)
           items.push({
             label: node.name.toUpperCase(),
             href: "#",
-            onClick: () => {
-              jumpToFocus(node.id);
-            },
+            onClick: () => jumpToFocus(node.id),
           });
-        }
       });
     }
-
-    // 4. Current focus node (if not already root)
     if (
       !isAtAssetRoot &&
       selectedNode &&
@@ -225,12 +390,7 @@ export default function AssetPage() {
     ) {
       items.push({ label: selectedNode.name.toUpperCase(), current: true });
     }
-
-    // 5. Others view suffix
-    if (isOthersView) {
-      items.push({ label: "OTHERS", current: true });
-    }
-
+    if (isOthersView) items.push({ label: "OTHERS", current: true });
     return items;
   }, [
     origin,
@@ -253,10 +413,8 @@ export default function AssetPage() {
 
   const typeBadgeClassName = (() => {
     if (!activeNodeTypeLabel) return "";
-
     const base =
       "px-2.5 py-1 border text-[8px] uppercase font-black tracking-[0.22em] rounded-full";
-
     switch (activeNodeTypeCategory) {
       case "yield-vault":
         return `${base} bg-emerald-50 border-emerald-200 text-emerald-700`;
@@ -302,47 +460,51 @@ export default function AssetPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen flex flex-col bg-white font-sans selection:bg-black selection:text-white">
       {terminalToast && (
         <TerminalToast toast={terminalToast} onClose={closeTerminalToast} />
       )}
 
-      {/* Institutional Header */}
-      <header className="bg-white border-b border-black px-10 py-6 flex justify-between items-center z-30 flex-shrink-0">
-        <div className="flex items-center gap-12">
-          <Link
-            href="/"
-            className="flex items-center gap-3 text-black hover:opacity-60 transition-all group"
-          >
-            <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-              Dashboard
-            </span>
-          </Link>
+      <AppHeader
+        selectedProtocol={selectedProtocol}
+        selectedChain={selectedChain}
+        selectedCurator={selectedCurator}
+        apyMin={apyMin}
+        apyMax={apyMax}
+        query={query}
+        updateParams={updateParams}
+        protocols={protocols}
+        chains={chains}
+        curators={curators}
+        dropdownResults={dropdownResults}
+        buildChainLabel={buildChainLabel}
+      />
 
+      <div className="bg-black/[0.02] border-b border-black/5 px-10 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-12">
           <div className="flex flex-col">
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-2 mb-1">
               {breadcrumbs.map((crumb, idx) => (
-                <div key={idx} className="flex items-center gap-3">
+                <div key={idx} className="flex items-center gap-2">
                   {idx > 0 && (
-                    <ChevronRight className="w-3 h-3 text-black/20" />
+                    <ChevronRight className="w-2.5 h-2.5 text-black/20" />
                   )}
                   {crumb.onClick ? (
                     <button
                       onClick={crumb.onClick}
-                      className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
+                      className="text-[8px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
                     >
                       {crumb.label}
                     </button>
                   ) : crumb.href ? (
                     <Link
                       href={crumb.href}
-                      className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
+                      className="text-[8px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
                     >
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className="text-[9px] font-black text-black/40 uppercase tracking-[0.2em]">
+                    <span className="text-[8px] font-black text-black/40 uppercase tracking-[0.2em]">
                       {crumb.label}
                     </span>
                   )}
@@ -350,7 +512,7 @@ export default function AssetPage() {
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-black tracking-tight uppercase">
+              <h1 className="text-lg font-bold text-black tracking-tight uppercase">
                 {pageTitle}
               </h1>
               {activeNodeTypeLabel && (
@@ -362,45 +524,34 @@ export default function AssetPage() {
                 <Image
                   src={chainLogoPath}
                   alt={chain || ""}
-                  width={18}
-                  height={18}
+                  width={16}
+                  height={16}
                   className="object-contain"
                 />
               )}
-              <div className="px-2 py-0.5 border border-black text-black text-[8px] uppercase font-black tracking-[0.2em] rounded-sm">
-                BETA_V0.1
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {origin && (
             <Link
               href={`/asset/${encodeURIComponent(origin)}`}
-              className="flex items-center gap-2 px-4 py-3 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
+              className="flex items-center gap-2 px-3 py-2 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
             >
-              <RotateCcw className="w-3.5 h-3.5 group-hover:rotate-[-45deg] transition-transform" />
+              <RotateCcw className="w-3 h-3 group-hover:rotate-[-45deg] transition-transform" />{" "}
               Reset to Origin
             </Link>
           )}
-          <button className="p-3 border border-black rounded-sm hover:bg-black hover:text-white transition-all">
-            <Activity className="w-4 h-4" />
+          <button className="p-2 border border-black rounded hover:bg-black hover:text-white transition-all">
+            <Activity className="w-3.5 h-3.5" />
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Primary Layout */}
-      <main className="flex-grow flex flex-col lg:flex-row min-h-0">
-        {/* Visualization Region */}
-        <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-white overflow-hidden border-r border-black border-b border-black box-border pb-6">
-          <div className="absolute inset-0 bottom-6 bg-[#E6EBF8] border border-black box-border">
-            <div className="absolute top-10 left-10 z-20 pointer-events-none">
-              <div className="px-5 py-2.5 bg-white border border-black text-[9px] font-black text-black uppercase tracking-[0.3em] shadow-xl">
-                Open Interest Distribution // Active_Stream
-              </div>
-            </div>
-
+      <main className="flex-grow flex flex-col min-h-0 px-6 md:px-24 lg:px-40 py-12">
+        <div className="flex-grow relative bg-white overflow-hidden border border-black shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <div className="absolute inset-0 bg-[#E6EBF8]">
             <AssetTreeMap
               data={graphData}
               rootNodeId={focusRootNodeId || rootNode?.id}
@@ -412,23 +563,24 @@ export default function AssetPage() {
               selectedNodeId={selectedNode?.id}
               lastClick={lastTileClick.current}
             />
+
+            {(() => {
+              const infoNode = selectedNode ?? rootNode;
+              if (!infoNode) return null;
+              return (
+                <FloatingNodeInfo
+                  node={infoNode}
+                  tvl={tvl}
+                  onBack={
+                    !isAtAssetRoot || isOthersView
+                      ? handleBackOneStep
+                      : undefined
+                  }
+                />
+              );
+            })()}
           </div>
         </div>
-
-        {/* Intelligence Region */}
-        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)] min-h-0 border-b border-black">
-          <AssetDetailPanel
-            selectedNode={selectedNode}
-            edges={graphData.edges}
-            nodes={graphData.nodes}
-            rootNodeId={focusRootNodeId || rootNode?.id}
-            originId={origin}
-            tvl={tvl}
-            onReset={
-              !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
-            }
-          />
-        </aside>
       </main>
     </div>
   );
