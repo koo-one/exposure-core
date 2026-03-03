@@ -395,30 +395,32 @@ export default function AssetPage() {
       </header>
 
       {/* Primary Layout */}
-      <main className="flex-grow flex flex-col lg:flex-row">
+      <main className="flex-grow flex flex-col lg:flex-row min-h-0">
         {/* Visualization Region */}
-        <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-[#E6EBF8] overflow-hidden border-r border-black">
-          <div className="absolute top-10 left-10 z-20 pointer-events-none">
-            <div className="px-5 py-2.5 bg-white border border-black text-[9px] font-black text-black uppercase tracking-[0.3em] shadow-xl">
-              Open Interest Distribution // Active_Stream
+        <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-white overflow-hidden border-r border-black border-b border-black box-border pb-6">
+          <div className="absolute inset-0 bottom-6 bg-[#E6EBF8] border border-black box-border">
+            <div className="absolute top-10 left-10 z-20 pointer-events-none">
+              <div className="px-5 py-2.5 bg-white border border-black text-[9px] font-black text-black uppercase tracking-[0.3em] shadow-xl">
+                Open Interest Distribution // Active_Stream
+              </div>
             </div>
-          </div>
 
-          <AssetTreeMap
-            data={graphData}
-            rootNodeId={focusRootNodeId || rootNode?.id}
-            graphRootIds={graphRootIds}
-            onSelect={handleDrilldownSelect}
-            onSelectOthers={handleSelectOthers}
-            isOthersView={isOthersView}
-            othersChildrenIds={othersChildrenIds}
-            selectedNodeId={selectedNode?.id}
-            lastClick={lastTileClick.current}
-          />
+            <AssetTreeMap
+              data={graphData}
+              rootNodeId={focusRootNodeId || rootNode?.id}
+              graphRootIds={graphRootIds}
+              onSelect={handleDrilldownSelect}
+              onSelectOthers={handleSelectOthers}
+              isOthersView={isOthersView}
+              othersChildrenIds={othersChildrenIds}
+              selectedNodeId={selectedNode?.id}
+              lastClick={lastTileClick.current}
+            />
+          </div>
         </div>
 
         {/* Intelligence Region */}
-        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)]">
+        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)] min-h-0 border-b border-black">
           <AssetDetailPanel
             selectedNode={selectedNode}
             edges={graphData.edges}

@@ -277,8 +277,6 @@ export default function AssetDetailPanel({
     .filter((e) => e.to === selectedNode.id)
     .reduce((acc, e) => acc + e.allocationUsd, 0);
 
-  const outgoingCount = edges.filter((e) => e.from === selectedNode.id).length;
-
   const nodesById = useMemo(() => {
     const map = new Map<string, GraphNode>();
     for (const n of nodes) {
@@ -426,7 +424,7 @@ export default function AssetDetailPanel({
   const primaryExternalUrl = protocolAppUrl ?? explorerUrl;
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
+    <div className="h-full flex flex-col bg-white overflow-hidden border-l border-black pb-12">
       {/* Institutional Header */}
       <div className="p-10 border-b border-black/5 bg-gradient-to-b from-black/[0.02] to-transparent">
         <div className="flex items-center gap-6 mb-8">
@@ -709,40 +707,6 @@ export default function AssetDetailPanel({
                 )}
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Technical Metadata */}
-        <section className="pb-10">
-          <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
-            <ExternalLink className="w-3.5 h-3.5" />
-            System_Metadata
-          </h3>
-          <div className="text-[10px] text-black/30 font-mono bg-black/[0.02] p-6 border border-black/5 space-y-4">
-            <div className="flex flex-col gap-2">
-              <span className="text-black/10 uppercase text-[8px] font-black tracking-widest">
-                Index Identifier
-              </span>
-              <span className="break-all text-black/50 select-all leading-relaxed">
-                {selectedNode.id}
-              </span>
-            </div>
-            <div className="pt-2 flex items-center justify-between border-t border-black/5 pt-4">
-              <span className="text-black/10 uppercase text-[8px] font-black tracking-widest">
-                Logic Class
-              </span>
-              <p className="text-black font-black">
-                {selectedNode.details?.kind?.toUpperCase() || "STANDARD"}
-              </p>
-            </div>
-            {outgoingCount > 0 && (
-              <div className="pt-2 flex items-center gap-3 text-black">
-                <div className="w-1.5 h-1.5 bg-black" />
-                <span className="font-black italic tracking-tight uppercase">
-                  {outgoingCount} Downstream Active Channels
-                </span>
-              </div>
-            )}
           </div>
         </section>
       </div>
