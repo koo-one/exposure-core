@@ -46,6 +46,8 @@ export default function AssetPage() {
     pageTitle,
     applyLocalDrilldown,
     handleBackOneStep,
+    resetToRoot,
+    jumpToFocus,
     isAtAssetRoot,
     rootNode,
     isOthersView,
@@ -57,6 +59,11 @@ export default function AssetPage() {
 
   const { terminalToast, showTerminalToast, closeTerminalToast } =
     useTerminalToast();
+
+  const nodesById = useMemo(() => {
+    if (!graphData) return new Map<string, GraphNode>();
+    return new Map(graphData.nodes.map((n) => [n.id, n]));
+  }, [graphData]);
 
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
@@ -186,22 +193,13 @@ export default function AssetPage() {
       items.push({
         label: rootNode.name.toUpperCase(),
         href: isAtAssetRoot ? undefined : "#",
-        onClick: isAtAssetRoot
-          ? undefined
-          : () => {
-              // Reset to root
-              if (handleBackOneStep) {
-                // Simplification: go back once to demonstrate.
-                handleBackOneStep();
-              }
-            },
+        onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
       });
     }
 
     // 3. Path from root to parent of current focus
     if (graphData && focusStack && focusStack.length > 0) {
-      const nodesById = new Map(graphData.nodes.map((n) => [n.id, n]));
-      focusStack.forEach((nodeId, idx) => {
+      focusStack.forEach((nodeId) => {
         // Skip root if already added
         if (rootNode && nodeId === rootNode.id) return;
 
@@ -211,11 +209,7 @@ export default function AssetPage() {
             label: node.name.toUpperCase(),
             href: "#",
             onClick: () => {
-              // Go back until this node is the focus
-              const stepsBack = focusStack.length - idx;
-              for (let i = 0; i < stepsBack; i++) {
-                handleBackOneStep();
-              }
+              jumpToFocus(node.id);
             },
           });
         }
@@ -247,7 +241,9 @@ export default function AssetPage() {
     selectedNode,
     isAtAssetRoot,
     isOthersView,
-    handleBackOneStep,
+    resetToRoot,
+    jumpToFocus,
+    nodesById,
   ]);
 
   const chainLogoPath = hasChainLogo(chain) ? getChainLogoPath(chain) : null;

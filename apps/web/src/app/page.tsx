@@ -671,9 +671,6 @@ function HomeInner() {
               </div>
             )}
           </div>
-
-          {/* Stats / Mobile View Logic */}
-          <div className="hidden lg:flex items-center gap-6 shrink-0" />
         </div>
       </div>
 
@@ -693,7 +690,7 @@ function HomeInner() {
         </div>
       )}
 
-      <footer className="p-12 border-t border-black/[0.03] bg-black/[0.01] mt-auto">
+      <footer className="p-12 border-t border-black/[0.03] bg-black/[0.01]">
         <div className="max-w-[1400px] mx-auto flex flex-col items-center gap-6">
           <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.6em] text-center">
             Paradigm Risk Intelligence // Dynamic Index Monitoring Active

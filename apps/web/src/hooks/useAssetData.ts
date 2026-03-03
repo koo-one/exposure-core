@@ -155,6 +155,46 @@ export function useAssetData({
     if (prevNode) setSelectedNode(prevNode);
   }, [graphData, focusStack, focusRootNodeId, rootNode, isOthersView]);
 
+  const resetToRoot = useCallback(() => {
+    if (!rootNode) return;
+    setIsOthersView(false);
+    setOthersChildrenIds([]);
+    setFocusStack([]);
+    setFocusRootNodeId(rootNode.id);
+    setSelectedNode(rootNode);
+  }, [rootNode]);
+
+  const jumpToFocus = useCallback(
+    (targetId: string) => {
+      if (!graphData) return;
+      const normalizedTarget = targetId.trim().toLowerCase();
+      const targetNode = graphData.nodes.find(
+        (n) => n.id.toLowerCase() === normalizedTarget,
+      );
+      if (!targetNode) return;
+
+      setIsOthersView(false);
+      setOthersChildrenIds([]);
+
+      if (rootNode && normalizedTarget === rootNode.id.toLowerCase()) {
+        setFocusStack([]);
+        setFocusRootNodeId(rootNode.id);
+        setSelectedNode(rootNode);
+        return;
+      }
+
+      const indexInStack = focusStack.findIndex(
+        (id) => id.toLowerCase() === normalizedTarget,
+      );
+      if (indexInStack >= 0) {
+        setFocusStack(focusStack.slice(0, indexInStack));
+      }
+      setFocusRootNodeId(targetNode.id);
+      setSelectedNode(targetNode);
+    },
+    [graphData, focusStack, rootNode],
+  );
+
   return {
     graphData,
     loading,
@@ -168,6 +208,8 @@ export function useAssetData({
     rootNode,
     applyLocalDrilldown,
     handleBackOneStep,
+    resetToRoot,
+    jumpToFocus,
     isAtAssetRoot: focusRootNodeId === rootNode?.id,
     isOthersView,
     setIsOthersView,

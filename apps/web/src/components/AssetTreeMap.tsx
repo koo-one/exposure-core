@@ -376,8 +376,8 @@ export default function AssetTreeMap({
               .sort((a, b) => b.value - a.value);
 
             if (allocations.length > 0) updates.set(id, allocations);
-          } catch {
-            // ignore
+          } catch (error) {
+            console.error(`Failed to fetch 2-hop data for node ${id}:`, error);
           }
         }),
       );
