@@ -163,9 +163,9 @@ export function getNodeLogos(
   }
 
   // 1. Prefer known hyphenated single-symbol asset keys (e.g. "mf-one")
-  const isHyphenatedAssetKey =
-    /^[A-Za-z0-9.]+(?:-[A-Za-z0-9.]+)+$/.test(name) && name.length <= 20;
-  if (isHyphenatedAssetKey) {
+  const isLowerHyphenatedAssetKey =
+    /^[a-z0-9.]+(?:-[a-z0-9.]+)+$/.test(name) && name.length <= 20;
+  if (isLowerHyphenatedAssetKey) {
     return [getAssetLogoPath(name)];
   }
 
