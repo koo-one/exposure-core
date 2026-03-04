@@ -102,58 +102,6 @@ const estimateBadgeTextWidthPx = (
   return Math.ceil(base + spacing);
 };
 
-// Squarify helper for mini-treemap layout
-function squarify(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  items: { value: number; name: string; id: string }[],
-): {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  id: string;
-}[] {
-  if (items.length === 0) return [];
-  if (items.length === 1)
-    return [{ x, y, width, height, name: items[0].name, id: items[0].id }];
-
-  const total = items.reduce((sum, item) => sum + item.value, 0);
-  let bestSplit = 1;
-  let minDiff = Infinity;
-  let sumLeft = 0;
-
-  for (let i = 0; i < items.length - 1; i++) {
-    sumLeft += items[i].value;
-    const diff = Math.abs(sumLeft / total - 0.5);
-    if (diff < minDiff) {
-      minDiff = diff;
-      bestSplit = i + 1;
-    }
-  }
-
-  const leftItems = items.slice(0, bestSplit);
-  const rightItems = items.slice(bestSplit);
-  const ratio = leftItems.reduce((sum, item) => sum + item.value, 0) / total;
-
-  if (width > height) {
-    const leftWidth = width * ratio;
-    return [
-      ...squarify(x, y, leftWidth, height, leftItems),
-      ...squarify(x + leftWidth, y, width - leftWidth, height, rightItems),
-    ];
-  } else {
-    const leftHeight = height * ratio;
-    return [
-      ...squarify(x, y, width, leftHeight, leftItems),
-      ...squarify(x, y + leftHeight, width, height - leftHeight, rightItems),
-    ];
-  }
-}
-
 export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const typed = props as CustomContentProps;
   const {
@@ -246,7 +194,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
   const headerHeight =
     isOthers || hasAllocations || isVault
-      ? Math.min(36, Math.max(16, Math.floor(height * 0.3)))
+      ? Math.min(28, Math.max(14, Math.floor(height * 0.22)))
       : 0;
   const headerCenterY = headerHeight ? y + headerHeight / 2 : y + 17;
 
@@ -394,12 +342,12 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     if (!hasAllocations && !isVault) return null;
     if (width < 90 || height < 90) return null;
 
-    const HEADER_HEIGHT = 36;
+    const HEADER_HEIGHT = 28;
     const MARGIN = 6;
     const INNER_GAP = 2;
     const headerHeight = Math.min(
       HEADER_HEIGHT,
-      Math.max(16, Math.floor(height * 0.3)),
+      Math.max(14, Math.floor(height * 0.22)),
     );
     const margin = Math.min(
       MARGIN,
@@ -407,18 +355,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     );
 
     if (!hasAllocations && isVault) {
-      return (
-        <g>
-          <line
-            x1={x}
-            x2={x + width}
-            y1={y + headerHeight}
-            y2={y + headerHeight}
-            stroke="#000000"
-            strokeWidth={1}
-          />
-        </g>
-      );
+      return null;
     }
 
     // Area available for inner rectangles
@@ -440,71 +377,33 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
     if (items.length === 0) return null;
 
-    const layouts = squarify(
-      x + margin + INNER_GAP,
-      y + headerHeight + margin + INNER_GAP,
-      availW,
-      availH,
-      items,
-    );
-
     return (
       <g>
-        <line
-          x1={x}
-          x2={x + width}
-          y1={y + headerHeight}
-          y2={y + headerHeight}
-          stroke="#000000"
-          strokeWidth={1}
-        />
         <rect
           x={x + margin + INNER_GAP}
           y={y + headerHeight + margin + INNER_GAP}
           width={availW}
           height={availH}
           style={{
-            fill: "none",
+            fill: "#E6EBF8",
             stroke: "#000000",
             strokeWidth: 1,
           }}
           pointerEvents="none"
         />
-
-        {layouts.map((layout) => {
-          if (layout.width < 1 || layout.height < 1) return null;
-
-          return (
-            <React.Fragment key={layout.id}>
-              <rect
-                x={layout.x}
-                y={layout.y}
-                width={layout.width}
-                height={layout.height}
-                style={{
-                  fill: "#E6EBF8",
-                  stroke: "#000000",
-                  strokeWidth: 0.5,
-                }}
-              />
-              {layout.width > 30 && layout.height > 12 && (
-                <text
-                  x={layout.x + 2}
-                  y={layout.y + 10}
-                  fontSize={layout.width > 50 ? 8 : 7}
-                  fill="rgba(0,0,0,0.8)"
-                  style={{ fontFamily: monoFont }}
-                >
-                  {ellipsizeToWidth(
-                    layout.name.toUpperCase(),
-                    layout.width - 4,
-                    8,
-                  )}
-                </text>
-              )}
-            </React.Fragment>
-          );
-        })}
+        <text
+          x={x + margin + INNER_GAP + 6}
+          y={y + headerHeight + margin + INNER_GAP + 18}
+          fontSize={10}
+          fill="rgba(0,0,0,0.8)"
+          style={{ fontFamily: monoFont, letterSpacing: "0.08em" }}
+        >
+          {ellipsizeToWidth(
+            `+${items.length} OTHERS`,
+            Math.max(0, availW - 12),
+            10,
+          )}
+        </text>
       </g>
     );
   };
