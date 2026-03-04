@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ResponsiveContainer, Treemap } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
@@ -45,10 +46,12 @@ export default function AssetTreeMap({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const portalCreatedRef = useRef(false);
+  const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
   const [hoverState, setHoverState] = useState<{
     datum: TreemapHoverCardDatum;
-    x: number;
-    y: number;
+    clientX: number;
+    clientY: number;
   } | null>(null);
   const [tooltipSize, setTooltipSize] = useState<{
     w: number;
@@ -93,6 +96,26 @@ export default function AssetTreeMap({
     if (w === 0 || h === 0) return;
     setTooltipSize({ w, h });
   }, [hoverState?.datum]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const existing = document.getElementById("treemap-tooltip-portal");
+    if (existing) {
+      setPortalEl(existing);
+      return;
+    }
+
+    const el = document.createElement("div");
+    el.id = "treemap-tooltip-portal";
+    document.body.appendChild(el);
+    portalCreatedRef.current = true;
+    setPortalEl(el);
+
+    return () => {
+      if (!portalCreatedRef.current) return;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    };
+  }, []);
 
   const graphIndex = useMemo(() => {
     if (!data) return null;
@@ -449,15 +472,10 @@ export default function AssetTreeMap({
                   datum: Record<string, unknown>,
                   point: { clientX: number; clientY: number },
                 ) => {
-                  const el = containerRef.current;
-                  if (!el) return;
-                  const rect = el.getBoundingClientRect();
-                  const x = point.clientX - rect.left;
-                  const y = point.clientY - rect.top;
                   setHoverState({
                     datum: datum as unknown as TreemapHoverCardDatum,
-                    x: Math.max(0, Math.min(rect.width, x)),
-                    y: Math.max(0, Math.min(rect.height, y)),
+                    clientX: point.clientX,
+                    clientY: point.clientY,
                   });
                 }}
                 onHoverEnd={() => setHoverState(null)}
@@ -468,38 +486,56 @@ export default function AssetTreeMap({
         </ResponsiveContainer>
       </div>
 
-      {hoverState && (
-        <div
-          ref={tooltipRef}
-          className="absolute z-40 pointer-events-none"
-          style={(() => {
-            const pad = 14;
-            const offsetX = 18;
-            const offsetY = 14;
+      {hoverState && portalEl
+        ? createPortal(
+            <div
+              ref={tooltipRef}
+              className="fixed z-50 pointer-events-none"
+              style={(() => {
+                const pad = 14;
+                const offsetX = 18;
+                const offsetY = 14;
 
-            const w = tooltipSize?.w ?? 280;
-            const h = tooltipSize?.h ?? 170;
+                const w = tooltipSize?.w ?? 280;
+                const h = tooltipSize?.h ?? 170;
 
-            const maxX = Math.max(pad, containerSize.width - pad - w);
-            const maxY = Math.max(pad, containerSize.height - pad - h);
+                const viewportWidth =
+                  typeof window === "undefined"
+                    ? containerSize.width
+                    : window.innerWidth;
+                const viewportHeight =
+                  typeof window === "undefined"
+                    ? containerSize.height
+                    : window.innerHeight;
 
-            const left = Math.max(pad, Math.min(maxX, hoverState.x + offsetX));
-            const top = Math.max(pad, Math.min(maxY, hoverState.y + offsetY));
+                const maxX = Math.max(pad, viewportWidth - pad - w);
+                const maxY = Math.max(pad, viewportHeight - pad - h);
 
-            return {
-              left,
-              top,
-              willChange: "transform",
-              transform: "translate3d(0, 0, 0)",
-            } as React.CSSProperties;
-          })()}
-        >
-          <TreemapHoverCard
-            dataItem={hoverState.datum}
-            downstream={downstream}
-          />
-        </div>
-      )}
+                const left = Math.max(
+                  pad,
+                  Math.min(maxX, hoverState.clientX + offsetX),
+                );
+                const top = Math.max(
+                  pad,
+                  Math.min(maxY, hoverState.clientY + offsetY),
+                );
+
+                return {
+                  left,
+                  top,
+                  willChange: "transform",
+                  transform: "translate3d(0, 0, 0)",
+                } as React.CSSProperties;
+              })()}
+            >
+              <TreemapHoverCard
+                dataItem={hoverState.datum}
+                downstream={downstream}
+              />
+            </div>,
+            portalEl,
+          )
+        : null}
     </div>
   );
 }
