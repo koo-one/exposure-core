@@ -335,24 +335,25 @@ export default function AssetPage() {
     const normalizedNodeId = node.id.trim().toLowerCase();
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
 
+    if (isKnownAsset && normalizedNodeId !== id.toLowerCase()) {
+      const queryParams = new URLSearchParams();
+      const nextProtocol = (node.protocol ?? protocol)?.trim();
+      const nextChain = (node.chain ?? chain)?.trim();
+      if (nextProtocol) queryParams.set("protocol", nextProtocol);
+      if (nextChain) queryParams.set("chain", nextChain);
+      queryParams.set("origin", origin || id);
+
+      router.push(
+        `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
+      );
+      return;
+    }
+
     const hasChildren =
       graphData?.edges.some((e) => e.from === node.id) ?? false;
     if (hasChildren) {
       applyLocalDrilldown(node);
     } else {
-      if (isKnownAsset && normalizedNodeId !== id.toLowerCase()) {
-        const queryParams = new URLSearchParams();
-        const nextProtocol = (node.protocol ?? protocol)?.trim();
-        const nextChain = (node.chain ?? chain)?.trim();
-        if (nextProtocol) queryParams.set("protocol", nextProtocol);
-        if (nextChain) queryParams.set("chain", nextChain);
-        queryParams.set("origin", origin || id);
-
-        router.push(
-          `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
-        );
-        return;
-      }
       showTerminalToast(
         `Terminal Node Reach: ${node.name} has no further downstream allocations.`,
       );
