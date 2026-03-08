@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { createPortal } from "react-dom";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
@@ -66,6 +72,17 @@ export default function AssetTreeMap({
     Map<string, { id: string; name: string; value: number; node?: GraphNode }[]>
   >(new Map());
 
+  const measureContainer = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    setContainerSize({
+      width: Math.max(0, Math.floor(rect.width)),
+      height: Math.max(0, Math.floor(rect.height)),
+    });
+  }, []);
+
   useEffect(() => {
     setHoverState(null);
     setTooltipSize(null);
@@ -75,20 +92,19 @@ export default function AssetTreeMap({
     const el = containerRef.current;
     if (!el) return;
 
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setContainerSize({
-        width: Math.max(0, Math.floor(rect.width)),
-        height: Math.max(0, Math.floor(rect.height)),
-      });
-    };
+    measureContainer();
 
-    update();
-
-    const ro = new ResizeObserver(() => update());
+    const ro = new ResizeObserver(() => measureContainer());
     ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    return () => {
+      ro.disconnect();
+    };
+  }, [measureContainer]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => measureContainer());
+    return () => window.cancelAnimationFrame(frame);
+  }, [measureContainer, rootNodeId, isOthersView, othersChildrenIds, data]);
 
   useEffect(() => {
     if (!hoverState) return;

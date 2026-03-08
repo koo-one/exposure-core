@@ -30,7 +30,10 @@ interface AppHeaderProps {
   apyMin: string;
   apyMax: string;
   query: string;
-  updateParams: (params: Record<string, string | null>) => void;
+  updateParams: (
+    params: Record<string, string | null>,
+    mode?: "push" | "replace",
+  ) => void;
   protocols: { label: string; value: string }[];
   chains: { label: string; value: string }[];
   curators: { label: string; value: string }[];
@@ -234,12 +237,15 @@ export function AppHeader({
                       <button
                         key={group.key}
                         onClick={() => {
-                          updateParams({
-                            id: primary.id,
-                            assetChain: primary.chain,
-                            assetProtocol: primary.protocol,
-                            q: "",
-                          });
+                          updateParams(
+                            {
+                              id: primary.id,
+                              assetChain: primary.chain,
+                              assetProtocol: primary.protocol,
+                              q: "",
+                            },
+                            "push",
+                          );
                           setIsSearchDropdownOpen(false);
                         }}
                         className="w-full flex items-center justify-between p-3 hover:bg-black/[0.02] rounded-xl transition-all group/item"

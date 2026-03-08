@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Activity, ChevronRight, RotateCcw } from "lucide-react";
+import { Loader2, Activity, RotateCcw } from "lucide-react";
 
 import AssetTreeMap from "@/components/AssetTreeMap";
 import { TerminalToast } from "@/components/TerminalToast";
 import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
+import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
 
 import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
@@ -16,6 +17,12 @@ import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
+import {
+  compactBreadcrumbs,
+  limitBreadcrumbHistory,
+  pushBreadcrumbHistory,
+  type BreadcrumbItem,
+} from "@/lib/breadcrumbs";
 import Image from "next/image";
 
 const shortChainLabel = (v: string): string => v.toUpperCase();
@@ -55,8 +62,14 @@ export default function AssetPage() {
   const focus = searchParams.get("focus") ?? undefined;
   const protocol = searchParams.get("protocol") ?? undefined;
 
+  // History tracking across assets
+  const history = useMemo(() => {
+    const raw = searchParams.get("history");
+    return raw ? limitBreadcrumbHistory(raw.split(",")) : [];
+  }, [searchParams]);
+
   // Origin tracking
-  const origin = searchParams.get("origin") ?? undefined;
+  const origin = history[0] ?? searchParams.get("origin") ?? undefined;
 
   // Header State & Search Logic
   const [dynamicIndex, setDynamicIndex] = useState<SearchIndexEntry[]>([]);
@@ -82,9 +95,8 @@ export default function AssetPage() {
     isAtAssetRoot,
     rootNode,
     isOthersView,
-    setIsOthersView,
     othersChildrenIds,
-    setOthersChildrenIds,
+    showOthersView,
     focusStack,
   } = useAssetData({ id, chain, protocol, focus });
 
@@ -119,7 +131,10 @@ export default function AssetPage() {
   }, []);
 
   const updateParams = useCallback(
-    (newParams: Record<string, string | null>) => {
+    (
+      newParams: Record<string, string | null>,
+      mode: "push" | "replace" = "replace",
+    ) => {
       // If navigating to a different asset, redirect to that asset page
       if (newParams.id && newParams.id.toLowerCase() !== id.toLowerCase()) {
         const p = new URLSearchParams();
@@ -145,7 +160,9 @@ export default function AssetPage() {
           params.set(key, value);
         }
       });
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const url = params.toString() ? `?${params.toString()}` : "?";
+      const navigate = mode === "push" ? router.push : router.replace;
+      navigate(url, { scroll: false });
     },
     [router, searchParams, id],
   );
@@ -320,11 +337,6 @@ export default function AssetPage() {
     return result;
   }, [filteredResults]);
 
-  const handleSelectOthers = (childIds: string[]) => {
-    setOthersChildrenIds(childIds);
-    setIsOthersView(true);
-  };
-
   const handleDrilldownSelect = async (node: GraphNode) => {
     if (!node?.id) return;
 
@@ -336,12 +348,25 @@ export default function AssetPage() {
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
 
     if (isKnownAsset && normalizedNodeId !== id.toLowerCase()) {
-      const queryParams = new URLSearchParams();
+      const queryParams = new URLSearchParams(searchParams.toString());
       const nextProtocol = (node.protocol ?? protocol)?.trim();
       const nextChain = (node.chain ?? chain)?.trim();
       if (nextProtocol) queryParams.set("protocol", nextProtocol);
+      else queryParams.delete("protocol");
       if (nextChain) queryParams.set("chain", nextChain);
-      queryParams.set("origin", origin || id);
+      else queryParams.delete("chain");
+
+      queryParams.delete("focus");
+      queryParams.delete("focusTrail");
+      queryParams.delete("others");
+      queryParams.delete("origin");
+
+      const nextHistory = pushBreadcrumbHistory(history, id);
+      if (nextHistory.length > 0) {
+        queryParams.set("history", nextHistory.join(","));
+      } else {
+        queryParams.delete("history");
+      }
 
       router.push(
         `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
@@ -361,17 +386,27 @@ export default function AssetPage() {
   };
 
   const breadcrumbs = useMemo(() => {
-    const items = [];
-    if (origin && origin !== id) {
+    const items: BreadcrumbItem[] = [];
+
+    history.forEach((histId, idx) => {
+      const entry = dynamicIndex.find(
+        (e) => e.id.toLowerCase() === histId.toLowerCase(),
+      );
+      const label = entry ? entry.name.toUpperCase() : histId.toUpperCase();
+      const nextHistory = limitBreadcrumbHistory(history.slice(0, idx));
+      const querySuffix =
+        nextHistory.length > 0 ? `?history=${nextHistory.join(",")}` : "";
+
       items.push({
-        label: origin.toUpperCase(),
-        href: `/asset/${encodeURIComponent(origin)}`,
+        label,
+        href: `/asset/${encodeURIComponent(histId)}${querySuffix}`,
       });
-    }
+    });
+
     if (rootNode) {
       items.push({
         label: rootNode.name.toUpperCase(),
-        href: isAtAssetRoot ? undefined : "#",
+        current: isAtAssetRoot && !isOthersView,
         onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
       });
     }
@@ -382,7 +417,6 @@ export default function AssetPage() {
         if (node)
           items.push({
             label: node.name.toUpperCase(),
-            href: "#",
             onClick: () => jumpToFocus(node.id),
           });
       });
@@ -396,10 +430,10 @@ export default function AssetPage() {
       items.push({ label: selectedNode.name.toUpperCase(), current: true });
     }
     if (isOthersView) items.push({ label: "OTHERS", current: true });
-    return items;
+    return compactBreadcrumbs(items);
   }, [
-    origin,
-    id,
+    history,
+    dynamicIndex,
     rootNode,
     graphData,
     focusStack,
@@ -488,34 +522,6 @@ export default function AssetPage() {
       <div className="bg-black/[0.02] border-b border-black/5 px-10 py-4 flex items-center justify-between">
         <div className="flex items-center gap-12">
           <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              {breadcrumbs.map((crumb, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  {idx > 0 && (
-                    <ChevronRight className="w-2.5 h-2.5 text-black/20" />
-                  )}
-                  {crumb.onClick ? (
-                    <button
-                      onClick={crumb.onClick}
-                      className="text-[8px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
-                    >
-                      {crumb.label}
-                    </button>
-                  ) : crumb.href ? (
-                    <Link
-                      href={crumb.href}
-                      className="text-[8px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
-                    >
-                      {crumb.label}
-                    </Link>
-                  ) : (
-                    <span className="text-[8px] font-black text-black/40 uppercase tracking-[0.2em]">
-                      {crumb.label}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
             <div className="flex items-center gap-4">
               <h1 className="text-lg font-bold text-black tracking-tight uppercase">
                 {pageTitle}
@@ -555,28 +561,32 @@ export default function AssetPage() {
       </div>
 
       <main className="flex-grow flex flex-col min-h-0 px-6 md:px-24 lg:px-40 py-12">
-        <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2">
-          {infoNode && (
-            <RootNodeHeader
-              node={infoNode}
-              tvl={tvl}
-              onBack={
-                !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
-              }
-            />
-          )}
-          <div className="flex-grow relative bg-[#E6EBF8] border border-black overflow-hidden">
-            <AssetTreeMap
-              data={graphData}
-              rootNodeId={focusRootNodeId || rootNode?.id}
-              graphRootIds={graphRootIds}
-              onSelect={handleDrilldownSelect}
-              onSelectOthers={handleSelectOthers}
-              isOthersView={isOthersView}
-              othersChildrenIds={othersChildrenIds}
-              selectedNodeId={selectedNode?.id}
-              lastClick={lastTileClick.current}
-            />
+        <div className="flex min-h-0 flex-grow flex-col gap-4">
+          <BreadcrumbTrail items={breadcrumbs} />
+
+          <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2">
+            {infoNode && (
+              <RootNodeHeader
+                node={infoNode}
+                tvl={tvl}
+                onBack={
+                  !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
+                }
+              />
+            )}
+            <div className="flex-grow relative bg-[#E6EBF8] border border-black overflow-hidden">
+              <AssetTreeMap
+                data={graphData}
+                rootNodeId={focusRootNodeId || rootNode?.id}
+                graphRootIds={graphRootIds}
+                onSelect={handleDrilldownSelect}
+                onSelectOthers={showOthersView}
+                isOthersView={isOthersView}
+                othersChildrenIds={othersChildrenIds}
+                selectedNodeId={selectedNode?.id}
+                lastClick={lastTileClick.current}
+              />
+            </div>
           </div>
         </div>
       </main>
