@@ -8,6 +8,14 @@ import AssetTreeMap from "@/components/AssetTreeMap";
 import { useAssetData } from "@/hooks/useAssetData";
 import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
+import { GraphNode } from "@/types";
+import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
+import {
+  compactBreadcrumbs,
+  limitBreadcrumbHistory,
+  pushBreadcrumbHistory,
+  type BreadcrumbItem,
+} from "@/lib/breadcrumbs";
 
 const shortChainLabel = (value: string): string => {
   const v = value.trim().toLowerCase();
@@ -105,8 +113,19 @@ function UniversalTreemapView({
   onSelectAsset,
 }: {
   asset: SearchIndexEntry | null;
-  onSelectAsset: (id: string, chain: string, protocol: string) => void;
+  onSelectAsset: (
+    id: string,
+    chain: string,
+    protocol: string,
+    history: string[],
+  ) => void;
 }) {
+  const searchParams = useSearchParams();
+  const history = useMemo(() => {
+    const raw = searchParams.get("history");
+    return raw ? limitBreadcrumbHistory(raw.split(",")) : [];
+  }, [searchParams]);
+
   const {
     graphData,
     loading,
@@ -115,11 +134,14 @@ function UniversalTreemapView({
     focusRootNodeId,
     applyLocalDrilldown,
     handleBackOneStep,
+    resetToRoot,
+    jumpToFocus,
     rootNode,
     isOthersView,
     othersChildrenIds,
     setIsOthersView,
     setOthersChildrenIds,
+    focusStack,
   } = useAssetData(
     asset
       ? {
@@ -131,6 +153,78 @@ function UniversalTreemapView({
   );
 
   const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
+  const [assetNameById, setAssetNameById] = useState<Map<string, string>>(
+    new Map(),
+  );
+
+  const nodesById = useMemo(() => {
+    if (!graphData) return new Map<string, GraphNode>();
+    return new Map(graphData.nodes.map((n) => [n.id, n]));
+  }, [graphData]);
+
+  const breadcrumbs = useMemo(() => {
+    const items: BreadcrumbItem[] = [];
+
+    history.forEach((histId, idx) => {
+      const canonicalId = canonicalizeNodeId(histId);
+      const [chainFromId = "global", protocolFromId = ""] =
+        canonicalId.split(":");
+      items.push({
+        label: (assetNameById.get(canonicalId) ?? histId).toUpperCase(),
+        onClick: () =>
+          onSelectAsset(
+            canonicalId,
+            chainFromId || "global",
+            protocolFromId || "",
+            limitBreadcrumbHistory(history.slice(0, idx)),
+          ),
+      });
+    });
+
+    if (rootNode) {
+      const isAtAssetRoot = focusRootNodeId === rootNode.id;
+      items.push({
+        label: rootNode.name.toUpperCase(),
+        current: isAtAssetRoot && !isOthersView,
+        onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
+      });
+    }
+    if (graphData && focusStack && focusStack.length > 0) {
+      focusStack.forEach((nodeId) => {
+        if (rootNode && nodeId === rootNode.id) return;
+        const node = nodesById.get(nodeId);
+        if (node)
+          items.push({
+            label: node.name.toUpperCase(),
+            onClick: () => jumpToFocus(node.id),
+          });
+      });
+    }
+    const isAtAssetRoot = focusRootNodeId === rootNode?.id;
+    if (
+      !isAtAssetRoot &&
+      selectedNode &&
+      selectedNode.id !== rootNode?.id &&
+      !isOthersView
+    ) {
+      items.push({ label: selectedNode.name.toUpperCase(), current: true });
+    }
+    if (isOthersView) items.push({ label: "OTHERS", current: true });
+    return compactBreadcrumbs(items);
+  }, [
+    history,
+    assetNameById,
+    onSelectAsset,
+    rootNode,
+    graphData,
+    focusStack,
+    selectedNode,
+    isOthersView,
+    resetToRoot,
+    jumpToFocus,
+    nodesById,
+    focusRootNodeId,
+  ]);
 
   useEffect(() => {
     const load = async () => {
@@ -139,8 +233,17 @@ function UniversalTreemapView({
         if (!response.ok) return;
         const json = (await response.json()) as SearchIndexEntry[];
         if (!Array.isArray(json)) return;
-        const set = new Set(json.map((e) => e.id.toLowerCase()));
+        const set = new Set<string>();
+        const names = new Map<string, string>();
+        json.forEach((entry) => {
+          const canonicalId = canonicalizeNodeId(entry.id);
+          set.add(canonicalId);
+          if (!names.has(canonicalId)) {
+            names.set(canonicalId, entry.name);
+          }
+        });
         setGraphRootIds(set);
+        setAssetNameById(names);
       } catch {
         /* ignore */
       }
@@ -165,52 +268,61 @@ function UniversalTreemapView({
   const infoNode = selectedNode ?? rootNode;
 
   return (
-    <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
-      <div className="flex flex-col gap-2 h-[50vh] lg:h-[60vh]">
-        {infoNode && (
-          <RootNodeHeader
-            node={infoNode}
-            tvl={tvl}
-            onBack={
-              isOthersView || (rootNode && focusRootNodeId !== rootNode.id)
-                ? handleBackOneStep
-                : undefined
-            }
-          />
-        )}
-        <div className="flex-grow relative bg-[#E6EBF8] overflow-hidden">
-          <AssetTreeMap
-            data={graphData}
-            rootNodeId={currentRootId}
-            onSelect={(node) => {
-              if (graphData) {
-                const hasChildren = graphData.edges.some(
-                  (e) => e.from === node.id,
-                );
-                const canonicalId = canonicalizeNodeId(node.id);
-                const isKnownAsset = graphRootIds.has(canonicalId);
+    <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <BreadcrumbTrail items={breadcrumbs} />
 
-                if (hasChildren) {
-                  applyLocalDrilldown(node);
-                } else if (
-                  isKnownAsset &&
-                  node.id.toLowerCase() !== asset?.id.toLowerCase()
-                ) {
-                  const [chainFromId = "global", protocolFromId = ""] =
-                    canonicalId.split(":");
-                  onSelectAsset(
-                    canonicalId,
-                    chainFromId || "global",
-                    protocolFromId || "",
-                  );
-                }
+      <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
+        <div className="flex flex-col gap-2 h-[50vh] lg:h-[60vh]">
+          {infoNode && (
+            <RootNodeHeader
+              node={infoNode}
+              tvl={tvl}
+              onBack={
+                isOthersView || (rootNode && focusRootNodeId !== rootNode.id)
+                  ? handleBackOneStep
+                  : undefined
               }
-            }}
-            onSelectOthers={handleSelectOthers}
-            isOthersView={isOthersView}
-            othersChildrenIds={othersChildrenIds}
-            selectedNodeId={selectedNode?.id}
-          />
+            />
+          )}
+          <div className="flex-grow relative bg-[#E6EBF8] overflow-hidden">
+            <AssetTreeMap
+              data={graphData}
+              rootNodeId={currentRootId}
+              onSelect={(node) => {
+                if (graphData) {
+                  const hasChildren = graphData.edges.some(
+                    (e) => e.from === node.id,
+                  );
+                  const canonicalId = canonicalizeNodeId(node.id);
+                  const isKnownAsset = graphRootIds.has(canonicalId);
+
+                  if (hasChildren) {
+                    applyLocalDrilldown(node);
+                  } else if (
+                    isKnownAsset &&
+                    node.id.toLowerCase() !== asset?.id.toLowerCase()
+                  ) {
+                    const [chainFromId = "global", protocolFromId = ""] =
+                      canonicalId.split(":");
+                    const nextHistory = pushBreadcrumbHistory(
+                      history,
+                      canonicalizeNodeId(asset?.id ?? ""),
+                    );
+                    onSelectAsset(
+                      canonicalId,
+                      chainFromId || "global",
+                      protocolFromId || "",
+                      nextHistory,
+                    );
+                  }
+                }
+              }}
+              onSelectOthers={handleSelectOthers}
+              isOthersView={isOthersView}
+              othersChildrenIds={othersChildrenIds}
+              selectedNodeId={selectedNode?.id}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -511,11 +623,13 @@ function HomeInner() {
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
         <UniversalTreemapView
           asset={activeAsset || activeAssetFallback || topAsset}
-          onSelectAsset={(id, chain, protocol) =>
+          onSelectAsset={(id, chain, protocol, history) =>
             updateParams({
               id,
               assetChain: chain,
               assetProtocol: protocol,
+              focus: null,
+              history: history.length > 0 ? history.join(",") : null,
               q: "",
             })
           }

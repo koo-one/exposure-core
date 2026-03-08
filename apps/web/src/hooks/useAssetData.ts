@@ -117,6 +117,8 @@ export function useAssetData(props: UseAssetDataProps | null) {
 
   const applyLocalDrilldown = useCallback(
     (node: GraphNode) => {
+      setSelectedNode(node);
+
       const currentFocus = focusRootNodeId ?? rootNode?.id ?? null;
       if (!currentFocus || currentFocus === node.id) {
         setFocusRootNodeId(node.id);
