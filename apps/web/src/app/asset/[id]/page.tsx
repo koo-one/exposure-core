@@ -95,9 +95,8 @@ export default function AssetPage() {
     isAtAssetRoot,
     rootNode,
     isOthersView,
-    setIsOthersView,
     othersChildrenIds,
-    setOthersChildrenIds,
+    showOthersView,
     focusStack,
   } = useAssetData({ id, chain, protocol, focus });
 
@@ -132,7 +131,10 @@ export default function AssetPage() {
   }, []);
 
   const updateParams = useCallback(
-    (newParams: Record<string, string | null>) => {
+    (
+      newParams: Record<string, string | null>,
+      mode: "push" | "replace" = "replace",
+    ) => {
       // If navigating to a different asset, redirect to that asset page
       if (newParams.id && newParams.id.toLowerCase() !== id.toLowerCase()) {
         const p = new URLSearchParams();
@@ -158,7 +160,9 @@ export default function AssetPage() {
           params.set(key, value);
         }
       });
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const url = params.toString() ? `?${params.toString()}` : "?";
+      const navigate = mode === "push" ? router.push : router.replace;
+      navigate(url, { scroll: false });
     },
     [router, searchParams, id],
   );
@@ -333,11 +337,6 @@ export default function AssetPage() {
     return result;
   }, [filteredResults]);
 
-  const handleSelectOthers = (childIds: string[]) => {
-    setOthersChildrenIds(childIds);
-    setIsOthersView(true);
-  };
-
   const handleDrilldownSelect = async (node: GraphNode) => {
     if (!node?.id) return;
 
@@ -358,6 +357,8 @@ export default function AssetPage() {
       else queryParams.delete("chain");
 
       queryParams.delete("focus");
+      queryParams.delete("focusTrail");
+      queryParams.delete("others");
       queryParams.delete("origin");
 
       const nextHistory = pushBreadcrumbHistory(history, id);
@@ -579,7 +580,7 @@ export default function AssetPage() {
                 rootNodeId={focusRootNodeId || rootNode?.id}
                 graphRootIds={graphRootIds}
                 onSelect={handleDrilldownSelect}
-                onSelectOthers={handleSelectOthers}
+                onSelectOthers={showOthersView}
                 isOthersView={isOthersView}
                 othersChildrenIds={othersChildrenIds}
                 selectedNodeId={selectedNode?.id}

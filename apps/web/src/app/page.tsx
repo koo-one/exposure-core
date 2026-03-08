@@ -110,9 +110,11 @@ const shouldGroupAcrossChains = (protocol: string): boolean => {
 
 function UniversalTreemapView({
   asset,
+  focus,
   onSelectAsset,
 }: {
   asset: SearchIndexEntry | null;
+  focus?: string;
   onSelectAsset: (
     id: string,
     chain: string,
@@ -139,8 +141,7 @@ function UniversalTreemapView({
     rootNode,
     isOthersView,
     othersChildrenIds,
-    setIsOthersView,
-    setOthersChildrenIds,
+    showOthersView,
     focusStack,
   } = useAssetData(
     asset
@@ -148,6 +149,7 @@ function UniversalTreemapView({
           id: canonicalizeNodeId(asset.id),
           chain: asset.chain.trim().toLowerCase(),
           protocol: canonicalizeProtocolToken(asset.protocol),
+          focus,
         }
       : null,
   );
@@ -251,11 +253,6 @@ function UniversalTreemapView({
     void load();
   }, []);
 
-  const handleSelectOthers = (childIds: string[]) => {
-    setOthersChildrenIds(childIds);
-    setIsOthersView(true);
-  };
-
   if (loading || !graphData) {
     return (
       <div className="w-full h-[60vh] flex items-center justify-center bg-black/[0.02] border border-black/5 rounded-3xl">
@@ -317,7 +314,7 @@ function UniversalTreemapView({
                   }
                 }
               }}
-              onSelectOthers={handleSelectOthers}
+              onSelectOthers={showOthersView}
               isOthersView={isOthersView}
               othersChildrenIds={othersChildrenIds}
               selectedNodeId={selectedNode?.id}
@@ -346,6 +343,7 @@ function HomeInner() {
   const activeAssetId = searchParams.get("id");
   const activeAssetChain = searchParams.get("assetChain");
   const activeAssetProtocol = searchParams.get("assetProtocol");
+  const activeFocus = searchParams.get("focus") ?? undefined;
 
   const activeAsset = useMemo(() => {
     if (!activeAssetId) return null;
@@ -379,7 +377,10 @@ function HomeInner() {
   }, [activeAssetId, activeAssetChain, activeAssetProtocol]);
 
   const updateParams = useCallback(
-    (newParams: Record<string, string | null>) => {
+    (
+      newParams: Record<string, string | null>,
+      mode: "push" | "replace" = "replace",
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
       Object.entries(newParams).forEach(([key, value]) => {
         if (
@@ -394,7 +395,9 @@ function HomeInner() {
           params.set(key, value);
         }
       });
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const url = params.toString() ? `?${params.toString()}` : "?";
+      const navigate = mode === "push" ? router.push : router.replace;
+      navigate(url, { scroll: false });
     },
     [router, searchParams],
   );
@@ -623,15 +626,21 @@ function HomeInner() {
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
         <UniversalTreemapView
           asset={activeAsset || activeAssetFallback || topAsset}
+          focus={activeFocus}
           onSelectAsset={(id, chain, protocol, history) =>
-            updateParams({
-              id,
-              assetChain: chain,
-              assetProtocol: protocol,
-              focus: null,
-              history: history.length > 0 ? history.join(",") : null,
-              q: "",
-            })
+            updateParams(
+              {
+                id,
+                assetChain: chain,
+                assetProtocol: protocol,
+                focus: null,
+                focusTrail: null,
+                others: null,
+                history: history.length > 0 ? history.join(",") : null,
+                q: "",
+              },
+              "push",
+            )
           }
         />
       </main>

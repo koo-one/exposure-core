@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GraphSnapshot, GraphNode } from "@/types";
 import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
 
@@ -10,8 +10,17 @@ interface UseAssetDataProps {
   focus?: string;
 }
 
+const parseParamList = (raw: string | null): string[] => {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+};
+
 export function useAssetData(props: UseAssetDataProps | null) {
   const { id, chain, protocol, focus } = props || {};
+  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,35 +31,80 @@ export function useAssetData(props: UseAssetDataProps | null) {
   const [focusRootNodeId, setFocusRootNodeId] = useState<string | null>(null);
   const [focusStack, setFocusStack] = useState<string[]>([]);
   const [pageTitle, setPageTitle] = useState<string>(id || "");
-
-  // Others view state
   const [isOthersView, setIsOthersView] = useState(false);
   const [othersChildrenIds, setOthersChildrenIds] = useState<string[]>([]);
 
-  // Synchronize focusRootNodeId with URL
-  useEffect(() => {
-    if (!focusRootNodeId || !id) return;
+  const focusTrail = useMemo(
+    () => parseParamList(searchParams.get("focusTrail")),
+    [searchParams],
+  );
+  const othersParamIds = useMemo(
+    () => parseParamList(searchParams.get("others")),
+    [searchParams],
+  );
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (focusRootNodeId === rootNode?.id) {
-      params.delete("focus");
-    } else {
-      params.set("focus", focusRootNodeId);
-    }
+  const rootNode = useMemo(() => {
+    if (!graphData || !id) return null;
+    return resolveRootNode(graphData.nodes, id, chain);
+  }, [graphData, id, chain]);
 
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    router.replace(newUrl, { scroll: false });
-  }, [focusRootNodeId, id]);
+  const syncViewParams = useCallback(
+    (
+      nextFocusId: string | null,
+      nextFocusTrail: string[],
+      nextOthersIds: string[],
+      mode: "push" | "replace",
+    ) => {
+      if (!pathname) return;
 
-  // Reset Others view when focusRootNodeId changes
-  useEffect(() => {
-    setIsOthersView(false);
-    setOthersChildrenIds([]);
-  }, [focusRootNodeId]);
+      const params = new URLSearchParams(searchParams.toString());
+      const normalizedRootId = rootNode?.id.trim().toLowerCase() ?? "";
+      const normalizedNextFocusId = nextFocusId?.trim().toLowerCase() ?? "";
+
+      if (
+        !normalizedNextFocusId ||
+        normalizedNextFocusId === normalizedRootId
+      ) {
+        params.delete("focus");
+      } else {
+        params.set("focus", nextFocusId ?? "");
+      }
+
+      if (nextFocusTrail.length > 0) {
+        params.set("focusTrail", nextFocusTrail.join(","));
+      } else {
+        params.delete("focusTrail");
+      }
+
+      if (nextOthersIds.length > 0) {
+        params.set("others", nextOthersIds.join(","));
+      } else {
+        params.delete("others");
+      }
+
+      const nextQuery = params.toString();
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      const currentQuery = searchParams.toString();
+      const currentUrl = currentQuery
+        ? `${pathname}?${currentQuery}`
+        : pathname;
+
+      if (nextUrl === currentUrl) return;
+
+      const navigate = mode === "push" ? router.push : router.replace;
+      navigate(nextUrl, { scroll: false });
+    },
+    [pathname, rootNode?.id, router, searchParams],
+  );
 
   useEffect(() => {
     if (!id) {
       setGraphData(null);
+      setSelectedNode(null);
+      setFocusRootNodeId(null);
+      setFocusStack([]);
+      setOthersChildrenIds([]);
+      setIsOthersView(false);
       setLoading(false);
       return;
     }
@@ -70,25 +124,12 @@ export function useAssetData(props: UseAssetDataProps | null) {
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
+
         const json: GraphSnapshot = await response.json();
         setGraphData(json);
 
         const resolvedRoot = resolveRootNode(json.nodes, id, chain);
-
         if (resolvedRoot) {
-          const normalizedFocus = focus?.toLowerCase();
-          const focusNode = normalizedFocus
-            ? json.nodes.find((n) => n.id.toLowerCase() === normalizedFocus)
-            : undefined;
-
-          const initial = focusNode || resolvedRoot;
-          setSelectedNode(initial);
-          setFocusRootNodeId(initial.id);
-          setFocusStack([]);
-
-          const titleNode = focusNode || resolvedRoot;
-          setPageTitle(titleNode.name);
-
           if (resolvedRoot.tvlUsd) {
             setTvl(resolvedRoot.tvlUsd);
           } else {
@@ -98,6 +139,8 @@ export function useAssetData(props: UseAssetDataProps | null) {
             );
             setTvl(totalOutgoingUsd);
           }
+        } else {
+          setTvl(null);
         }
       } catch (error) {
         console.error(error);
@@ -107,28 +150,73 @@ export function useAssetData(props: UseAssetDataProps | null) {
       }
     };
 
-    fetchData();
-  }, [id, chain, focus, protocol]);
+    void fetchData();
+  }, [id, chain, protocol]);
 
-  const rootNode = useMemo(() => {
-    if (!graphData || !id) return null;
-    return resolveRootNode(graphData.nodes, id, chain);
-  }, [graphData, id, chain]);
+  useEffect(() => {
+    if (!graphData || !rootNode) return;
+
+    const nodesById = new Map(
+      graphData.nodes.map(
+        (node) => [node.id.trim().toLowerCase(), node] as const,
+      ),
+    );
+    const normalizedFocus = focus?.trim().toLowerCase();
+    const focusNode = normalizedFocus
+      ? nodesById.get(normalizedFocus)
+      : undefined;
+    const nextSelectedNode = focusNode || rootNode;
+
+    const normalizedSelectedId = nextSelectedNode.id.trim().toLowerCase();
+    const normalizedRootId = rootNode.id.trim().toLowerCase();
+    const nextFocusStack: string[] = [];
+    for (const rawId of focusTrail) {
+      const node = nodesById.get(rawId.trim().toLowerCase());
+      if (!node) continue;
+      const normalizedNodeId = node.id.trim().toLowerCase();
+      if (
+        normalizedNodeId === normalizedRootId ||
+        normalizedNodeId === normalizedSelectedId ||
+        nextFocusStack.some((id) => id.toLowerCase() === normalizedNodeId)
+      ) {
+        continue;
+      }
+      nextFocusStack.push(node.id);
+    }
+
+    const nextOthersIds = othersParamIds.filter((rawId) =>
+      nodesById.has(rawId.trim().toLowerCase()),
+    );
+
+    setSelectedNode(nextSelectedNode);
+    setFocusRootNodeId(nextSelectedNode.id);
+    setFocusStack(nextFocusStack);
+    setIsOthersView(nextOthersIds.length > 0);
+    setOthersChildrenIds(nextOthersIds);
+    setPageTitle(nextSelectedNode.name);
+  }, [focus, focusTrail, othersParamIds, graphData, rootNode]);
 
   const applyLocalDrilldown = useCallback(
     (node: GraphNode) => {
-      setSelectedNode(node);
-
       const currentFocus = focusRootNodeId ?? rootNode?.id ?? null;
-      if (!currentFocus || currentFocus === node.id) {
-        setFocusRootNodeId(node.id);
-        return;
-      }
+      const normalizedCurrentFocus = currentFocus?.trim().toLowerCase() ?? "";
+      const normalizedRootId = rootNode?.id.trim().toLowerCase() ?? "";
 
-      setFocusStack((prev) => [...prev, currentFocus]);
+      const nextFocusStack =
+        !currentFocus ||
+        !normalizedCurrentFocus ||
+        normalizedCurrentFocus === normalizedRootId
+          ? focusStack
+          : [...focusStack, currentFocus];
+
+      setSelectedNode(node);
       setFocusRootNodeId(node.id);
+      setFocusStack(nextFocusStack);
+      setIsOthersView(false);
+      setOthersChildrenIds([]);
+      syncViewParams(node.id, nextFocusStack, [], "push");
     },
-    [focusRootNodeId, rootNode],
+    [focusRootNodeId, focusStack, rootNode, syncViewParams],
   );
 
   const handleBackOneStep = useCallback(() => {
@@ -137,25 +225,38 @@ export function useAssetData(props: UseAssetDataProps | null) {
     if (isOthersView) {
       setIsOthersView(false);
       setOthersChildrenIds([]);
+      syncViewParams(focusRootNodeId, focusStack, [], "replace");
       return;
     }
 
     const prevId = focusStack[focusStack.length - 1];
     if (!prevId) {
-      // If stack is empty but we are focused on something that isn't the root, reset to root
       if (rootNode && focusRootNodeId !== rootNode.id) {
         setFocusRootNodeId(rootNode.id);
         setSelectedNode(rootNode);
+        setFocusStack([]);
+        syncViewParams(rootNode.id, [], [], "replace");
       }
       return;
     }
 
-    setFocusStack((prev) => prev.slice(0, -1));
+    const nextFocusStack = focusStack.slice(0, -1);
+    setFocusStack(nextFocusStack);
     setFocusRootNodeId(prevId);
+    setIsOthersView(false);
+    setOthersChildrenIds([]);
+    syncViewParams(prevId, nextFocusStack, [], "replace");
 
-    const prevNode = graphData.nodes.find((n) => n.id === prevId);
+    const prevNode = graphData.nodes.find((node) => node.id === prevId);
     if (prevNode) setSelectedNode(prevNode);
-  }, [graphData, focusStack, focusRootNodeId, rootNode, isOthersView]);
+  }, [
+    graphData,
+    focusRootNodeId,
+    focusStack,
+    isOthersView,
+    rootNode,
+    syncViewParams,
+  ]);
 
   const resetToRoot = useCallback(() => {
     if (!rootNode) return;
@@ -164,14 +265,15 @@ export function useAssetData(props: UseAssetDataProps | null) {
     setFocusStack([]);
     setFocusRootNodeId(rootNode.id);
     setSelectedNode(rootNode);
-  }, [rootNode]);
+    syncViewParams(rootNode.id, [], [], "replace");
+  }, [rootNode, syncViewParams]);
 
   const jumpToFocus = useCallback(
     (targetId: string) => {
       if (!graphData) return;
       const normalizedTarget = targetId.trim().toLowerCase();
       const targetNode = graphData.nodes.find(
-        (n) => n.id.toLowerCase() === normalizedTarget,
+        (node) => node.id.toLowerCase() === normalizedTarget,
       );
       if (!targetNode) return;
 
@@ -182,19 +284,36 @@ export function useAssetData(props: UseAssetDataProps | null) {
         setFocusStack([]);
         setFocusRootNodeId(rootNode.id);
         setSelectedNode(rootNode);
+        syncViewParams(rootNode.id, [], [], "replace");
         return;
       }
 
       const indexInStack = focusStack.findIndex(
-        (id) => id.toLowerCase() === normalizedTarget,
+        (stackId) => stackId.toLowerCase() === normalizedTarget,
       );
-      if (indexInStack >= 0) {
-        setFocusStack(focusStack.slice(0, indexInStack));
-      }
+      const nextFocusStack =
+        indexInStack >= 0 ? focusStack.slice(0, indexInStack) : focusStack;
+
+      setFocusStack(nextFocusStack);
       setFocusRootNodeId(targetNode.id);
       setSelectedNode(targetNode);
+      syncViewParams(targetNode.id, nextFocusStack, [], "replace");
     },
-    [graphData, focusStack, rootNode],
+    [graphData, focusStack, rootNode, syncViewParams],
+  );
+
+  const showOthersView = useCallback(
+    (childIds: string[]) => {
+      const nextOthersIds = childIds
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0);
+      if (nextOthersIds.length === 0) return;
+
+      setIsOthersView(true);
+      setOthersChildrenIds(nextOthersIds);
+      syncViewParams(focusRootNodeId, focusStack, nextOthersIds, "push");
+    },
+    [focusRootNodeId, focusStack, syncViewParams],
   );
 
   return {
@@ -212,10 +331,9 @@ export function useAssetData(props: UseAssetDataProps | null) {
     handleBackOneStep,
     resetToRoot,
     jumpToFocus,
+    showOthersView,
     isAtAssetRoot: focusRootNodeId === rootNode?.id,
     isOthersView,
-    setIsOthersView,
     othersChildrenIds,
-    setOthersChildrenIds,
   };
 }
