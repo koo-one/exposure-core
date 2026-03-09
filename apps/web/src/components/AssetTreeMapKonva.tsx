@@ -127,12 +127,11 @@ const getTileLabel = (data: TreemapTileDatum) => {
   return `${data.name} ${currencyFormatter.format(data.originalValue)}`;
 };
 
-const getInsetBounds = (
+const getPackedTileBounds = (
   x0: number,
   y0: number,
   x1: number,
   y1: number,
-  inset = TILE_STYLE.padding.tileInset,
 ) => {
   const startX = Math.round(x0);
   const startY = Math.round(y0);
@@ -140,10 +139,10 @@ const getInsetBounds = (
   const endY = Math.round(y1);
 
   return {
-    x: startX + inset,
-    y: startY + inset,
-    width: Math.max(0, endX - startX - inset),
-    height: Math.max(0, endY - startY - inset),
+    x: startX,
+    y: startY,
+    width: Math.max(0, endX - startX - 1),
+    height: Math.max(0, endY - startY - 1),
   };
 };
 
@@ -198,7 +197,7 @@ const TreemapTileKonva = React.memo(
     onHoverEnd: () => void;
   }) => {
     const { x0, y0, x1, y1, data } = node;
-    const tileBounds = getInsetBounds(x0, y0, x1, y1);
+    const tileBounds = getPackedTileBounds(x0, y0, x1, y1);
     const x = tileBounds.x;
     const y = tileBounds.y;
     const width = tileBounds.width;
@@ -387,7 +386,7 @@ const TreemapTileKonva = React.memo(
             />
 
             {nestedLayout.children.map((n, idx: number) => {
-              const bounds = getInsetBounds(n.x0, n.y0, n.x1, n.y1);
+              const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
               const nw = bounds.width;
               const nh = bounds.height;
               const nestedData = n.data as AllocationItem;
@@ -420,10 +419,10 @@ const TreemapTileKonva = React.memo(
 
             {availW > 0 && (
               <Rect
-                x={availW - 1}
+                x={0}
                 y={0}
-                width={1}
-                height={availH}
+                width={availW}
+                height={1}
                 fill={TILE_STYLE.colors.innerBorder}
                 listening={false}
               />
@@ -432,9 +431,9 @@ const TreemapTileKonva = React.memo(
             {availH > 0 && (
               <Rect
                 x={0}
-                y={availH - 1}
-                width={availW}
-                height={1}
+                y={0}
+                width={1}
+                height={availH}
                 fill={TILE_STYLE.colors.innerBorder}
                 listening={false}
               />
@@ -455,19 +454,6 @@ const TreemapTileKonva = React.memo(
               />
             )}
           </Group>
-        )}
-
-        {isTerminal && (
-          <Rect
-            x={2}
-            y={2}
-            width={Math.max(0, width - 4)}
-            height={Math.max(0, height - 4)}
-            stroke={TILE_STYLE.colors.terminalStroke}
-            strokeWidth={1}
-            dash={TILE_STYLE.terminalDash}
-            listening={false}
-          />
         )}
       </Group>
     );
@@ -510,9 +496,9 @@ export function AssetTreeMapKonva({
 
     return d3
       .treemap<TreemapTileDatum>()
-      .size([Math.max(0, stageWidth - 1), Math.max(0, stageHeight - 1)])
+      .size([stageWidth, stageHeight])
       .padding(0)
-      .round(false)(hierarchy);
+      .round(true)(hierarchy);
   }, [data, stageWidth, stageHeight]);
 
   const [dpr, setDpr] = useState(1);
@@ -609,6 +595,22 @@ export function AssetTreeMapKonva({
         <Layer>
           <Rect width={stageWidth} height={stageHeight} fill="black" />
           {tiles}
+          {stageWidth > 0 && (
+            <Rect
+              width={stageWidth}
+              height={1}
+              fill="black"
+              listening={false}
+            />
+          )}
+          {stageHeight > 0 && (
+            <Rect
+              width={1}
+              height={stageHeight}
+              fill="black"
+              listening={false}
+            />
+          )}
         </Layer>
       </Stage>
       <div style={SR_ONLY_STYLE}>
