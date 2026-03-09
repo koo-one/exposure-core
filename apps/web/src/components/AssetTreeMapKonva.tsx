@@ -81,6 +81,21 @@ const TILE_STYLE = {
     ratio: 0.2,
     fallback: 20,
   },
+  nested: {
+    minLayoutWidth: 40,
+    minLayoutHeight: 30,
+    maxItems: 12,
+    othersLabelMinWidth: 60,
+    othersLabelMinHeight: 40,
+    othersLabelWidth: 50,
+    othersLabelOffsetX: 55,
+    othersLabelOffsetY: 10,
+    labelMinWidth: 35,
+    labelMinHeight: 12,
+    labelInset: 2,
+    labelWidthOffset: 6,
+    labelFontSize: 10.5,
+  },
   logo: {
     size: 16,
     step: 12,
@@ -95,6 +110,8 @@ const TILE_STYLE = {
   thresholds: {
     labelWidth: 40,
     labelHeight: 20,
+    othersLabelWidth: 90,
+    othersLabelHeight: 56,
   },
 };
 
@@ -258,9 +275,15 @@ const TreemapTileKonva = React.memo(
 
     const nestedLayout = useMemo(() => {
       const allocations = data.allocations || [];
-      if (allocations.length === 0 || availW < 40 || availH < 30) return null;
+      if (
+        allocations.length === 0 ||
+        availW < TILE_STYLE.nested.minLayoutWidth ||
+        availH < TILE_STYLE.nested.minLayoutHeight
+      ) {
+        return null;
+      }
 
-      const items = allocations.slice(0, 12);
+      const items = allocations.slice(0, TILE_STYLE.nested.maxItems);
       const hierarchy = d3
         .hierarchy<{ children: AllocationItem[] } | AllocationItem>({
           children: items,
@@ -277,7 +300,10 @@ const TreemapTileKonva = React.memo(
       const root = treemap(hierarchy);
       return {
         children: root.children || [],
-        othersCount: Math.max(0, allocations.length - 12),
+        othersCount: Math.max(
+          0,
+          allocations.length - TILE_STYLE.nested.maxItems,
+        ),
       };
     }, [data.allocations, availW, availH]);
 
@@ -351,21 +377,24 @@ const TreemapTileKonva = React.memo(
             </Group>
           )}
 
-        {isOthers && data.childCount && width > 90 && height > 56 && (
-          <Text
-            text={`+${data.childCount} OTHERS`}
-            x={TILE_STYLE.padding.textX}
-            y={headerHeight + 6}
-            width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
-            fontSize={12}
-            fontFamily={TILE_STYLE.fontFamily}
-            fill={TILE_STYLE.colors.defaultText}
-            fontStyle="bold"
-            wrap="none"
-            ellipsis
-            listening={false}
-          />
-        )}
+        {isOthers &&
+          data.childCount &&
+          width > TILE_STYLE.thresholds.othersLabelWidth &&
+          height > TILE_STYLE.thresholds.othersLabelHeight && (
+            <Text
+              text={`+${data.childCount} OTHERS`}
+              x={TILE_STYLE.padding.textX}
+              y={headerHeight + 6}
+              width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
+              fontSize={12}
+              fontFamily={TILE_STYLE.fontFamily}
+              fill={TILE_STYLE.colors.defaultText}
+              fontStyle="bold"
+              wrap="none"
+              ellipsis
+              listening={false}
+            />
+          )}
 
         {nestedLayout && (
           <Group x={innerMargin} y={headerHeight + innerMargin}>
@@ -376,34 +405,35 @@ const TreemapTileKonva = React.memo(
               listening={false}
             />
 
-            {nestedLayout.children.map((n, idx: number) => {
+            {nestedLayout.children.map((n) => {
               const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
               const nw = bounds.width;
               const nh = bounds.height;
               const nestedData = n.data as AllocationItem;
 
               return (
-                <Group key={idx} x={bounds.x} y={bounds.y}>
+                <Group key={nestedData.id} x={bounds.x} y={bounds.y}>
                   <Rect
                     width={nw}
                     height={nh}
                     fill={TILE_STYLE.colors.defaultFill}
                     listening={false}
                   />
-                  {nw > 35 && nh > 12 && (
-                    <Text
-                      text={nestedData.name.toUpperCase()}
-                      x={2}
-                      y={2}
-                      width={nw - 6}
-                      fontSize={10.5}
-                      fontFamily={TILE_STYLE.fontFamily}
-                      fill={TILE_STYLE.colors.innerText}
-                      wrap="none"
-                      ellipsis
-                      listening={false}
-                    />
-                  )}
+                  {nw > TILE_STYLE.nested.labelMinWidth &&
+                    nh > TILE_STYLE.nested.labelMinHeight && (
+                      <Text
+                        text={nestedData.name.toUpperCase()}
+                        x={TILE_STYLE.nested.labelInset}
+                        y={TILE_STYLE.nested.labelInset}
+                        width={nw - TILE_STYLE.nested.labelWidthOffset}
+                        fontSize={TILE_STYLE.nested.labelFontSize}
+                        fontFamily={TILE_STYLE.fontFamily}
+                        fill={TILE_STYLE.colors.innerText}
+                        wrap="none"
+                        ellipsis
+                        listening={false}
+                      />
+                    )}
                 </Group>
               );
             })}
@@ -430,20 +460,22 @@ const TreemapTileKonva = React.memo(
               />
             )}
 
-            {nestedLayout.othersCount > 0 && availW > 60 && availH > 40 && (
-              <Text
-                text={`+${nestedLayout.othersCount} OTHERS`}
-                x={availW - 55}
-                y={availH - 10}
-                width={50}
-                fontSize={6}
-                fontFamily={TILE_STYLE.fontFamily}
-                fill={TILE_STYLE.colors.innerText}
-                fontStyle="bold"
-                align="right"
-                listening={false}
-              />
-            )}
+            {nestedLayout.othersCount > 0 &&
+              availW > TILE_STYLE.nested.othersLabelMinWidth &&
+              availH > TILE_STYLE.nested.othersLabelMinHeight && (
+                <Text
+                  text={`+${nestedLayout.othersCount} OTHERS`}
+                  x={availW - TILE_STYLE.nested.othersLabelOffsetX}
+                  y={availH - TILE_STYLE.nested.othersLabelOffsetY}
+                  width={TILE_STYLE.nested.othersLabelWidth}
+                  fontSize={6}
+                  fontFamily={TILE_STYLE.fontFamily}
+                  fill={TILE_STYLE.colors.innerText}
+                  fontStyle="bold"
+                  align="right"
+                  listening={false}
+                />
+              )}
           </Group>
         )}
       </Group>
@@ -467,7 +499,7 @@ export function AssetTreeMapKonva({
   onHover,
   onHoverEnd,
 }: AssetTreeMapKonvaProps) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
   const stageWidth = Math.max(0, Math.floor(width));
   const stageHeight = Math.max(0, Math.floor(height));
 
@@ -500,13 +532,17 @@ export function AssetTreeMapKonva({
 
   useEffect(() => {
     const measureOffset = () => {
-      const rect = containerRef.current?.getBoundingClientRect();
+      const rect = wrapperRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      setStageOffset({
+      const nextOffset = {
         x: Math.round(rect.left) - rect.left,
         y: Math.round(rect.top) - rect.top,
-      });
+      };
+
+      setStageOffset((prev) =>
+        prev.x === nextOffset.x && prev.y === nextOffset.y ? prev : nextOffset,
+      );
     };
 
     measureOffset();
@@ -516,8 +552,8 @@ export function AssetTreeMapKonva({
         ? null
         : new ResizeObserver(() => measureOffset());
 
-    if (containerRef.current && resizeObserver) {
-      resizeObserver.observe(containerRef.current);
+    if (wrapperRef.current && resizeObserver) {
+      resizeObserver.observe(wrapperRef.current);
     }
 
     window.addEventListener("resize", measureOffset);
@@ -574,49 +610,57 @@ export function AssetTreeMapKonva({
 
   return (
     <div
-      ref={containerRef}
+      ref={wrapperRef}
       style={{
         position: "relative",
         width: stageWidth,
         height: stageHeight,
-        transform: `translate(${stageOffset.x}px, ${stageOffset.y}px)`,
       }}
     >
-      <Stage width={stageWidth} height={stageHeight} pixelRatio={dpr}>
-        <Layer>
-          <Rect width={stageWidth} height={stageHeight} fill="black" />
-          {tiles}
-          {stageWidth > 0 && (
-            <Rect
-              width={stageWidth}
-              height={1}
-              fill="black"
-              listening={false}
-            />
-          )}
-          {stageHeight > 0 && (
-            <Rect
-              width={1}
-              height={stageHeight}
-              fill="black"
-              listening={false}
-            />
-          )}
-        </Layer>
-      </Stage>
-      <div style={SR_ONLY_STYLE}>
-        {root.children?.map((node, index) => {
-          const datum = node.data;
-          return (
-            <button
-              key={datum.nodeId || index}
-              type="button"
-              onClick={() => handleTileAction(datum)}
-            >
-              {getTileLabel(datum)}
-            </button>
-          );
-        })}
+      <div
+        style={{
+          position: "relative",
+          width: stageWidth,
+          height: stageHeight,
+          transform: `translate(${stageOffset.x}px, ${stageOffset.y}px)`,
+        }}
+      >
+        <Stage width={stageWidth} height={stageHeight} pixelRatio={dpr}>
+          <Layer>
+            <Rect width={stageWidth} height={stageHeight} fill="black" />
+            {tiles}
+            {stageWidth > 0 && (
+              <Rect
+                width={stageWidth}
+                height={1}
+                fill="black"
+                listening={false}
+              />
+            )}
+            {stageHeight > 0 && (
+              <Rect
+                width={1}
+                height={stageHeight}
+                fill="black"
+                listening={false}
+              />
+            )}
+          </Layer>
+        </Stage>
+        <div style={SR_ONLY_STYLE}>
+          {root.children?.map((node, index) => {
+            const datum = node.data;
+            return (
+              <button
+                key={datum.nodeId || index}
+                type="button"
+                onClick={() => handleTileAction(datum)}
+              >
+                {getTileLabel(datum)}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
