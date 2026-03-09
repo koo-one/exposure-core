@@ -69,6 +69,8 @@ const TILE_STYLE = {
     othersFill: "#EAE5D9",
     terminalFill: "#FFF1F2",
     defaultFill: "#E6EBF8",
+    hoverFill: "#4AD280",
+    hoverText: "#FFFFFF",
     defaultText: "#000000",
     terminalText: "#9F1239",
     selectionFill: "rgba(0, 0, 0, 0.08)",
@@ -211,6 +213,8 @@ const TreemapTileKonva = React.memo(
     const width = tileBounds.width;
     const height = tileBounds.height;
 
+    const [isHovered, setIsHovered] = useState(false);
+
     const nodeId = data.nodeId;
     const isSelected =
       selectedNodeId === nodeId || lastClick?.nodeId === nodeId;
@@ -220,15 +224,19 @@ const TreemapTileKonva = React.memo(
     const isTerminal = !isOthers && !!data.isTerminal;
     const hasAllocations = !!data.allocations && data.allocations.length > 0;
 
-    const fill = isOthers
-      ? TILE_STYLE.colors.othersFill
-      : isTerminal
-        ? TILE_STYLE.colors.terminalFill
-        : TILE_STYLE.colors.defaultFill;
+    const fill = isHovered
+      ? TILE_STYLE.colors.hoverFill
+      : isOthers
+        ? TILE_STYLE.colors.othersFill
+        : isTerminal
+          ? TILE_STYLE.colors.terminalFill
+          : TILE_STYLE.colors.defaultFill;
 
-    const textColor = isTerminal
-      ? TILE_STYLE.colors.terminalText
-      : TILE_STYLE.colors.defaultText;
+    const textColor = isHovered
+      ? TILE_STYLE.colors.hoverText
+      : isTerminal
+        ? TILE_STYLE.colors.terminalText
+        : TILE_STYLE.colors.defaultText;
 
     const headerHeight =
       isOthers || hasAllocations || isVault
@@ -261,7 +269,20 @@ const TreemapTileKonva = React.memo(
       }
     }, [isOthers, onSelectOthers, data, onSelect]);
 
-    const handlePointerMove = useCallback(
+    const handleMouseEnter = useCallback(
+      (e: KonvaEventObject<MouseEvent>) => {
+        setIsHovered(true);
+        onHover(data, { clientX: e.evt.clientX, clientY: e.evt.clientY });
+      },
+      [data, onHover],
+    );
+
+    const handleMouseLeave = useCallback(() => {
+      setIsHovered(false);
+      onHoverEnd();
+    }, [onHoverEnd]);
+
+    const handleMouseMove = useCallback(
       (e: KonvaEventObject<MouseEvent>) => {
         onHover(data, { clientX: e.evt.clientX, clientY: e.evt.clientY });
       },
@@ -315,9 +336,9 @@ const TreemapTileKonva = React.memo(
         onTap={handleClick}
         onMouseDown={() => !isTerminal && onPressStart(nodeId)}
         onMouseUp={onPressEnd}
-        onMouseEnter={handlePointerMove}
-        onMouseMove={handlePointerMove}
-        onMouseLeave={onHoverEnd}
+        onMouseEnter={handleMouseEnter}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <Rect
           width={width}
@@ -388,7 +409,7 @@ const TreemapTileKonva = React.memo(
               width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
               fontSize={12}
               fontFamily={TILE_STYLE.fontFamily}
-              fill={TILE_STYLE.colors.defaultText}
+              fill={textColor}
               fontStyle="bold"
               wrap="none"
               ellipsis
