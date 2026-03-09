@@ -70,6 +70,7 @@ const TILE_STYLE = {
     terminalFill: "#FFF1F2",
     defaultFill: "#E6EBF8",
     hoverFill: "#4AD280",
+    hoverText: "#FFFFFF",
     defaultText: "#000000",
     terminalText: "#9F1239",
     selectionFill: "rgba(0, 0, 0, 0.08)",
@@ -232,7 +233,7 @@ const TreemapTileKonva = React.memo(
           : TILE_STYLE.colors.defaultFill;
 
     const textColor = isHovered
-      ? "#FFFFFF"
+      ? TILE_STYLE.colors.hoverText
       : isTerminal
         ? TILE_STYLE.colors.terminalText
         : TILE_STYLE.colors.defaultText;
@@ -408,7 +409,7 @@ const TreemapTileKonva = React.memo(
               width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
               fontSize={12}
               fontFamily={TILE_STYLE.fontFamily}
-              fill={isHovered ? "#FFFFFF" : TILE_STYLE.colors.defaultText}
+              fill={textColor}
               fontStyle="bold"
               wrap="none"
               ellipsis
