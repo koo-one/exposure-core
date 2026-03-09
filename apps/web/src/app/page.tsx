@@ -265,7 +265,7 @@ function UniversalTreemapView({
   const infoNode = selectedNode ?? rootNode;
 
   return (
-    <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="w-full flex flex-col gap-4">
       <BreadcrumbTrail items={breadcrumbs} />
 
       <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
