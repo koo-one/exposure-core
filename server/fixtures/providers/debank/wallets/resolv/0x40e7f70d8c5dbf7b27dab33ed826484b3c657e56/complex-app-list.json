@@ -1,1 +1,589 @@
-[]
+[
+  {
+    "create_at": 1750484386,
+    "id": "hyperliquid",
+    "is_support_portfolio": true,
+    "is_visible": true,
+    "logo_url": "https://static.debank.com/image/project/logo_url/arb_hyperliquid/98dcfcb24e1ec2ab0da74679e0bfa0bb.png",
+    "name": "Hyperliquid",
+    "portfolio_item_list": [
+      {
+        "asset_dict": {
+          "bd9703f8183fb5e9289f26359531ad68": 12677439.308213,
+          "cbc85c2463806ead7328a5da06425a2b": 12085.33799823,
+          "d5a5183d02b53799e850a361c553de44": 60000.16655389,
+          "fced7bdf3823ab2829a3f0d8d9fb302e": 199663500.255599
+        },
+        "asset_token_list": [
+          {
+            "amount": 12085.33799823,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          {
+            "amount": 60000.16655389,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "d5a5183d02b53799e850a361c553de44",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+            "name": "Hyperliquid",
+            "price": 34.2825,
+            "symbol": "HYPE"
+          },
+          {
+            "amount": 12677439.308213,
+            "app_id": "hyperliquid",
+            "decimals": 6,
+            "id": "bd9703f8183fb5e9289f26359531ad68",
+            "logo_url": null,
+            "name": "Unit Fartcoin",
+            "price": 0.15188,
+            "symbol": "UFART"
+          },
+          {
+            "amount": 199663500.255599,
+            "app_id": "hyperliquid",
+            "decimals": 6,
+            "id": "fced7bdf3823ab2829a3f0d8d9fb302e",
+            "logo_url": null,
+            "name": "Unit Pump Fun",
+            "price": 0.002039,
+            "symbol": "UPUMP"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "description": "Main-Account Spot",
+          "supply_token_list": [
+            {
+              "amount": 12085.33799823,
+              "app_id": "hyperliquid",
+              "decimals": 8,
+              "id": "cbc85c2463806ead7328a5da06425a2b",
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "name": "USDC",
+              "price": 1,
+              "symbol": "USDC"
+            },
+            {
+              "amount": 60000.16655389,
+              "app_id": "hyperliquid",
+              "decimals": 8,
+              "id": "d5a5183d02b53799e850a361c553de44",
+              "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+              "name": "Hyperliquid",
+              "price": 34.2825,
+              "symbol": "HYPE"
+            },
+            {
+              "amount": 12677439.308213,
+              "app_id": "hyperliquid",
+              "decimals": 6,
+              "id": "bd9703f8183fb5e9289f26359531ad68",
+              "logo_url": null,
+              "name": "Unit Fartcoin",
+              "price": 0.15188,
+              "symbol": "UFART"
+            },
+            {
+              "amount": 199663500.255599,
+              "app_id": "hyperliquid",
+              "decimals": 6,
+              "id": "fced7bdf3823ab2829a3f0d8d9fb302e",
+              "logo_url": null,
+              "name": "Unit Pump Fun",
+              "price": 0.002039,
+              "symbol": "UPUMP"
+            }
+          ]
+        },
+        "detail_types": ["common"],
+        "name": "Deposit",
+        "position_index": "spot_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 4401604.40703452,
+          "debt_usd_value": 0,
+          "net_usd_value": 4401604.40703452
+        },
+        "update_at": 1773129036.1133642,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "cbc85c2463806ead7328a5da06425a2b": 3753696.659802
+        },
+        "asset_token_list": [
+          {
+            "amount": 3753696.659802,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "description": "Main-Account Perps Withdrawable",
+          "supply_token_list": [
+            {
+              "amount": 3753696.659802,
+              "app_id": "hyperliquid",
+              "decimals": 8,
+              "id": "cbc85c2463806ead7328a5da06425a2b",
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "name": "USDC",
+              "price": 1,
+              "symbol": "USDC"
+            }
+          ]
+        },
+        "detail_types": ["common"],
+        "name": "Deposit",
+        "position_index": "perp_withdrawable_usdc_hyperliquid_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 3753696.659802,
+          "debt_usd_value": 0,
+          "net_usd_value": 3753696.659802
+        },
+        "update_at": 1773129036.1135023,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "cbc85c2463806ead7328a5da06425a2b": 72227.5544
+        },
+        "asset_token_list": [
+          {
+            "amount": 72227.5544,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "base_token": {
+            "app_id": "hyperliquid",
+            "decimals": 0,
+            "id": "729e952b096dd2d19062be59e56307ea",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/bf7cfaf4a23ed162ce0618543ba5a119.png",
+            "name": "AAVE",
+            "price": 110.52,
+            "symbol": "AAVE"
+          },
+          "daily_funding_rate": 0,
+          "description": "Main-Account",
+          "entry_price": 130.4269,
+          "leverage": 10,
+          "liquidation_price": 892.0422705982,
+          "margin_rate": 0.1,
+          "margin_token": {
+            "amount": 72227.5544,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "mark_price": 110.67999999999999,
+          "pnl_usd_value": 128864.569118,
+          "position_token": {
+            "amount": 6525.8,
+            "app_id": "hyperliquid",
+            "decimals": 0,
+            "id": "729e952b096dd2d19062be59e56307ea",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/bf7cfaf4a23ed162ce0618543ba5a119.png",
+            "name": "AAVE",
+            "price": 110.52,
+            "symbol": "AAVE"
+          },
+          "quote_token": {
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "side": "Short"
+        },
+        "detail_types": ["perpetuals"],
+        "name": "Perpetuals",
+        "position_index": "perp_hyperliquid_aave_false_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 72227.5544,
+          "debt_usd_value": 0,
+          "net_usd_value": 72227.5544
+        },
+        "update_at": 1773129036.1136487,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "cbc85c2463806ead7328a5da06425a2b": 1868987.5862200004
+        },
+        "asset_token_list": [
+          {
+            "amount": 1868987.5862200004,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "base_token": {
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "d5a5183d02b53799e850a361c553de44",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+            "name": "Hyperliquid",
+            "price": 34.2825,
+            "symbol": "HYPE"
+          },
+          "daily_funding_rate": 0,
+          "description": "Main-Account",
+          "entry_price": 24.8681,
+          "leverage": 5,
+          "liquidation_price": 53.2242680646,
+          "margin_rate": 0.2,
+          "margin_token": {
+            "amount": 1868987.5862200004,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "mark_price": 34.435,
+          "pnl_usd_value": -2596251.50684,
+          "position_token": {
+            "amount": 271379.06,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "d5a5183d02b53799e850a361c553de44",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+            "name": "Hyperliquid",
+            "price": 34.2825,
+            "symbol": "HYPE"
+          },
+          "quote_token": {
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "side": "Short"
+        },
+        "detail_types": ["perpetuals"],
+        "name": "Perpetuals",
+        "position_index": "perp_hyperliquid_hype_false_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 1868987.5862200004,
+          "debt_usd_value": 0,
+          "net_usd_value": 1868987.5862200004
+        },
+        "update_at": 1773129036.1137924,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "cbc85c2463806ead7328a5da06425a2b": 192607.480492
+        },
+        "asset_token_list": [
+          {
+            "amount": 192607.480492,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "base_token": {
+            "app_id": "hyperliquid",
+            "decimals": 0,
+            "id": "d7eb4ba336cc412a1eb8d51510ae9e1f",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/69a2a58ab072b2fab1f791f6f50c8250.png",
+            "name": "FARTCOIN",
+            "price": 0.15179,
+            "symbol": "FARTCOIN"
+          },
+          "daily_funding_rate": 0,
+          "description": "Main-Account",
+          "entry_price": 0.1725,
+          "leverage": 10,
+          "liquidation_price": 0.5540340242,
+          "margin_rate": 0.1,
+          "margin_token": {
+            "amount": 192607.480492,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "mark_price": 0.15189999999999998,
+          "pnl_usd_value": 261217.704823,
+          "position_token": {
+            "amount": 12679886.8,
+            "app_id": "hyperliquid",
+            "decimals": 0,
+            "id": "d7eb4ba336cc412a1eb8d51510ae9e1f",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/69a2a58ab072b2fab1f791f6f50c8250.png",
+            "name": "FARTCOIN",
+            "price": 0.15179,
+            "symbol": "FARTCOIN"
+          },
+          "quote_token": {
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "side": "Short"
+        },
+        "detail_types": ["perpetuals"],
+        "name": "Perpetuals",
+        "position_index": "perp_hyperliquid_fartcoin_false_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 192607.480492,
+          "debt_usd_value": 0,
+          "net_usd_value": 192607.480492
+        },
+        "update_at": 1773129036.1139207,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "cbc85c2463806ead7328a5da06425a2b": 132219.46766
+        },
+        "asset_token_list": [
+          {
+            "amount": 132219.46766,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "base_token": {
+            "app_id": "hyperliquid",
+            "decimals": 5,
+            "id": "bd3a1ef68060db03a4c2c37f459ceee1",
+            "logo_url": null,
+            "name": "PUMP",
+            "price": 0.002038,
+            "symbol": "PUMP"
+          },
+          "daily_funding_rate": 0,
+          "description": "Main-Account",
+          "entry_price": 0.002024,
+          "leverage": 10,
+          "liquidation_price": 0.0099120704,
+          "margin_rate": 0.1,
+          "margin_token": {
+            "amount": 132219.46766,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "mark_price": 0.002041,
+          "pnl_usd_value": -10530.331761,
+          "position_token": {
+            "amount": 647817088,
+            "app_id": "hyperliquid",
+            "decimals": 5,
+            "id": "bd3a1ef68060db03a4c2c37f459ceee1",
+            "logo_url": null,
+            "name": "PUMP",
+            "price": 0.002038,
+            "symbol": "PUMP"
+          },
+          "quote_token": {
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "cbc85c2463806ead7328a5da06425a2b",
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "name": "USDC",
+            "price": 1,
+            "symbol": "USDC"
+          },
+          "side": "Short"
+        },
+        "detail_types": ["perpetuals"],
+        "name": "Perpetuals",
+        "position_index": "perp_hyperliquid_pump_false_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 132219.46766,
+          "debt_usd_value": 0,
+          "net_usd_value": 132219.46766
+        },
+        "update_at": 1773129036.1140246,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "d5a5183d02b53799e850a361c553de44": 6.87e-6
+        },
+        "asset_token_list": [
+          {
+            "amount": 6.87e-6,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "d5a5183d02b53799e850a361c553de44",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+            "name": "Hyperliquid",
+            "price": 34.2825,
+            "symbol": "HYPE"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "description": "Delegated",
+          "supply_token_list": [
+            {
+              "amount": 6.87e-6,
+              "app_id": "hyperliquid",
+              "decimals": 8,
+              "id": "d5a5183d02b53799e850a361c553de44",
+              "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+              "name": "Hyperliquid",
+              "price": 34.2825,
+              "symbol": "HYPE"
+            }
+          ]
+        },
+        "detail_types": ["common"],
+        "name": "Staked",
+        "position_index": "stake_delegated_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 0.00023552077500000002,
+          "debt_usd_value": 0,
+          "net_usd_value": 0.00023552077500000002
+        },
+        "update_at": 1773129036.1140854,
+        "withdraw_actions": []
+      },
+      {
+        "asset_dict": {
+          "d5a5183d02b53799e850a361c553de44": 201389.37775
+        },
+        "asset_token_list": [
+          {
+            "amount": 201389.37775,
+            "app_id": "hyperliquid",
+            "decimals": 8,
+            "id": "d5a5183d02b53799e850a361c553de44",
+            "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+            "name": "Hyperliquid",
+            "price": 34.2825,
+            "symbol": "HYPE"
+          }
+        ],
+        "base": {
+          "app_id": "hyperliquid",
+          "user_addr": "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56"
+        },
+        "detail": {
+          "description": "Pending Withdrawal",
+          "supply_token_list": [
+            {
+              "amount": 201389.37775,
+              "app_id": "hyperliquid",
+              "decimals": 8,
+              "id": "d5a5183d02b53799e850a361c553de44",
+              "logo_url": "https://static.debank.com/image/app_token/logo_url/hyperliquid/6dcbad7864c85fb9f7348a2525af9a31.png",
+              "name": "Hyperliquid",
+              "price": 34.2825,
+              "symbol": "HYPE"
+            }
+          ]
+        },
+        "detail_types": ["common"],
+        "name": "Staked",
+        "position_index": "stake_pending_withdrawal_0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 6904131.342714375,
+          "debt_usd_value": 0,
+          "net_usd_value": 6904131.342714375
+        },
+        "update_at": 1773129036.1141417,
+        "withdraw_actions": []
+      }
+    ],
+    "site_url": "https://app.hyperliquid.xyz",
+    "update_at": 1750484386
+  }
+]

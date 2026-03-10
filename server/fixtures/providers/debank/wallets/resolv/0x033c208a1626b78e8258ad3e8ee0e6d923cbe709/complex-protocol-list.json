@@ -1,1 +1,239 @@
-[]
+[
+  {
+    "chain": "eth",
+    "dao_id": "aave",
+    "has_supported_portfolio": true,
+    "id": "aave3",
+    "is_tvl": false,
+    "is_visible_in_defi": null,
+    "logo_url": "https://static.debank.com/image/project/logo_url/aave3/54df7839ab09493ba7540ab832590255.png",
+    "name": "Aave V3",
+    "platform_token_id": null,
+    "portfolio_item_list": [
+      {
+        "asset_dict": {
+          "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": -29.56493037,
+          "0x8236a87084f8b84306f72007f36f2618a5634494": 44.18239404
+        },
+        "asset_token_list": [
+          {
+            "amount": 44.18239404,
+            "chain": "eth",
+            "decimals": 8,
+            "display_symbol": null,
+            "id": "0x8236a87084f8b84306f72007f36f2618a5634494",
+            "is_core": true,
+            "is_verified": true,
+            "is_wallet": true,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x8236a87084f8b84306f72007f36f2618a5634494/e63f839c2285bae18b83e42853bc0cf2.png",
+            "name": "Lombard Staked Bitcoin",
+            "optimized_symbol": "LBTC",
+            "price": 70506.453274,
+            "protocol_id": "lombard",
+            "symbol": "LBTC",
+            "time_at": 1715936519
+          },
+          {
+            "amount": -29.56493037,
+            "chain": "eth",
+            "decimals": 8,
+            "display_symbol": null,
+            "id": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+            "is_core": true,
+            "is_verified": true,
+            "is_wallet": true,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599/d3c52e7c7449afa8bd4fad1c93f50d93.png",
+            "name": "Wrapped BTC",
+            "optimized_symbol": "WBTC",
+            "price": 70400.29,
+            "protocol_id": "",
+            "symbol": "WBTC",
+            "time_at": 1543095952
+          }
+        ],
+        "detail": {
+          "borrow_token_list": [
+            {
+              "amount": 29.56493037,
+              "chain": "eth",
+              "decimals": 8,
+              "display_symbol": null,
+              "id": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599/d3c52e7c7449afa8bd4fad1c93f50d93.png",
+              "name": "Wrapped BTC",
+              "optimized_symbol": "WBTC",
+              "price": 70400.29,
+              "protocol_id": "",
+              "symbol": "WBTC",
+              "time_at": 1543095952
+            }
+          ],
+          "health_rate": 1.2926045310725178,
+          "supply_token_list": [
+            {
+              "amount": 44.18239404,
+              "chain": "eth",
+              "decimals": 8,
+              "display_symbol": null,
+              "id": "0x8236a87084f8b84306f72007f36f2618a5634494",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x8236a87084f8b84306f72007f36f2618a5634494/e63f839c2285bae18b83e42853bc0cf2.png",
+              "name": "Lombard Staked Bitcoin",
+              "optimized_symbol": "LBTC",
+              "price": 70506.453274,
+              "protocol_id": "lombard",
+              "symbol": "LBTC",
+              "time_at": 1715936519
+            }
+          ]
+        },
+        "detail_types": ["lending"],
+        "name": "Lending",
+        "pool": {
+          "adapter_id": "aave3_proxy_lending",
+          "chain": "eth",
+          "controller": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+          "id": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+          "index": null,
+          "project_id": "aave3",
+          "time_at": 1672325495
+        },
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 3115143.900914716,
+          "debt_usd_value": 2081379.671877807,
+          "net_usd_value": 1033764.2290369091
+        },
+        "update_at": 1773128764,
+        "withdraw_actions": []
+      }
+    ],
+    "site_url": "https://app.aave.com",
+    "tag_ids": ["debt"],
+    "tvl": 21852323897.660534
+  },
+  {
+    "chain": "eth",
+    "dao_id": null,
+    "has_supported_portfolio": true,
+    "id": "morphoblue",
+    "is_tvl": false,
+    "is_visible_in_defi": null,
+    "logo_url": "https://static.debank.com/image/project/logo_url/morphoblue/cfe5f811a4fb96355e0fb367b5201f87.png",
+    "name": "Morpho",
+    "platform_token_id": "0x58d97b57bb95320f9a05dc918aef65434969c2b2",
+    "portfolio_item_list": [
+      {
+        "asset_dict": {
+          "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": -434.1561911623063,
+          "0x8236a87084f8b84306f72007f36f2618a5634494": 524.07256545
+        },
+        "asset_token_list": [
+          {
+            "amount": 524.07256545,
+            "chain": "eth",
+            "decimals": 8,
+            "display_symbol": null,
+            "id": "0x8236a87084f8b84306f72007f36f2618a5634494",
+            "is_core": true,
+            "is_verified": true,
+            "is_wallet": true,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x8236a87084f8b84306f72007f36f2618a5634494/e63f839c2285bae18b83e42853bc0cf2.png",
+            "name": "Lombard Staked Bitcoin",
+            "optimized_symbol": "LBTC",
+            "price": 70506.453274,
+            "protocol_id": "lombard",
+            "symbol": "LBTC",
+            "time_at": 1715936519
+          },
+          {
+            "amount": -434.1561911623063,
+            "chain": "eth",
+            "decimals": 8,
+            "display_symbol": null,
+            "id": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+            "is_core": true,
+            "is_verified": true,
+            "is_wallet": true,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599/d3c52e7c7449afa8bd4fad1c93f50d93.png",
+            "name": "Wrapped BTC",
+            "optimized_symbol": "WBTC",
+            "price": 70400.29,
+            "protocol_id": "",
+            "symbol": "WBTC",
+            "time_at": 1543095952
+          }
+        ],
+        "detail": {
+          "borrow_token_list": [
+            {
+              "amount": 434.1561911623063,
+              "chain": "eth",
+              "decimals": 8,
+              "display_symbol": null,
+              "id": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599/d3c52e7c7449afa8bd4fad1c93f50d93.png",
+              "name": "Wrapped BTC",
+              "optimized_symbol": "WBTC",
+              "price": 70400.29,
+              "protocol_id": "",
+              "symbol": "WBTC",
+              "time_at": 1543095952
+            }
+          ],
+          "health_rate": 1.1472161319767578,
+          "supply_token_list": [
+            {
+              "amount": 524.07256545,
+              "chain": "eth",
+              "decimals": 8,
+              "display_symbol": null,
+              "id": "0x8236a87084f8b84306f72007f36f2618a5634494",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x8236a87084f8b84306f72007f36f2618a5634494/e63f839c2285bae18b83e42853bc0cf2.png",
+              "name": "Lombard Staked Bitcoin",
+              "optimized_symbol": "LBTC",
+              "price": 70506.453274,
+              "protocol_id": "lombard",
+              "symbol": "LBTC",
+              "time_at": 1715936519
+            }
+          ]
+        },
+        "detail_types": ["lending"],
+        "name": "Lending",
+        "pool": {
+          "adapter_id": "morpho_blue_lending",
+          "chain": "eth",
+          "controller": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+          "id": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb:lending",
+          "index": "lending",
+          "project_id": "morphoblue",
+          "time_at": 1703754563
+        },
+        "position_index": "0xf6a056627a51e511ec7f48332421432ea6971fc148d8f3c451e14ea108026549",
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 36950497.84808573,
+          "debt_usd_value": 30564721.7631218,
+          "net_usd_value": 6385776.084963933
+        },
+        "update_at": 1773128764,
+        "withdraw_actions": []
+      }
+    ],
+    "site_url": "https://app.morpho.org",
+    "tag_ids": ["yield_aggregator"],
+    "tvl": 4356293763.49419
+  }
+]

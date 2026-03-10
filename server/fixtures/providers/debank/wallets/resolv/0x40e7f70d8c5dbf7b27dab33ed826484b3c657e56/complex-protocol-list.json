@@ -1,1 +1,122 @@
-[]
+[
+  {
+    "chain": "eth",
+    "dao_id": "aave",
+    "has_supported_portfolio": true,
+    "id": "aave2",
+    "is_tvl": true,
+    "is_visible_in_defi": null,
+    "logo_url": "https://static.debank.com/image/project/logo_url/aave2/b8d1ef85570855176b102edf8cda6f8d.png",
+    "name": "Aave V2",
+    "platform_token_id": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+    "portfolio_item_list": [
+      {
+        "asset_dict": {
+          "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9": 6505.9997906050385
+        },
+        "asset_token_list": [
+          {
+            "amount": 6505.9997906050385,
+            "chain": "eth",
+            "decimals": 18,
+            "display_symbol": null,
+            "id": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+            "is_core": true,
+            "is_verified": true,
+            "is_wallet": true,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9/7baf403c819f679dc1c6571d9d978f21.png",
+            "name": "Aave Token",
+            "optimized_symbol": "AAVE",
+            "price": 110.75,
+            "protocol_id": "aave2",
+            "symbol": "AAVE",
+            "time_at": 1600970788
+          }
+        ],
+        "detail": {
+          "reward_token_list": [
+            {
+              "amount": 3.0047906050382633,
+              "chain": "eth",
+              "decimals": 18,
+              "display_symbol": null,
+              "id": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9/7baf403c819f679dc1c6571d9d978f21.png",
+              "name": "Aave Token",
+              "optimized_symbol": "AAVE",
+              "price": 110.75,
+              "protocol_id": "aave2",
+              "symbol": "AAVE",
+              "time_at": 1600970788
+            }
+          ],
+          "supply_token_list": [
+            {
+              "amount": 6502.995,
+              "chain": "eth",
+              "decimals": 18,
+              "display_symbol": null,
+              "id": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+              "is_core": true,
+              "is_verified": true,
+              "is_wallet": true,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9/7baf403c819f679dc1c6571d9d978f21.png",
+              "name": "Aave Token",
+              "optimized_symbol": "AAVE",
+              "price": 110.75,
+              "protocol_id": "aave2",
+              "symbol": "AAVE",
+              "time_at": 1600970788
+            }
+          ]
+        },
+        "detail_types": ["common"],
+        "name": "Staked",
+        "pool": {
+          "adapter_id": "aave2_staked",
+          "chain": "eth",
+          "controller": "0x4da27a545c0c5b758a6ba100e3a049001de870f5",
+          "id": "0x4da27a545c0c5b758a6ba100e3a049001de870f5",
+          "index": null,
+          "project_id": "aave2",
+          "time_at": 1600973075
+        },
+        "proxy_detail": {},
+        "stats": {
+          "asset_usd_value": 720539.476809508,
+          "debt_usd_value": 0,
+          "net_usd_value": 720539.476809508
+        },
+        "update_at": 1773128769,
+        "withdraw_actions": [
+          {
+            "contract_id": "0x4da27a545c0c5b758a6ba100e3a049001de870f5",
+            "func": "cooldown()()",
+            "params": [],
+            "str_params": [],
+            "type": "queue"
+          },
+          {
+            "contract_id": "0x4da27a545c0c5b758a6ba100e3a049001de870f5",
+            "func": "claimRewards(address,uint256)()",
+            "params": [
+              "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+              1.157920892373162e77
+            ],
+            "str_params": [
+              "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+              "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+            ],
+            "type": "claim"
+          }
+        ]
+      }
+    ],
+    "site_url": "https://app.aave.com",
+    "tag_ids": ["debt"],
+    "tvl": 425619928.8793995
+  }
+]
