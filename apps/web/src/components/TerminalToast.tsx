@@ -14,9 +14,11 @@ export function TerminalToast({
   onClose: () => void;
 }) {
   return (
-    <div 
+    <div
       className={`fixed bottom-8 left-1/2 z-50 w-[min(92vw,480px)] -translate-x-1/2 transition-all duration-300 ease-out ${
-        toast.open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+        toast.open
+          ? "translate-y-0 opacity-100"
+          : "translate-y-4 opacity-0 pointer-events-none"
       }`}
     >
       <div
@@ -25,12 +27,17 @@ export function TerminalToast({
         aria-live="polite"
       >
         {/* Left accent bar */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#00FF85]" aria-hidden="true" />
-        
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1 bg-[#00FF85]"
+          aria-hidden="true"
+        />
+
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">System Message</div>
+          <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">
+            System Message
+          </div>
           <div className="text-sm font-bold text-white tracking-tight font-mono">
-            {toast.message}
+            {(toast.message || "").toUpperCase()}
           </div>
         </div>
 
@@ -45,11 +52,16 @@ export function TerminalToast({
 
         {/* Progress bar */}
         {toast.open && (
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5" aria-hidden="true">
-            <div 
-              key={toast.seq} 
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5"
+            aria-hidden="true"
+          >
+            <div
+              key={toast.seq}
               className="h-full bg-[#00FF85] origin-left"
-              style={{ animation: 'exposure-toast-progress 2600ms linear forwards' }}
+              style={{
+                animation: "exposure-toast-progress 2600ms linear forwards",
+              }}
             />
           </div>
         )}

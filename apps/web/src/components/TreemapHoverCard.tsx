@@ -139,7 +139,7 @@ export const TreemapHoverCard = ({
             {downstreamRows.map((row) => (
               <div key={row.id} className="flex items-center justify-between">
                 <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
-                  {row.name}
+                  {row.name || ""}
                 </div>
                 <div className="text-[10px] font-bold text-white/70 font-mono">
                   {currencyFormatter.format(Math.abs(row.allocationUsd))}

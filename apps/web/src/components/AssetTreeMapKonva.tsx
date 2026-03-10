@@ -65,6 +65,7 @@ interface AssetTreeMapKonvaProps {
 const TILE_STYLE = {
   fontFamily: "'JetBrains Mono', monospace",
   fontSize: 11,
+  letterSpacing: -0.3,
   colors: {
     othersFill: "#EAE5D9",
     terminalFill: "#FFF1F2",
@@ -78,7 +79,7 @@ const TILE_STYLE = {
     innerText: "rgba(0,0,0,0.6)",
   },
   header: {
-    min: 16,
+    min: 18,
     max: 26,
     ratio: 0.2,
     fallback: 20,
@@ -96,7 +97,8 @@ const TILE_STYLE = {
     labelMinHeight: 12,
     labelInset: 2,
     labelWidthOffset: 6,
-    labelFontSize: 10.5,
+    labelFontSize: 9,
+    labelLetterSpacing: -0.2,
   },
   logo: {
     size: 16,
@@ -131,10 +133,11 @@ const SR_ONLY_STYLE: React.CSSProperties = {
 
 const getTileLabel = (data: TreemapTileDatum) => {
   const isOthers = data.isOthers;
+  const name = (data.name || "").toUpperCase();
   if (isOthers) {
-    return `+${data.childCount || 0} others ${currencyFormatter.format(data.originalValue)}`;
+    return `+${data.childCount || 0} OTHERS ${currencyFormatter.format(data.originalValue)}`;
   }
-  return `${data.name} ${currencyFormatter.format(data.originalValue)}`;
+  return `${name} ${currencyFormatter.format(data.originalValue)}`;
 };
 
 const getPackedTileBounds = (
@@ -328,6 +331,9 @@ const TreemapTileKonva = React.memo(
       };
     }, [data.allocations, availW, availH]);
 
+    const centeringHeight =
+      headerHeight > 0 ? headerHeight + innerMargin : height;
+
     return (
       <Group
         x={x}
@@ -359,12 +365,7 @@ const TreemapTileKonva = React.memo(
           height > TILE_STYLE.thresholds.labelHeight && (
             <Group
               clipFunc={(ctx: SceneContext) => {
-                ctx.rect(
-                  0,
-                  0,
-                  width,
-                  headerHeight || TILE_STYLE.header.fallback,
-                );
+                ctx.rect(0, 0, width, centeringHeight);
               }}
             >
               {logoPaths.slice(0, TILE_STYLE.logo.maxCount).map((path, idx) => (
@@ -372,27 +373,24 @@ const TreemapTileKonva = React.memo(
                   key={path}
                   url={path}
                   x={TILE_STYLE.padding.textX + idx * TILE_STYLE.logo.step}
-                  y={
-                    (headerHeight || TILE_STYLE.header.fallback) / 2 -
-                    TILE_STYLE.logo.size / 2
-                  }
+                  y={centeringHeight / 2 - TILE_STYLE.logo.size / 2}
                   size={TILE_STYLE.logo.size}
                 />
               ))}
               <Text
                 text={label}
                 x={textX}
-                y={
-                  (headerHeight || TILE_STYLE.header.fallback) / 2 -
-                  fontSize / 2
-                }
+                y={0}
                 width={Math.max(0, width - textX - 4)}
+                height={centeringHeight}
+                verticalAlign="middle"
                 ellipsis
                 wrap="none"
                 fontSize={fontSize}
                 fontFamily={TILE_STYLE.fontFamily}
                 fill={textColor}
                 fontStyle="bold"
+                letterSpacing={TILE_STYLE.letterSpacing}
                 listening={false}
               />
             </Group>
@@ -407,10 +405,11 @@ const TreemapTileKonva = React.memo(
               x={TILE_STYLE.padding.textX}
               y={headerHeight + 6}
               width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
-              fontSize={12}
+              fontSize={11}
               fontFamily={TILE_STYLE.fontFamily}
               fill={textColor}
               fontStyle="bold"
+              letterSpacing={TILE_STYLE.letterSpacing}
               wrap="none"
               ellipsis
               listening={false}
@@ -443,13 +442,15 @@ const TreemapTileKonva = React.memo(
                   {nw > TILE_STYLE.nested.labelMinWidth &&
                     nh > TILE_STYLE.nested.labelMinHeight && (
                       <Text
-                        text={nestedData.name.toUpperCase()}
+                        text={(nestedData.name || "").toUpperCase()}
                         x={TILE_STYLE.nested.labelInset}
                         y={TILE_STYLE.nested.labelInset}
                         width={nw - TILE_STYLE.nested.labelWidthOffset}
                         fontSize={TILE_STYLE.nested.labelFontSize}
                         fontFamily={TILE_STYLE.fontFamily}
                         fill={TILE_STYLE.colors.innerText}
+                        fontStyle="bold"
+                        letterSpacing={TILE_STYLE.nested.labelLetterSpacing}
                         wrap="none"
                         ellipsis
                         listening={false}
@@ -489,10 +490,11 @@ const TreemapTileKonva = React.memo(
                   x={availW - TILE_STYLE.nested.othersLabelOffsetX}
                   y={availH - TILE_STYLE.nested.othersLabelOffsetY}
                   width={TILE_STYLE.nested.othersLabelWidth}
-                  fontSize={6}
+                  fontSize={7}
                   fontFamily={TILE_STYLE.fontFamily}
                   fill={TILE_STYLE.colors.innerText}
                   fontStyle="bold"
+                  letterSpacing={TILE_STYLE.nested.labelLetterSpacing}
                   align="right"
                   listening={false}
                 />
