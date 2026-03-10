@@ -70,7 +70,7 @@ export function FilterPill({
             </div>
           )}
           <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
-            {displayLabel}
+            {(displayLabel || "").toUpperCase()}
           </span>
         </div>
         <ChevronDown
@@ -103,7 +103,7 @@ export function FilterPill({
                     : "text-black/40 group-hover:text-black/70",
                 )}
               >
-                {option.label}
+                {(option.label || "").toUpperCase()}
               </span>
               {value === option.value && (
                 <Check className="w-3 h-3 text-[#00FF85]" />

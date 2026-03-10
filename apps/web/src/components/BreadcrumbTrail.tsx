@@ -36,7 +36,7 @@ export function BreadcrumbTrail({
                 className={textClassName}
                 aria-current={item.current ? "page" : undefined}
               >
-                {item.label}
+                {(item.label || "").toUpperCase()}
               </button>
             ) : item.href ? (
               <Link
@@ -44,7 +44,7 @@ export function BreadcrumbTrail({
                 className={textClassName}
                 aria-current={item.current ? "page" : undefined}
               >
-                {item.label}
+                {(item.label || "").toUpperCase()}
               </Link>
             ) : (
               <span
@@ -55,7 +55,7 @@ export function BreadcrumbTrail({
                 }
                 aria-current={item.current ? "page" : undefined}
               >
-                {item.label}
+                {(item.label || "").toUpperCase()}
               </span>
             )}
           </div>
