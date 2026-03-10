@@ -332,7 +332,9 @@ const TreemapTileKonva = React.memo(
     }, [data.allocations, availW, availH]);
 
     const centeringHeight =
-      headerHeight > 0 ? headerHeight + innerMargin : height;
+      headerHeight > 0
+        ? headerHeight + innerMargin
+        : TILE_STYLE.header.fallback;
 
     return (
       <Group
