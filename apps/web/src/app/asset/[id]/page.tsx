@@ -122,8 +122,11 @@ export default function AssetPage() {
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
 
-  const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
   const infoNode = selectedNode ?? rootNode;
+  const graphRootIds = useMemo(
+    () => new Set(dynamicIndex.map((entry) => canonicalizeNodeId(entry.id))),
+    [dynamicIndex],
+  );
   const activeRootEntry = useMemo(() => {
     return dynamicIndex.find(
       (entry) => canonicalizeNodeId(entry.id) === canonicalAssetId,
@@ -146,7 +149,6 @@ export default function AssetPage() {
         const json = (await response.json()) as SearchIndexEntry[];
         if (!Array.isArray(json)) return;
         setDynamicIndex(json);
-        setGraphRootIds(new Set(json.map((e) => canonicalizeNodeId(e.id))));
       } catch (error) {
         console.error("Failed to load search index:", error);
       }
@@ -591,7 +593,7 @@ export default function AssetPage() {
         <div className="flex min-h-0 flex-grow flex-col gap-4">
           <BreadcrumbTrail items={breadcrumbs} />
 
-          <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2">
+          <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2 h-[50vh] lg:h-[60vh]">
             {headerNode && (
               <RootNodeHeader
                 node={headerNode}
