@@ -9,6 +9,7 @@ import {
 import {
   buildProtocolListItemId,
   buildAppListItemId,
+  inferTokenLogoKey,
   isAllocationUsdEligible,
   tokenToUsdValue,
 } from "./utils";
@@ -126,12 +127,22 @@ const processLendingItem = (params: {
     item.position_index,
   );
 
+  const supplyTokens = item.detail.supply_token_list ?? [];
+  const borrowTokens = item.detail.borrow_token_list ?? [];
+  const logoKeys = [
+    inferTokenLogoKey(supplyTokens[0] ?? null),
+    inferTokenLogoKey(borrowTokens[0] ?? null),
+  ].filter((value, index, values): value is string => {
+    return Boolean(value) && values.indexOf(value) === index;
+  });
+
   // create lending position node
   nodes.push({
     id: positionId,
     chain: chainSlug,
     name: "LendingPosition",
     protocol: protocolSlug,
+    ...(logoKeys.length > 0 ? { logoKeys } : {}),
     details: {
       kind: "Lending",
       collateralUsd: item.stats.asset_usd_value,
@@ -147,9 +158,6 @@ const processLendingItem = (params: {
     to: positionId,
     allocationUsd: allocationUsd,
   });
-
-  const supplyTokens = item.detail.supply_token_list ?? [];
-  const borrowTokens = item.detail.borrow_token_list ?? [];
 
   for (const token of supplyTokens) {
     const tokenId = buildProtocolListItemId(

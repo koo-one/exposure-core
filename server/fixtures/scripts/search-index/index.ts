@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { searchIndexBlobPath } from "../../../api/exposure/paths";
+import {
+  inferAssetLogoKey,
+  normalizeLogoKey,
+} from "../../../src/resolvers/debank/utils";
 import { readJson, writeJsonFile } from "../core/io";
 
 interface SnapshotNode {
@@ -46,8 +50,80 @@ interface SearchIndexEntry {
 }
 
 const isTokenLike = (value: string): boolean => {
-  const v = value.trim();
-  return /^[A-Za-z0-9.]+$/.test(v) && v.length >= 2 && v.length <= 10;
+  const v = normalizeLogoKey(value);
+  return /^[a-z0-9.+-]+$/.test(v) && v.length >= 2 && v.length <= 10;
+};
+
+const ASSET_NAME_STOPWORDS = new Set<string>([
+  "account",
+  "alpha",
+  "balanced",
+  "cash",
+  "core",
+  "degen",
+  "ecosystem",
+  "financial",
+  "frontier",
+  "global",
+  "high",
+  "highyield",
+  "instant",
+  "liquid",
+  "main",
+  "og",
+  "perps",
+  "position",
+  "prime",
+  "reactor",
+  "spot",
+  "value",
+  "vault",
+  "v1",
+  "v2",
+  "withdrawable",
+  "x",
+  "yield",
+]);
+
+const TERM_ASSET_PATTERN = /^l([A-Za-z0-9.+]+)-\d+[dwmy]$/i;
+
+const extractAssetCandidateKey = (raw: string): string | null => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const termAsset = trimmed.match(TERM_ASSET_PATTERN)?.[1];
+  const normalized = normalizeLogoKey(termAsset ?? trimmed);
+  if (!isTokenLike(normalized)) return null;
+  if (ASSET_NAME_STOPWORDS.has(normalized)) return null;
+
+  const looksAssetLike =
+    /₮/.test(trimmed) ||
+    /\d/.test(trimmed) ||
+    /[A-Z]{2,}/.test(trimmed) ||
+    /[a-z][A-Z]/.test(trimmed);
+  return looksAssetLike ? normalized : null;
+};
+
+const inferAssetKeyFromName = (name: string): string | null => {
+  const compact = name.trim().replace(/\s+/g, " ");
+  if (!compact) return null;
+
+  const colonParts = compact.split(":");
+  const colonCandidate = colonParts[colonParts.length - 1]?.trim() ?? "";
+  const fromColon = extractAssetCandidateKey(colonCandidate);
+  if (fromColon) return fromColon;
+
+  const words = compact
+    .split(/[\s/()]+/)
+    .map((part) => part.replace(/^[^A-Za-z0-9₮.+-]+|[^A-Za-z0-9₮.+-]+$/g, ""))
+    .filter((part) => part.length > 0);
+
+  const candidates = words
+    .map((part) => extractAssetCandidateKey(part))
+    .filter((part): part is string => Boolean(part));
+
+  const candidate = candidates[candidates.length - 1] ?? null;
+  return candidate ? inferAssetLogoKey(candidate) : null;
 };
 
 const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
@@ -58,10 +134,19 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     typeof root.details?.underlyingSymbol === "string"
       ? root.details.underlyingSymbol.trim()
       : "";
-  if (direct && isTokenLike(direct)) return [direct];
+  if (direct && isTokenLike(direct)) {
+    const key = inferAssetLogoKey(direct);
+    if (key) return [key];
+  }
+
+  const brandedRootKey = inferAssetKeyFromName(root.name);
+  if (brandedRootKey) return [brandedRootKey];
 
   const rootName = root.name.trim();
-  if (isTokenLike(rootName) && rootName.length <= 10) return [rootName];
+  if (isTokenLike(rootName) && rootName.length <= 10) {
+    const key = inferAssetLogoKey(rootName);
+    if (key) return [key];
+  }
 
   const edges = snapshot.edges ?? [];
   if (edges.length === 0) return [];
@@ -86,12 +171,35 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     const leafName = toNode.name.trim();
     if (!leafName) continue;
 
+    const childDirect =
+      typeof toNode.details?.underlyingSymbol === "string"
+        ? toNode.details.underlyingSymbol.trim()
+        : "";
+    if (childDirect && isTokenLike(childDirect)) {
+      const key = inferAssetLogoKey(childDirect);
+      if (key) {
+        weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
+        continue;
+      }
+      continue;
+    }
+
+    const brandedLeafKey = inferAssetKeyFromName(leafName);
+    if (brandedLeafKey) {
+      weights.set(
+        brandedLeafKey,
+        (weights.get(brandedLeafKey) ?? 0) + allocationUsd,
+      );
+      continue;
+    }
+
     const slashParts = leafName.split("/");
     if (slashParts.length === 2) {
       const base = slashParts[0];
       const quote = slashParts[1];
       if (base && quote && isTokenLike(base) && isTokenLike(quote)) {
-        weights.set(base, (weights.get(base) ?? 0) + allocationUsd);
+        const key = inferAssetLogoKey(base);
+        if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
         continue;
       }
     }
@@ -108,13 +216,15 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
         isUpper(base) &&
         isUpper(quote)
       ) {
-        weights.set(base, (weights.get(base) ?? 0) + allocationUsd);
+        const key = inferAssetLogoKey(base);
+        if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
         continue;
       }
     }
 
     if (isTokenLike(leafName)) {
-      weights.set(leafName, (weights.get(leafName) ?? 0) + allocationUsd);
+      const key = inferAssetLogoKey(leafName);
+      if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
     }
   }
 

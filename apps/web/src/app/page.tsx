@@ -16,6 +16,7 @@ import {
   pushBreadcrumbHistory,
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
+import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
 
 const shortChainLabel = (value: string): string => {
   const v = value.trim().toLowerCase();
@@ -46,41 +47,6 @@ const shortChainLabel = (value: string): string => {
     default:
       return v.toUpperCase();
   }
-};
-
-const canonicalizeProtocolToken = (raw: string): string => {
-  const p = raw
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
-
-  if (p.startsWith("morpho")) {
-    if (p.includes("v2")) return "morpho-v2";
-    if (p.includes("v1")) return "morpho-v1";
-    return "morpho";
-  }
-
-  if (p.startsWith("euler")) {
-    if (p.includes("v2")) return "euler-v2";
-    if (p.includes("v1")) return "euler-v1";
-    return "euler";
-  }
-
-  return p;
-};
-
-const canonicalizeNodeId = (raw: string): string => {
-  const normalized = raw.trim();
-  if (!normalized) return "";
-
-  const parts = normalized.split(":");
-  if (parts.length < 2) return normalized.toLowerCase();
-
-  const chain = parts[0].trim().toLowerCase();
-  const protocol = canonicalizeProtocolToken(parts[1]);
-  const rest = parts.slice(2).join(":").trim().toLowerCase();
-
-  return rest ? `${chain}:${protocol}:${rest}` : `${chain}:${protocol}`;
 };
 
 const buildChainLabel = (
@@ -263,6 +229,14 @@ function UniversalTreemapView({
 
   const currentRootId = focusRootNodeId || rootNode?.id;
   const infoNode = selectedNode ?? rootNode;
+  const headerNode =
+    infoNode && rootNode && infoNode.id === rootNode.id && asset
+      ? {
+          ...infoNode,
+          displayName: asset.displayName ?? infoNode.displayName,
+          logoKeys: asset.logoKeys ?? infoNode.logoKeys,
+        }
+      : infoNode;
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -270,9 +244,9 @@ function UniversalTreemapView({
 
       <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
         <div className="flex flex-col gap-2 h-[50vh] lg:h-[60vh]">
-          {infoNode && (
+          {headerNode && (
             <RootNodeHeader
-              node={infoNode}
+              node={headerNode}
               tvl={tvl}
               onBack={
                 isOthersView || (rootNode && focusRootNodeId !== rootNode.id)

@@ -16,6 +16,7 @@ import { useTerminalToast } from "@/hooks/useTerminalToast";
 import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
+import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import {
   compactBreadcrumbs,
@@ -61,6 +62,11 @@ export default function AssetPage() {
   const chain = searchParams.get("chain") ?? undefined;
   const focus = searchParams.get("focus") ?? undefined;
   const protocol = searchParams.get("protocol") ?? undefined;
+  const canonicalAssetId = useMemo(() => canonicalizeNodeId(id), [id]);
+  const canonicalProtocol = useMemo(
+    () => (protocol ? canonicalizeProtocolToken(protocol) : undefined),
+    [protocol],
+  );
 
   // History tracking across assets
   const history = useMemo(() => {
@@ -98,7 +104,12 @@ export default function AssetPage() {
     othersChildrenIds,
     showOthersView,
     focusStack,
-  } = useAssetData({ id, chain, protocol, focus });
+  } = useAssetData({
+    id: canonicalAssetId,
+    chain,
+    protocol: canonicalProtocol,
+    focus,
+  });
 
   const { terminalToast, showTerminalToast, closeTerminalToast } =
     useTerminalToast();
@@ -113,6 +124,19 @@ export default function AssetPage() {
 
   const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
   const infoNode = selectedNode ?? rootNode;
+  const activeRootEntry = useMemo(() => {
+    return dynamicIndex.find(
+      (entry) => canonicalizeNodeId(entry.id) === canonicalAssetId,
+    );
+  }, [canonicalAssetId, dynamicIndex]);
+  const headerNode =
+    infoNode && rootNode && infoNode.id === rootNode.id && activeRootEntry
+      ? {
+          ...infoNode,
+          displayName: activeRootEntry.displayName ?? infoNode.displayName,
+          logoKeys: activeRootEntry.logoKeys ?? infoNode.logoKeys,
+        }
+      : infoNode;
 
   useEffect(() => {
     const load = async () => {
@@ -122,7 +146,7 @@ export default function AssetPage() {
         const json = (await response.json()) as SearchIndexEntry[];
         if (!Array.isArray(json)) return;
         setDynamicIndex(json);
-        setGraphRootIds(new Set(json.map((e) => e.id.toLowerCase())));
+        setGraphRootIds(new Set(json.map((e) => canonicalizeNodeId(e.id))));
       } catch (error) {
         console.error("Failed to load search index:", error);
       }
@@ -136,12 +160,15 @@ export default function AssetPage() {
       mode: "push" | "replace" = "replace",
     ) => {
       // If navigating to a different asset, redirect to that asset page
-      if (newParams.id && newParams.id.toLowerCase() !== id.toLowerCase()) {
+      if (
+        newParams.id &&
+        canonicalizeNodeId(newParams.id) !== canonicalAssetId
+      ) {
         const p = new URLSearchParams();
         if (newParams.assetChain) p.set("chain", newParams.assetChain);
         if (newParams.assetProtocol) p.set("protocol", newParams.assetProtocol);
         router.push(
-          `/asset/${encodeURIComponent(newParams.id)}${p.size ? `?${p.toString()}` : ""}`,
+          `/asset/${encodeURIComponent(canonicalizeNodeId(newParams.id))}${p.size ? `?${p.toString()}` : ""}`,
         );
         return;
       }
@@ -164,7 +191,7 @@ export default function AssetPage() {
       const navigate = mode === "push" ? router.push : router.replace;
       navigate(url, { scroll: false });
     },
-    [router, searchParams, id],
+    [router, searchParams, canonicalAssetId],
   );
 
   const protocols = useMemo(() => {
@@ -277,7 +304,7 @@ export default function AssetPage() {
       const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
       const key = shouldGroupAcrossChains(protocol)
         ? baseKey
-        : `${baseKey}|${chain}|${entry.id.trim().toLowerCase()}`;
+        : `${baseKey}|${chain}|${canonicalizeNodeId(entry.id)}`;
       const tvlUsd = safeTvl(entry.tvlUsd);
       const existing = groups.get(key);
       if (!existing) {
@@ -285,7 +312,7 @@ export default function AssetPage() {
           string,
           { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
         >();
-        const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+        const entryKey = `${chain}|${canonicalizeNodeId(entry.id)}`;
         entries.set(entryKey, { chain, entry, tvlUsd });
         groups.set(key, {
           key,
@@ -297,7 +324,7 @@ export default function AssetPage() {
         });
         continue;
       }
-      const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+      const entryKey = `${chain}|${canonicalizeNodeId(entry.id)}`;
       const current = existing.entries.get(entryKey);
       if (!current || (tvlUsd ?? -1) > (current.tvlUsd ?? -1))
         existing.entries.set(entryKey, { chain, entry, tvlUsd });
@@ -344,10 +371,10 @@ export default function AssetPage() {
     lastTileClick.current = { nodeId: node.id, seq: tileClickSeq.current };
     setSelectedNode(node);
 
-    const normalizedNodeId = node.id.trim().toLowerCase();
+    const normalizedNodeId = canonicalizeNodeId(node.id);
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
 
-    if (isKnownAsset && normalizedNodeId !== id.toLowerCase()) {
+    if (isKnownAsset && normalizedNodeId !== canonicalAssetId) {
       const queryParams = new URLSearchParams(searchParams.toString());
       const nextProtocol = (node.protocol ?? protocol)?.trim();
       const nextChain = (node.chain ?? chain)?.trim();
@@ -390,7 +417,7 @@ export default function AssetPage() {
 
     history.forEach((histId, idx) => {
       const entry = dynamicIndex.find(
-        (e) => e.id.toLowerCase() === histId.toLowerCase(),
+        (e) => canonicalizeNodeId(e.id) === canonicalizeNodeId(histId),
       );
       const label = entry ? entry.name.toUpperCase() : histId.toUpperCase();
       const nextHistory = limitBreadcrumbHistory(history.slice(0, idx));
@@ -565,9 +592,9 @@ export default function AssetPage() {
           <BreadcrumbTrail items={breadcrumbs} />
 
           <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2">
-            {infoNode && (
+            {headerNode && (
               <RootNodeHeader
-                node={infoNode}
+                node={headerNode}
                 tvl={tvl}
                 onBack={
                   !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
