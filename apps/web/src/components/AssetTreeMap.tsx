@@ -25,6 +25,13 @@ const AssetTreeMapKonva = dynamic(
   },
 );
 
+const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
+  if (!value || typeof value !== "object") return false;
+
+  const snapshot = value as Partial<GraphSnapshot>;
+  return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
+};
+
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
   rootNodeId?: string;
@@ -71,7 +78,9 @@ export default function AssetTreeMap({
   const [allocationsByNodeId, setAllocationsByNodeId] = useState<
     Map<string, { id: string; name: string; value: number; node?: GraphNode }[]>
   >(new Map());
-
+  const [attemptedNestedNodeIds, setAttemptedNestedNodeIds] = useState<
+    Set<string>
+  >(new Set());
   const measureContainer = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -369,10 +378,12 @@ export default function AssetTreeMap({
       children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
     }
 
-    const candidateIds = children.map((c) => normalizeId(c.id));
-    const missingIds = candidateIds.filter(
-      (id) => !allocationsByNodeId.has(id),
-    );
+    const missingIds = children
+      .map((child) => normalizeId(child.id))
+      .filter(
+        (id) => !allocationsByNodeId.has(id) && !attemptedNestedNodeIds.has(id),
+      );
+
     if (missingIds.length === 0) return;
 
     let cancelled = false;
@@ -382,51 +393,66 @@ export default function AssetTreeMap({
         string,
         { id: string; name: string; value: number; node?: GraphNode }[]
       >();
-      const limitedIds = missingIds.slice(0, 50);
+      const attempted = new Set<string>();
 
       await Promise.all(
-        limitedIds.map(async (id) => {
+        missingIds.slice(0, 50).map(async (id) => {
+          attempted.add(id);
           try {
-            const res = await fetch(`/api/graph/${encodeURIComponent(id)}`);
-            if (!res.ok) return;
-            const json = (await res.json()) as unknown;
-            if (!json || typeof json !== "object") return;
-            const snapshot = json as GraphSnapshot;
-            if (
-              !Array.isArray(snapshot.nodes) ||
-              !Array.isArray(snapshot.edges)
-            )
-              return;
+            const response = await fetch(
+              `/api/graph/${encodeURIComponent(id)}`,
+            );
+            if (!response.ok) return;
+
+            const payload = (await response.json()) as unknown;
+            if (!isGraphSnapshot(payload)) return;
+
+            const snapshot = payload;
 
             const nodesById = new Map(
-              snapshot.nodes.map((n) => [normalizeId(n.id), n] as const),
+              snapshot.nodes.map(
+                (node) => [normalizeId(node.id), node] as const,
+              ),
             );
             const allocations = snapshot.edges
-              .filter((e) => normalizeId(e.from) === id)
-              .map((e) => {
-                const node = nodesById.get(normalizeId(e.to));
+              .filter((edge) => normalizeId(edge.from) === id)
+              .map((edge) => {
+                const node = nodesById.get(normalizeId(edge.to));
                 return {
-                  id: e.to,
-                  name: node?.name ?? e.to,
-                  value: Math.abs(e.allocationUsd),
+                  id: edge.to,
+                  name: node?.name ?? edge.to,
+                  value: Math.abs(edge.allocationUsd),
                   node,
                 };
               })
-              .filter((e) => Number.isFinite(e.value) && e.value > 0)
+              .filter(
+                (entry) => Number.isFinite(entry.value) && entry.value > 0,
+              )
               .sort((a, b) => b.value - a.value);
 
-            if (allocations.length > 0) updates.set(id, allocations);
+            if (allocations.length > 0) {
+              updates.set(id, allocations);
+            }
           } catch (error) {
             console.error(`Failed to fetch 2-hop data for node ${id}:`, error);
           }
         }),
       );
 
-      if (cancelled || updates.size === 0) return;
+      if (cancelled) return;
+
+      setAttemptedNestedNodeIds((prev) => {
+        const next = new Set(prev);
+        attempted.forEach((id) => next.add(id));
+        return next;
+      });
+
+      if (updates.size === 0) return;
+
       setAllocationsByNodeId((prev) => {
         const next = new Map(prev);
-        updates.forEach((allocs, id) => {
-          next.set(id, allocs);
+        updates.forEach((allocations, id) => {
+          next.set(id, allocations);
         });
         return next;
       });
@@ -437,7 +463,14 @@ export default function AssetTreeMap({
     return () => {
       cancelled = true;
     };
-  }, [data, rootNodeId, isOthersView, othersChildrenIds, allocationsByNodeId]);
+  }, [
+    allocationsByNodeId,
+    attemptedNestedNodeIds,
+    data,
+    isOthersView,
+    othersChildrenIds,
+    rootNodeId,
+  ]);
 
   if (!data || chartData.length === 0) {
     return (

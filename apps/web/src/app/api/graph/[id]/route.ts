@@ -2,10 +2,16 @@ import { NextResponse } from "next/server";
 import { access, readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { graphSnapshotBlobPath } from "@/lib/blobPaths";
-import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import {
+  canonicalizeNodeId,
+  graphSnapshotBlobPath,
+  graphProtocolBlobPath,
+  inferProtocolFolderFromNodeId,
+  protocolToFolder,
+} from "@/lib/blobPaths";
 import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
 import { tryHeadBlobUrl } from "@/lib/vercelBlob";
+import type { GraphSnapshot } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -31,20 +37,82 @@ const decodedNodeIdFromPathParam = (raw: string): string => {
   return decoded.trim();
 };
 
-const protocolToFolder = (protocol: string | null): string | null => {
-  const p = protocol ? canonicalizeProtocolToken(protocol) : null;
-  if (!p) return null;
+const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
+  if (!value || typeof value !== "object") return false;
 
-  if (p === "morpho-v1" || p === "morpho-v2" || p === "morpho") return "morpho";
-  if (p === "euler-v1" || p === "euler-v2" || p === "euler") return "euler";
-  return p;
+  const snapshot = value as Partial<GraphSnapshot>;
+  return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
 };
 
-const inferProtocolFolderFromNodeId = (normalizedId: string): string | null => {
-  // Expected shape: <chain>:<protocol>:<asset>
-  const parts = normalizedId.split(":");
-  const protocol = parts.length >= 2 ? parts[1] : null;
-  return protocolToFolder(protocol);
+const loadBlobSnapshotForNode = async (
+  normalizedId: string,
+  protocolFolders: string[],
+): Promise<{ snapshot: GraphSnapshot; path: string; url: string } | null> => {
+  for (const protocol of protocolFolders) {
+    const path = graphProtocolBlobPath(protocol);
+    const url = await tryHeadBlobUrl(path);
+
+    if (!url) continue;
+
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) continue;
+
+      const payload = (await response.json()) as unknown;
+      if (!payload || typeof payload !== "object") continue;
+
+      const snapshots = payload as Record<string, unknown>;
+      const snapshot = snapshots[normalizedId];
+
+      if (isGraphSnapshot(snapshot)) {
+        return { snapshot, path, url };
+      }
+    } catch (error) {
+      console.error(`Failed to load snapshot from ${url}:`, error);
+      // try next protocol group
+    }
+  }
+
+  const legacyPath = graphSnapshotBlobPath(normalizedId);
+  const legacyUrl = await tryHeadBlobUrl(legacyPath);
+
+  if (!legacyUrl) return null;
+
+  try {
+    const response = await fetch(legacyUrl, { cache: "no-store" });
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as unknown;
+    if (isGraphSnapshot(payload)) {
+      return { snapshot: payload, path: legacyPath, url: legacyUrl };
+    }
+  } catch (error) {
+    console.error(`Failed to load snapshot from ${legacyUrl}:`, error);
+  }
+
+  return null;
+};
+
+const blobProtocolCandidatesForNode = (
+  normalizedId: string,
+  request: Request,
+): string[] => {
+  const url = new URL(request.url);
+  const requestedProtocolFolder = protocolToFolder(
+    url.searchParams.get("protocol"),
+  );
+  const inferredProtocolFolder = inferProtocolFolderFromNodeId(normalizedId);
+  const protocolFolders: string[] = [];
+
+  if (requestedProtocolFolder) protocolFolders.push(requestedProtocolFolder);
+  if (
+    inferredProtocolFolder &&
+    inferredProtocolFolder !== requestedProtocolFolder
+  ) {
+    protocolFolders.push(inferredProtocolFolder);
+  }
+
+  return protocolFolders;
 };
 
 const listFixtureProtocolFolders = async (): Promise<string[]> => {
@@ -138,13 +206,13 @@ export async function HEAD(
     });
   }
 
-  const blobPath = graphSnapshotBlobPath(normalizedId);
-  const url = await tryHeadBlobUrl(blobPath);
+  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
+  const resolved = await loadBlobSnapshotForNode(normalizedId, protocolFolders);
 
-  if (url) {
+  if (resolved) {
     return new Response(null, {
       status: 200,
-      headers: { "x-exposure-blob-url": url },
+      headers: { "x-exposure-blob-url": resolved.url },
     });
   }
 
@@ -200,18 +268,20 @@ export async function GET(
     );
   }
 
-  const blobPath = graphSnapshotBlobPath(normalizedId);
-  const url = await tryHeadBlobUrl(blobPath);
+  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
+  const resolved = await loadBlobSnapshotForNode(normalizedId, protocolFolders);
 
-  if (url) {
-    return NextResponse.redirect(url, { status: 307 });
+  if (resolved) {
+    return NextResponse.json(resolved.snapshot);
   }
 
   return NextResponse.json(
     {
       error: "Graph snapshot not found",
       id: normalizedId,
-      candidates: [blobPath],
+      candidates: protocolFolders.map((protocol) =>
+        graphProtocolBlobPath(protocol),
+      ),
     },
     { status: 404 },
   );
