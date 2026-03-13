@@ -4,6 +4,20 @@ import {
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver";
 import { toSlug } from "../../utils";
+import {
+  buildVaultBaseUrl,
+  buildVaultLocationTokensUrl,
+  type DeltaYLocationTokensResponse,
+  type DeltaYSankeyResponse,
+  type DeltaYVaultsResponse,
+  type DeltaYWalletMetadataResponse,
+  isEvmAddress,
+  isWalletLocationName,
+  MIDAS_PROVIDER_NAME,
+  MIDAS_VAULTS_URL,
+  normalizeWalletCategory,
+  OFFCHAIN_LOCATION_NAMES,
+} from "./deltaY";
 import { getCuratorForAsset } from "./curators";
 import { getMidasPrimaryDeployment } from "./deployments";
 import type { Adapter } from "../types";
@@ -22,7 +36,206 @@ export interface MidasAllocation {
   asOfDate: string | null;
 }
 
-const MIDAS_API_URL = "https://api-prod.midas.app/api/midas-assets/allocations";
+const toAmountString = (navUsd: number): string => {
+  return String(navUsd / 1000);
+};
+
+const MIDAS_VAULT_CONCURRENCY = 4;
+
+const mapWithConcurrency = async <T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const runWorker = async (): Promise<void> => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      results[currentIndex] = await mapper(
+        items[currentIndex] as T,
+        currentIndex,
+      );
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () =>
+      runWorker(),
+    ),
+  );
+
+  return results;
+};
+
+const buildStandaloneAllocationNode = (allocation: MidasAllocation): Node => {
+  const name =
+    allocation.secondLevelAllocation?.trim() || "Unspecified Allocation";
+
+  return {
+    id:
+      allocation.secondLevelAllocation?.trim() ||
+      `midas-unlinked-alloc-${allocation.id}`,
+    name,
+    details: { kind: "Investment" },
+  };
+};
+
+const fetchJson = async <T>(url: string): Promise<T> => {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Midas API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<T>;
+};
+
+const fetchOptionalJson = async <T>(url: string): Promise<T | null> => {
+  const response = await fetch(url);
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    throw new Error(
+      `Midas API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<T>;
+};
+
+const buildDirectAllocations = (params: {
+  asset: string;
+  sankey: DeltaYSankeyResponse;
+  fetchedAt: string;
+  nextId: () => number;
+}): MidasAllocation[] => {
+  const { asset, sankey, fetchedAt, nextId } = params;
+  const totalsByLocation = new Map<string, number>();
+
+  for (const row of sankey.data) {
+    const locationName = row.dimensions?.locationName?.trim();
+    const navUsd = row.navUsd ?? 0;
+
+    if (!locationName || navUsd <= 0) continue;
+    if (isWalletLocationName(locationName)) continue;
+
+    totalsByLocation.set(
+      locationName,
+      (totalsByLocation.get(locationName) ?? 0) + navUsd,
+    );
+  }
+
+  return Array.from(totalsByLocation.entries()).map(
+    ([locationName, navUsd]) => ({
+      createdAt: fetchedAt,
+      updatedAt: fetchedAt,
+      id: nextId(),
+      product: asset,
+      firstLevelAllocation: OFFCHAIN_LOCATION_NAMES.has(locationName)
+        ? "Offchain Collateral"
+        : "Exchanges",
+      secondLevelAllocation: locationName,
+      thirdLevelAllocation: null,
+      amount: toAmountString(navUsd),
+      linkTitle: null,
+      link: null,
+      asOfDate: fetchedAt.slice(0, 10),
+    }),
+  );
+};
+
+const buildWalletAllocations = (params: {
+  asset: string;
+  walletMetadata: DeltaYWalletMetadataResponse;
+  walletTokenSnapshotsByCategory: Map<
+    string,
+    DeltaYLocationTokensResponse | null
+  >;
+  fetchedAt: string;
+  nextId: () => number;
+}): MidasAllocation[] => {
+  const {
+    asset,
+    walletMetadata,
+    walletTokenSnapshotsByCategory,
+    fetchedAt,
+    nextId,
+  } = params;
+
+  const metadataByAddress = new Map<
+    string,
+    { description: string | null; category: string }
+  >();
+
+  for (const wallet of walletMetadata.wallets) {
+    const address = wallet.address?.trim();
+    const category = normalizeWalletCategory(wallet.category?.trim() ?? "");
+
+    if (!address || !isWalletLocationName(category)) continue;
+
+    metadataByAddress.set(address.toLowerCase(), {
+      description: wallet.description?.trim() ?? null,
+      category,
+    });
+  }
+
+  const allocations: MidasAllocation[] = [];
+
+  for (const [category, payload] of walletTokenSnapshotsByCategory.entries()) {
+    if (!payload) continue;
+
+    const totalsByWallet = new Map<
+      string,
+      { address: string; description: string | null; navUsd: number }
+    >();
+
+    for (const snapshot of payload.tokenSnapshots) {
+      const address = snapshot.allocator?.address?.trim();
+      const navUsd = snapshot.assetsUsd ?? 0;
+
+      if (!address || navUsd <= 0) continue;
+
+      const key = address.toLowerCase();
+      const metadata = metadataByAddress.get(key);
+      const description =
+        metadata?.description ??
+        snapshot.allocator?.description?.trim() ??
+        address;
+      const current = totalsByWallet.get(key);
+
+      if (current) {
+        current.navUsd += navUsd;
+      } else {
+        totalsByWallet.set(key, { address, description, navUsd });
+      }
+    }
+
+    for (const { address, description, navUsd } of totalsByWallet.values()) {
+      const evmAddress = isEvmAddress(address) ? address.toLowerCase() : null;
+
+      allocations.push({
+        createdAt: fetchedAt,
+        updatedAt: fetchedAt,
+        id: nextId(),
+        product: asset,
+        firstLevelAllocation: category,
+        secondLevelAllocation: description,
+        thirdLevelAllocation: null,
+        amount: toAmountString(navUsd),
+        linkTitle: evmAddress ? "Debank" : null,
+        link: evmAddress ? `https://debank.com/profile/${evmAddress}` : null,
+        asOfDate: fetchedAt.slice(0, 10),
+      });
+    }
+  }
+
+  return allocations;
+};
 
 export const createMidasAdapter = (): Adapter<
   MidasAllocation[],
@@ -31,21 +244,67 @@ export const createMidasAdapter = (): Adapter<
   return {
     id: "midas",
     async fetchCatalog() {
-      const response = await fetch(MIDAS_API_URL);
+      const fetchedAt = new Date().toISOString();
+      const catalog = await fetchJson<DeltaYVaultsResponse>(MIDAS_VAULTS_URL);
 
-      if (!response.ok) {
-        throw new Error(
-          `Midas API error: ${response.status} ${response.statusText}`,
-        );
+      if (!Array.isArray(catalog.vaults)) {
+        throw new Error("Midas API returned invalid vault catalog payload");
       }
 
-      const data: MidasAllocation[] = await response.json();
+      let nextIdValue = 1;
+      const nextId = () => nextIdValue++;
 
-      if (!Array.isArray(data)) {
-        throw new Error("Midas API returned non-array payload");
-      }
+      const allocationsByVault = await mapWithConcurrency(
+        catalog.vaults,
+        MIDAS_VAULT_CONCURRENCY,
+        async (vault) => {
+          const asset = vault.vaultMetadata?.name?.trim();
+          const provider = vault.vaultMetadata?.provider?.trim();
 
-      return data;
+          if (!asset) return [];
+          if (provider !== MIDAS_PROVIDER_NAME) return [];
+
+          const baseUrl = buildVaultBaseUrl(asset);
+          const [
+            sankey,
+            walletMetadata,
+            onchainWallets,
+            liquidityBuffer,
+            assetsToBeDeployed,
+          ] = await Promise.all([
+            fetchJson<DeltaYSankeyResponse>(`${baseUrl}/sankey`),
+            fetchJson<DeltaYWalletMetadataResponse>(
+              `${baseUrl}/wallets-metadata`,
+            ),
+            fetchOptionalJson<DeltaYLocationTokensResponse>(
+              buildVaultLocationTokensUrl(asset, "Onchain Wallets"),
+            ),
+            fetchOptionalJson<DeltaYLocationTokensResponse>(
+              buildVaultLocationTokensUrl(asset, "Liquidity Buffer"),
+            ),
+            fetchOptionalJson<DeltaYLocationTokensResponse>(
+              buildVaultLocationTokensUrl(asset, "Assets To be Deployed"),
+            ),
+          ]);
+
+          return [
+            ...buildDirectAllocations({ asset, sankey, fetchedAt, nextId }),
+            ...buildWalletAllocations({
+              asset,
+              walletMetadata,
+              walletTokenSnapshotsByCategory: new Map([
+                ["Onchain Wallets", onchainWallets],
+                ["Liquidity Buffer", liquidityBuffer],
+                ["Assets To be Deployed", assetsToBeDeployed],
+              ]),
+              fetchedAt,
+              nextId,
+            }),
+          ];
+        },
+      );
+
+      return allocationsByVault.flat();
     },
     buildRootNode(asset, allocations) {
       const tvlUsd = allocations.reduce(
@@ -100,29 +359,14 @@ export const createMidasAdapter = (): Adapter<
       const edges: Edge[] = [];
 
       for (const allocation of allocations) {
-        // allocs to perp dex or cex. this is terminal node
-        if (allocation.firstLevelAllocation === "Exchanges") {
-          const allocationNode: Node = {
-            id: allocation.secondLevelAllocation ?? "",
-            name: allocation.secondLevelAllocation ?? "",
-            details: { kind: "Investment" },
-          };
+        if (
+          allocation.firstLevelAllocation === "Exchanges" ||
+          allocation.firstLevelAllocation === "Offchain Collateral"
+        ) {
+          const allocationNode = buildStandaloneAllocationNode(allocation);
 
           nodes.push(allocationNode);
-
           edges.push(this.buildEdge(root, allocationNode, allocation));
-          // asset curators have allocated amount.
-        } else if (allocation.firstLevelAllocation === "Offchain Collateral") {
-          const allocationNode: Node = {
-            id: allocation.secondLevelAllocation ?? "",
-            name: allocation.secondLevelAllocation ?? "",
-            details: { kind: "Investment" },
-          };
-
-          nodes.push(allocationNode);
-
-          edges.push(this.buildEdge(root, allocationNode, allocation));
-          // most case. debank or chainscan link info
         } else if (
           allocation.link &&
           (allocation.linkTitle === "Debank" ||
@@ -144,7 +388,10 @@ export const createMidasAdapter = (): Adapter<
             edges.push(...result.edges);
           }
         } else {
-          continue;
+          const allocationNode = buildStandaloneAllocationNode(allocation);
+
+          nodes.push(allocationNode);
+          edges.push(this.buildEdge(root, allocationNode, allocation));
         }
       }
 

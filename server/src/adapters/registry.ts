@@ -22,3 +22,14 @@ export const adapterFactories = {
 
 export type AdapterFactory =
   (typeof adapterFactories)[keyof typeof adapterFactories];
+
+const debankAdapterFactories = new Set<AdapterFactory>([
+  createMidasAdapter,
+  createInfinifiAdapter,
+  createResolvAdapter,
+  createYuzuAdapter,
+]);
+
+export const shouldSkipAdapterFactory = (factory: AdapterFactory): boolean => {
+  return debankAdapterFactories.has(factory) && !process.env.DEBANK_ACCESS_KEY;
+};

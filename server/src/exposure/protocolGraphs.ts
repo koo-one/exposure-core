@@ -1,4 +1,7 @@
-import { buildDraftGraphsByAsset } from "../orchestrator";
+import {
+  buildDraftGraphsByAssetReport,
+  type AdapterRunFailure,
+} from "../orchestrator";
 import type { AdapterFactory } from "../adapters/registry";
 import type { GraphSnapshot } from "../types";
 import {
@@ -11,12 +14,14 @@ export type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 export interface ProtocolGraphBuildResult {
   assetCount: number;
   groupedSnapshots: Map<string, GraphSnapshotGroup>;
+  adapterFailures: AdapterRunFailure[];
 }
 
 export const buildProtocolGraphGroups = async (
   factories?: readonly AdapterFactory[],
 ): Promise<ProtocolGraphBuildResult> => {
-  const draftGraphs = await buildDraftGraphsByAsset(factories);
+  const { storesByAsset: draftGraphs, adapterFailures } =
+    await buildDraftGraphsByAssetReport(factories);
   const groupedSnapshots = new Map<string, GraphSnapshotGroup>();
 
   for (const [asset, store] of draftGraphs) {
@@ -42,5 +47,6 @@ export const buildProtocolGraphGroups = async (
   return {
     assetCount: draftGraphs.size,
     groupedSnapshots,
+    adapterFailures,
   };
 };

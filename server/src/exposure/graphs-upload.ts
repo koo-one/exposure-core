@@ -1,6 +1,7 @@
 import { pathToFileURL } from "node:url";
 
 import { adapterFactories } from "../adapters/registry";
+import type { AdapterRunFailure } from "../orchestrator";
 
 import { putJsonToBlob } from "./blob";
 import { graphProtocolBlobPath, searchIndexBlobPath } from "./paths";
@@ -10,6 +11,7 @@ import { buildSearchIndexFromProtocolGroups } from "./searchIndex";
 interface UploadGraphsResult {
   assetCount: number;
   protocolCount: number;
+  adapterFailures: AdapterRunFailure[];
   protocols: {
     protocol: string;
     path: string;
@@ -22,7 +24,7 @@ interface UploadGraphsResult {
 
 export const uploadGraphs = async (): Promise<UploadGraphsResult> => {
   const factories = Object.values(adapterFactories);
-  const { assetCount, groupedSnapshots } =
+  const { assetCount, groupedSnapshots, adapterFailures } =
     await buildProtocolGraphGroups(factories);
 
   const protocols = await Promise.all(
@@ -47,9 +49,17 @@ export const uploadGraphs = async (): Promise<UploadGraphsResult> => {
   const searchIndexPath = searchIndexBlobPath();
   const searchIndexUrl = await putJsonToBlob(searchIndexPath, searchIndex);
 
+  if (adapterFailures.length > 0) {
+    console.warn(
+      `Graph upload completed with ${adapterFailures.length} adapter failure(s)`,
+      adapterFailures,
+    );
+  }
+
   return {
     assetCount,
     protocolCount: protocols.length,
+    adapterFailures,
     protocols,
     searchIndexPath,
     searchIndexUrl,

@@ -17,7 +17,10 @@ export const createMockFetch = (config: {
   const { handlers, enabledProviders, allowRealFetch = false } = config;
   const realFetch = globalThis.fetch;
 
-  return async (input, init) => {
+  return async (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1],
+  ) => {
     const url =
       typeof input === "string"
         ? input

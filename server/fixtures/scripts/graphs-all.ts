@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..");
 const scriptsRoot = resolve(serverDir, "fixtures", "scripts");
-
 const run = (scriptPath: string) => {
   const { status } = spawnSync(
     "pnpm",
