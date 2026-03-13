@@ -10,7 +10,7 @@ import {
   protocolToFolder,
 } from "@/lib/blobPaths";
 import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
-import { tryHeadBlobUrl } from "@/lib/vercelBlob";
+import { listGraphProtocolBlobPaths, tryHeadBlobUrl } from "@/lib/vercelBlob";
 import type { GraphSnapshot } from "@/types";
 
 export const runtime = "nodejs";
@@ -115,6 +115,25 @@ const blobProtocolCandidatesForNode = (
   return protocolFolders;
 };
 
+const resolveProtocolFolders = async (
+  protocolFolders: string[],
+  listAllFolders: () => Promise<string[]>,
+): Promise<string[]> => {
+  if (protocolFolders.length > 0) {
+    return protocolFolders;
+  }
+
+  return listAllFolders();
+};
+
+const listBlobProtocolFolders = async (): Promise<string[]> => {
+  const paths = await listGraphProtocolBlobPaths();
+
+  return paths.map((pathname) =>
+    pathname.replace(/^exposure\/graph\//, "").replace(/\.json$/, ""),
+  );
+};
+
 const listFixtureProtocolFolders = async (): Promise<string[]> => {
   const fixturesRoot = resolveRepoPathFromWebCwd(
     "server",
@@ -173,46 +192,63 @@ const resolveGroupedFixtureSnapshotForRequest = async (
   normalizedId: string,
   request: Request,
 ): Promise<{ snapshot: GraphSnapshot; path: string } | null> => {
-  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
-  const fixtureProtocolFolders =
-    protocolFolders.length > 0
-      ? protocolFolders
-      : await listFixtureProtocolFolders();
+  const fixtureProtocolFolders = await resolveProtocolFolders(
+    blobProtocolCandidatesForNode(normalizedId, request),
+    listFixtureProtocolFolders,
+  );
 
   return loadFixtureSnapshotForNode(normalizedId, fixtureProtocolFolders);
 };
 
-const fixtureCandidatesForNode = async (
+const fixturePathCandidatesForRequest = async (
   normalizedId: string,
+  decodedId: string,
   request: Request,
 ): Promise<string[]> => {
-  const url = new URL(request.url);
-  const requestedProtocolFolder = protocolToFolder(
-    url.searchParams.get("protocol"),
+  const protocolFolders = await resolveProtocolFolders(
+    blobProtocolCandidatesForNode(normalizedId, request),
+    listFixtureProtocolFolders,
   );
-  const inferredProtocolFolder = inferProtocolFolderFromNodeId(normalizedId);
-
-  const protocolFolders: string[] = [];
-  if (requestedProtocolFolder) protocolFolders.push(requestedProtocolFolder);
-  if (
-    inferredProtocolFolder &&
-    inferredProtocolFolder !== requestedProtocolFolder
-  ) {
-    protocolFolders.push(inferredProtocolFolder);
-  }
-
-  if (protocolFolders.length === 0) {
-    protocolFolders.push(...(await listFixtureProtocolFolders()));
-  }
 
   const fixturesRoot = resolveRepoPathFromWebCwd(
     "server",
     "fixtures",
     "output",
   );
-  return protocolFolders.map((protocol) =>
+  const tried = protocolFolders.map((protocol) =>
     resolve(fixturesRoot, protocol, `${normalizedId}.json`),
   );
+
+  const fallback =
+    decodedId && decodedId.toLowerCase() !== normalizedId
+      ? protocolFolders.map((protocol) =>
+          resolve(
+            fixturesRoot,
+            protocol,
+            `${decodedId.trim().toLowerCase()}.json`,
+          ),
+        )
+      : [];
+
+  return [...tried, ...fallback];
+};
+
+const resolveBlobGroupedForRequest = async (
+  normalizedId: string,
+  request: Request,
+): Promise<{
+  resolved: { snapshot: GraphSnapshot; path: string; url: string } | null;
+  blobProtocolFolders: string[];
+}> => {
+  const blobProtocolFolders = await resolveProtocolFolders(
+    blobProtocolCandidatesForNode(normalizedId, request),
+    listBlobProtocolFolders,
+  );
+
+  return {
+    resolved: await loadBlobSnapshotForNode(normalizedId, blobProtocolFolders),
+    blobProtocolFolders,
+  };
 };
 
 export async function HEAD(
@@ -241,15 +277,11 @@ export async function HEAD(
       });
     }
 
-    const tried = await fixtureCandidatesForNode(normalizedId, request);
-    const fallback =
-      decodedId && decodedId.toLowerCase() !== normalizedId
-        ? await fixtureCandidatesForNode(
-            decodedId.trim().toLowerCase(),
-            request,
-          )
-        : [];
-    const candidates = [...tried, ...fallback];
+    const candidates = await fixturePathCandidatesForRequest(
+      normalizedId,
+      decodedId,
+      request,
+    );
 
     for (const filePath of candidates) {
       try {
@@ -268,8 +300,10 @@ export async function HEAD(
     });
   }
 
-  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
-  const resolved = await loadBlobSnapshotForNode(normalizedId, protocolFolders);
+  const { resolved } = await resolveBlobGroupedForRequest(
+    normalizedId,
+    request,
+  );
 
   if (resolved) {
     return new Response(null, {
@@ -306,15 +340,11 @@ export async function GET(
       return NextResponse.json(groupedResolved.snapshot);
     }
 
-    const tried = await fixtureCandidatesForNode(normalizedId, request);
-    const fallback =
-      decodedId && decodedId.toLowerCase() !== normalizedId
-        ? await fixtureCandidatesForNode(
-            decodedId.trim().toLowerCase(),
-            request,
-          )
-        : [];
-    const candidates = [...tried, ...fallback];
+    const candidates = await fixturePathCandidatesForRequest(
+      normalizedId,
+      decodedId,
+      request,
+    );
 
     for (const filePath of candidates) {
       try {
@@ -339,8 +369,10 @@ export async function GET(
     );
   }
 
-  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
-  const resolved = await loadBlobSnapshotForNode(normalizedId, protocolFolders);
+  const { resolved, blobProtocolFolders } = await resolveBlobGroupedForRequest(
+    normalizedId,
+    request,
+  );
 
   if (resolved) {
     return NextResponse.json(resolved.snapshot);
@@ -350,7 +382,7 @@ export async function GET(
     {
       error: "Graph snapshot not found",
       id: normalizedId,
-      candidates: protocolFolders.map((protocol) =>
+      candidates: blobProtocolFolders.map((protocol) =>
         graphProtocolBlobPath(protocol),
       ),
     },
