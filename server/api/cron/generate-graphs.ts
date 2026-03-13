@@ -18,7 +18,7 @@ const hasValidCronAuth = (
 };
 
 const handler = async (request: VercelRequest, response: VercelResponse) => {
-  if (request.method && request.method !== "GET") {
+  if (request.method !== "GET") {
     response.status(405).json({ error: "Method Not Allowed" });
     return;
   }
