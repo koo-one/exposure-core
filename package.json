@@ -11,7 +11,6 @@
     "lint:web": "pnpm -C apps/web lint",
     "graphs:dev": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
     "graphs:prod": "tsx --env-file=.env.production server/api/exposure/graphs-upload.ts",
-    "graphs:prod:no-debank": "tsx --env-file=.env.production server/api/exposure/graphs-upload.ts --without-debank",
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"

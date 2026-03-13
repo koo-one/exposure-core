@@ -169,6 +169,19 @@ const loadFixtureSnapshotForNode = async (
   return null;
 };
 
+const resolveGroupedFixtureSnapshotForRequest = async (
+  normalizedId: string,
+  request: Request,
+): Promise<{ snapshot: GraphSnapshot; path: string } | null> => {
+  const protocolFolders = blobProtocolCandidatesForNode(normalizedId, request);
+  const fixtureProtocolFolders =
+    protocolFolders.length > 0
+      ? protocolFolders
+      : await listFixtureProtocolFolders();
+
+  return loadFixtureSnapshotForNode(normalizedId, fixtureProtocolFolders);
+};
+
 const fixtureCandidatesForNode = async (
   normalizedId: string,
   request: Request,
@@ -216,17 +229,9 @@ export async function HEAD(
 
   // Dev/local: confirm fixtures existence without reading full contents.
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    const protocolFolders = blobProtocolCandidatesForNode(
+    const groupedResolved = await resolveGroupedFixtureSnapshotForRequest(
       normalizedId,
       request,
-    );
-    const fixtureProtocolFolders =
-      protocolFolders.length > 0
-        ? protocolFolders
-        : await listFixtureProtocolFolders();
-    const groupedResolved = await loadFixtureSnapshotForNode(
-      normalizedId,
-      fixtureProtocolFolders,
     );
 
     if (groupedResolved) {
@@ -292,17 +297,9 @@ export async function GET(
   // Dev/local: read repo-level fixtures output by canonical nodeId.
   // Layout: server/fixtures/output/<protocol>.json
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    const protocolFolders = blobProtocolCandidatesForNode(
+    const groupedResolved = await resolveGroupedFixtureSnapshotForRequest(
       normalizedId,
       request,
-    );
-    const fixtureProtocolFolders =
-      protocolFolders.length > 0
-        ? protocolFolders
-        : await listFixtureProtocolFolders();
-    const groupedResolved = await loadFixtureSnapshotForNode(
-      normalizedId,
-      fixtureProtocolFolders,
     );
 
     if (groupedResolved) {
