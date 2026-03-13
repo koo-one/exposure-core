@@ -20,5 +20,27 @@ export const adapterFactories = {
   euler: createEulerAdapter,
 } as const;
 
+export const debankResolverAdapterIds = [
+  "midas",
+  "infinifi",
+  "resolv",
+  "yuzu",
+] as const;
+
+export const adapterFactoriesWithoutDebankResolvers = Object.fromEntries(
+  Object.entries(adapterFactories).filter(
+    ([id]) =>
+      !debankResolverAdapterIds.includes(
+        id as (typeof debankResolverAdapterIds)[number],
+      ),
+  ),
+) as Pick<
+  typeof adapterFactories,
+  Exclude<
+    keyof typeof adapterFactories,
+    (typeof debankResolverAdapterIds)[number]
+  >
+>;
+
 export type AdapterFactory =
   (typeof adapterFactories)[keyof typeof adapterFactories];

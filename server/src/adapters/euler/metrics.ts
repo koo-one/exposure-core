@@ -23,6 +23,12 @@ export interface EulerChainConfig {
   chainId: number;
   chainKey: string;
   subgraphUrl: string;
+  schema?: {
+    earnVaultHasCurator?: boolean;
+    earnVaultHasStrategies?: boolean;
+    earnVaultHasGovernedPerspectiveFilter?: boolean;
+    evkVaultHasState?: boolean;
+  };
 }
 
 // Source of truth for supported subgraph networks/endpoints:
@@ -83,6 +89,11 @@ export const EULER_CHAIN_CONFIGS: readonly EulerChainConfig[] = [
     chainId: 57073,
     chainKey: "ink",
     subgraphUrl: eulerSubgraphUrl("ink"),
+    schema: {
+      earnVaultHasCurator: false,
+      earnVaultHasStrategies: false,
+      earnVaultHasGovernedPerspectiveFilter: false,
+    },
   },
   {
     chainId: 56,
@@ -90,39 +101,20 @@ export const EULER_CHAIN_CONFIGS: readonly EulerChainConfig[] = [
     subgraphUrl: eulerSubgraphUrl("bsc"),
   },
   {
-    chainId: 999,
-    chainKey: "hyperevm",
-    subgraphUrl: eulerSubgraphUrl("hyperevm"),
-  },
-  {
-    chainId: 10,
-    chainKey: "op",
-    subgraphUrl: eulerSubgraphUrl("optimism"),
-  },
-  {
-    chainId: 100,
-    chainKey: "gnosis",
-    subgraphUrl: eulerSubgraphUrl("gnosis"),
-  },
-  {
-    chainId: 480,
-    chainKey: "worldchain",
-    subgraphUrl: eulerSubgraphUrl("worldchain"),
-  },
-  {
     chainId: 239,
     chainKey: "tac",
     subgraphUrl: eulerSubgraphUrl("tac"),
+    schema: {
+      earnVaultHasCurator: false,
+      earnVaultHasStrategies: false,
+      earnVaultHasGovernedPerspectiveFilter: false,
+      evkVaultHasState: false,
+    },
   },
   {
     chainId: 9745,
     chainKey: "plasma",
     subgraphUrl: eulerSubgraphUrl("plasma"),
-  },
-  {
-    chainId: 5000,
-    chainKey: "mantle",
-    subgraphUrl: eulerSubgraphUrl("mantle"),
   },
 ] as const;
 
@@ -131,7 +123,9 @@ const EULER_LABELS_BASE_URL =
 
 const EULER_INDEXER_BASE_URL = "https://indexer-main.euler.finance";
 
-const EULER_APP_API_BASE_URL = "https://app.euler.finance";
+// `app.euler.finance/api/v1/price` now resolves to an HTML app document, so price fetches must use
+// the indexer-hosted JSON endpoint instead.
+const EULER_INDEXER_PRICE_BASE_URL = "https://indexer-prod.euler.finance";
 
 const eulerLabelsVaultsUrl = (chainId: number): string =>
   `${EULER_LABELS_BASE_URL}/${chainId}/vaults.json`;
@@ -143,7 +137,7 @@ const eulerOpenInterestUrl = (chainId: number): string =>
   `${EULER_INDEXER_BASE_URL}/v1/vault/open-interest?chainId=${chainId}`;
 
 const eulerPriceUrl = (chainId: number): string =>
-  `${EULER_APP_API_BASE_URL}/api/v1/price?chainId=${chainId}`;
+  `${EULER_INDEXER_PRICE_BASE_URL}/v1/prices?chainId=${chainId}`;
 
 export interface EulerEarnVault {
   id: Address;
@@ -158,6 +152,104 @@ export interface EulerEarnVault {
   }[];
 }
 
+const EULER_EARN_VAULTS_QUERY_ARGS = {
+  // Keep the per-chain Earn fetch bounded.
+  first: 100,
+  // Rank by the vault size signal we use elsewhere in the adapter.
+  orderBy: "totalAssets",
+  // Pull the largest vaults first so the cap remains useful.
+  orderDirection: "desc",
+  // Mirrors the governed perspective used by Euler UI.
+  governedPerspectiveFilter:
+    'where: { perspectives_contains: ["eulerEarnGovernedPerspective"] }',
+} as const;
+
+const EULER_EARN_VAULTS_QUERY: TypedDocumentNode<{
+  eulerEarnVaults: EulerEarnVault[];
+}> = parse(gql`
+  {
+    eulerEarnVaults(
+      first: ${EULER_EARN_VAULTS_QUERY_ARGS.first}
+      orderBy: ${EULER_EARN_VAULTS_QUERY_ARGS.orderBy}
+      orderDirection: ${EULER_EARN_VAULTS_QUERY_ARGS.orderDirection}
+      ${EULER_EARN_VAULTS_QUERY_ARGS.governedPerspectiveFilter}
+    ) {
+      id
+      name
+      symbol
+      asset
+      curator
+      totalAssets
+      strategies {
+        strategy
+        allocatedAssets
+      }
+    }
+  }
+`);
+
+type EulerEarnVaultWithoutCurator = Omit<EulerEarnVault, "curator">;
+type EulerEarnVaultWithoutCuratorOrStrategies = Omit<
+  EulerEarnVault,
+  "curator" | "strategies"
+>;
+
+const getEulerSchemaFlags = (config: EulerChainConfig) => ({
+  earnVaultHasCurator: config.schema?.earnVaultHasCurator ?? true,
+  earnVaultHasStrategies: config.schema?.earnVaultHasStrategies ?? true,
+  earnVaultHasGovernedPerspectiveFilter:
+    config.schema?.earnVaultHasGovernedPerspectiveFilter ?? true,
+  evkVaultHasState: config.schema?.evkVaultHasState ?? true,
+});
+
+const EULER_VAULTS_BY_IDS_QUERY_ARGS = {
+  // `ids` is the runtime GraphQL variable; we batch it to stay within subgraph limits.
+  pageSize: 1000,
+  // Keep the lookup scoped to the EVK addresses chosen by upstream discovery.
+  idsFilter: "where: { id_in: $ids }",
+} as const;
+
+const EULER_EARN_VAULTS_QUERY_WITHOUT_CURATOR: TypedDocumentNode<{
+  eulerEarnVaults: EulerEarnVaultWithoutCurator[];
+}> = parse(gql`
+  {
+    eulerEarnVaults(
+      first: ${EULER_EARN_VAULTS_QUERY_ARGS.first}
+      orderBy: ${EULER_EARN_VAULTS_QUERY_ARGS.orderBy}
+      orderDirection: ${EULER_EARN_VAULTS_QUERY_ARGS.orderDirection}
+      ${EULER_EARN_VAULTS_QUERY_ARGS.governedPerspectiveFilter}
+    ) {
+      id
+      name
+      symbol
+      asset
+      totalAssets
+      strategies {
+        strategy
+        allocatedAssets
+      }
+    }
+  }
+`);
+
+const EULER_EARN_VAULTS_QUERY_WITHOUT_CURATOR_OR_STRATEGIES: TypedDocumentNode<{
+  eulerEarnVaults: EulerEarnVaultWithoutCuratorOrStrategies[];
+}> = parse(gql`
+  {
+    eulerEarnVaults(
+      first: ${EULER_EARN_VAULTS_QUERY_ARGS.first}
+      orderBy: ${EULER_EARN_VAULTS_QUERY_ARGS.orderBy}
+      orderDirection: ${EULER_EARN_VAULTS_QUERY_ARGS.orderDirection}
+    ) {
+      id
+      name
+      symbol
+      asset
+      totalAssets
+    }
+  }
+`);
+
 /**
  * Earn vaults define the "Yield" root universe.
  * Each Earn vault has a list of EVK strategy vault addresses that we turn into allocation leaves.
@@ -165,34 +257,39 @@ export interface EulerEarnVault {
  * Note: we intentionally filter to the same governed perspective Euler UI uses.
  */
 export const fetchEulerEarnVaults = async (
-  subgraphUrl: string,
+  config: EulerChainConfig,
 ): Promise<EulerEarnVault[]> => {
-  const EULER_EARN_VAULTS_QUERY: TypedDocumentNode<{
-    eulerEarnVaults: EulerEarnVault[];
-  }> = parse(gql`
-    {
-      eulerEarnVaults(
-        first: 100
-        orderBy: totalAssets
-        orderDirection: desc
-        where: { perspectives_contains: ["eulerEarnGovernedPerspective"] }
-      ) {
-        id
-        name
-        symbol
-        asset
-        curator
-        totalAssets
-        strategies {
-          strategy
-          allocatedAssets
-        }
-      }
-    }
-  `);
+  const schema = getEulerSchemaFlags(config);
+
+  if (!schema.earnVaultHasCurator && !schema.earnVaultHasStrategies) {
+    const { eulerEarnVaults } = await graphqlRequest({
+      url: config.subgraphUrl,
+      document: EULER_EARN_VAULTS_QUERY_WITHOUT_CURATOR_OR_STRATEGIES,
+      variables: {},
+    });
+
+    return eulerEarnVaults.map((vault) => ({
+      ...vault,
+      curator: null,
+      strategies: [],
+    }));
+  }
+
+  if (!schema.earnVaultHasCurator) {
+    const { eulerEarnVaults } = await graphqlRequest({
+      url: config.subgraphUrl,
+      document: EULER_EARN_VAULTS_QUERY_WITHOUT_CURATOR,
+      variables: {},
+    });
+
+    return eulerEarnVaults.map((vault) => ({
+      ...vault,
+      curator: null,
+    }));
+  }
 
   const { eulerEarnVaults } = await graphqlRequest({
-    url: subgraphUrl,
+    url: config.subgraphUrl,
     document: EULER_EARN_VAULTS_QUERY,
     variables: {},
   });
@@ -213,18 +310,20 @@ export interface EulerEvkVault {
   } | null;
 }
 
+type EulerEvkVaultWithoutState = Omit<EulerEvkVault, "state">;
+
 /**
  * EVK vault state (decimals + cash/borrows + supply APY).
  * We only fetch the subset of EVK vaults we actually need (from Earn strategies and/or open-interest).
  */
 export const fetchEulerEvkVaults = async (
   addresses: Address[],
-  subgraphUrl: string,
+  config: EulerChainConfig,
 ): Promise<EulerEvkVault[]> => {
   if (addresses.length === 0) return [];
 
+  const schema = getEulerSchemaFlags(config);
   const ids = addresses.map((a) => a.toLowerCase());
-  const pageSize = 1000;
   const result: EulerEvkVault[] = [];
 
   const EULER_VAULTS_BY_IDS_QUERY: TypedDocumentNode<
@@ -232,7 +331,10 @@ export const fetchEulerEvkVaults = async (
     { ids: string[] }
   > = parse(gql`
     query ($ids: [Bytes!]!) {
-      eulerVaults(where: { id_in: $ids }, first: 1000) {
+      eulerVaults(
+        ${EULER_VAULTS_BY_IDS_QUERY_ARGS.idsFilter}
+        first: ${EULER_VAULTS_BY_IDS_QUERY_ARGS.pageSize}
+      ) {
         id
         name
         symbol
@@ -247,15 +349,47 @@ export const fetchEulerEvkVaults = async (
     }
   `);
 
-  for (let i = 0; i < ids.length; i += pageSize) {
-    const chunk = ids.slice(i, i + pageSize);
-    const { eulerVaults } = await graphqlRequest({
-      url: subgraphUrl,
-      document: EULER_VAULTS_BY_IDS_QUERY,
-      variables: { ids: chunk },
-    });
+  const EULER_VAULTS_BY_IDS_QUERY_WITHOUT_STATE: TypedDocumentNode<
+    { eulerVaults: EulerEvkVaultWithoutState[] },
+    { ids: string[] }
+  > = parse(gql`
+    query ($ids: [Bytes!]!) {
+      eulerVaults(
+        ${EULER_VAULTS_BY_IDS_QUERY_ARGS.idsFilter}
+        first: ${EULER_VAULTS_BY_IDS_QUERY_ARGS.pageSize}
+      ) {
+        id
+        name
+        symbol
+        asset
+        decimals
+      }
+    }
+  `);
 
-    result.push(...eulerVaults);
+  for (
+    let i = 0;
+    i < ids.length;
+    i += EULER_VAULTS_BY_IDS_QUERY_ARGS.pageSize
+  ) {
+    const chunk = ids.slice(i, i + EULER_VAULTS_BY_IDS_QUERY_ARGS.pageSize);
+    if (!schema.evkVaultHasState) {
+      const { eulerVaults } = await graphqlRequest({
+        url: config.subgraphUrl,
+        document: EULER_VAULTS_BY_IDS_QUERY_WITHOUT_STATE,
+        variables: { ids: chunk },
+      });
+
+      result.push(...eulerVaults.map((vault) => ({ ...vault, state: null })));
+    } else {
+      const { eulerVaults } = await graphqlRequest({
+        url: config.subgraphUrl,
+        document: EULER_VAULTS_BY_IDS_QUERY,
+        variables: { ids: chunk },
+      });
+
+      result.push(...eulerVaults);
+    }
   }
 
   return result;
@@ -360,7 +494,7 @@ export const fetchEulerVaultOpenInterest = async (
   const url = eulerOpenInterestUrl(chainId);
   const response = await fetch(url);
 
-  if (response.status === 404) {
+  if (response.status === 400 || response.status === 404) {
     return new Map();
   }
 

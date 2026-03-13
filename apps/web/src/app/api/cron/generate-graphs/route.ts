@@ -35,7 +35,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   delete childEnv.CRON_SECRET;
 
   try {
-    const { stdout, stderr } = await execFileAsync("pnpm", ["graphs:upload"], {
+    const { stdout, stderr } = await execFileAsync("pnpm", ["graphs:prod"], {
       cwd: resolveRepoPathFromWebCwd(),
       env: childEnv,
     });

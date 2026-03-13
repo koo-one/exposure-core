@@ -124,12 +124,49 @@ const listFixtureProtocolFolders = async (): Promise<string[]> => {
   try {
     const entries = await readdir(fixturesRoot, { withFileTypes: true });
     return entries
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name)
+      .filter(
+        (e) =>
+          e.isFile() &&
+          e.name.endsWith(".json") &&
+          e.name !== "search-index.json",
+      )
+      .map((e) => e.name.replace(/\.json$/, ""))
       .filter((name) => !name.startsWith("."));
   } catch {
     return [];
   }
+};
+
+const loadFixtureSnapshotForNode = async (
+  normalizedId: string,
+  protocolFolders: string[],
+): Promise<{ snapshot: GraphSnapshot; path: string } | null> => {
+  const fixturesRoot = resolveRepoPathFromWebCwd(
+    "server",
+    "fixtures",
+    "output",
+  );
+
+  for (const protocol of protocolFolders) {
+    const path = resolve(fixturesRoot, `${protocol}.json`);
+
+    try {
+      const raw = await readFile(path, "utf8");
+      const payload = JSON.parse(raw) as unknown;
+      if (!payload || typeof payload !== "object") continue;
+
+      const snapshots = payload as Record<string, unknown>;
+      const snapshot = snapshots[normalizedId];
+
+      if (isGraphSnapshot(snapshot)) {
+        return { snapshot, path };
+      }
+    } catch {
+      // try next protocol group
+    }
+  }
+
+  return null;
 };
 
 const fixtureCandidatesForNode = async (
@@ -179,6 +216,26 @@ export async function HEAD(
 
   // Dev/local: confirm fixtures existence without reading full contents.
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const protocolFolders = blobProtocolCandidatesForNode(
+      normalizedId,
+      request,
+    );
+    const fixtureProtocolFolders =
+      protocolFolders.length > 0
+        ? protocolFolders
+        : await listFixtureProtocolFolders();
+    const groupedResolved = await loadFixtureSnapshotForNode(
+      normalizedId,
+      fixtureProtocolFolders,
+    );
+
+    if (groupedResolved) {
+      return new Response(null, {
+        status: 200,
+        headers: { "x-exposure-fixture-path": groupedResolved.path },
+      });
+    }
+
     const tried = await fixtureCandidatesForNode(normalizedId, request);
     const fallback =
       decodedId && decodedId.toLowerCase() !== normalizedId
@@ -233,8 +290,25 @@ export async function GET(
   }
 
   // Dev/local: read repo-level fixtures output by canonical nodeId.
-  // Layout: server/fixtures/output/<protocol>/<nodeId>.json
+  // Layout: server/fixtures/output/<protocol>.json
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const protocolFolders = blobProtocolCandidatesForNode(
+      normalizedId,
+      request,
+    );
+    const fixtureProtocolFolders =
+      protocolFolders.length > 0
+        ? protocolFolders
+        : await listFixtureProtocolFolders();
+    const groupedResolved = await loadFixtureSnapshotForNode(
+      normalizedId,
+      fixtureProtocolFolders,
+    );
+
+    if (groupedResolved) {
+      return NextResponse.json(groupedResolved.snapshot);
+    }
+
     const tried = await fixtureCandidatesForNode(normalizedId, request);
     const fallback =
       decodedId && decodedId.toLowerCase() !== normalizedId
