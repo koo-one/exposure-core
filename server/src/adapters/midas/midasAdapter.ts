@@ -40,6 +40,48 @@ const toAmountString = (navUsd: number): string => {
   return String(navUsd / 1000);
 };
 
+const MIDAS_VAULT_CONCURRENCY = 4;
+
+const mapWithConcurrency = async <T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const runWorker = async (): Promise<void> => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      results[currentIndex] = await mapper(
+        items[currentIndex] as T,
+        currentIndex,
+      );
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () =>
+      runWorker(),
+    ),
+  );
+
+  return results;
+};
+
+const buildStandaloneAllocationNode = (allocation: MidasAllocation): Node => {
+  const name =
+    allocation.secondLevelAllocation?.trim() || "Unspecified Allocation";
+
+  return {
+    id:
+      allocation.secondLevelAllocation?.trim() ||
+      `midas-unlinked-alloc-${allocation.id}`,
+    name,
+    details: { kind: "Investment" },
+  };
+};
+
 const fetchJson = async <T>(url: string): Promise<T> => {
   const response = await fetch(url);
 
@@ -212,8 +254,10 @@ export const createMidasAdapter = (): Adapter<
       let nextIdValue = 1;
       const nextId = () => nextIdValue++;
 
-      const allocationsByVault = await Promise.all(
-        catalog.vaults.map(async (vault) => {
+      const allocationsByVault = await mapWithConcurrency(
+        catalog.vaults,
+        MIDAS_VAULT_CONCURRENCY,
+        async (vault) => {
           const asset = vault.vaultMetadata?.name?.trim();
           const provider = vault.vaultMetadata?.provider?.trim();
 
@@ -257,7 +301,7 @@ export const createMidasAdapter = (): Adapter<
               nextId,
             }),
           ];
-        }),
+        },
       );
 
       return allocationsByVault.flat();
@@ -319,11 +363,7 @@ export const createMidasAdapter = (): Adapter<
           allocation.firstLevelAllocation === "Exchanges" ||
           allocation.firstLevelAllocation === "Offchain Collateral"
         ) {
-          const allocationNode: Node = {
-            id: allocation.secondLevelAllocation ?? "",
-            name: allocation.secondLevelAllocation ?? "",
-            details: { kind: "Investment" },
-          };
+          const allocationNode = buildStandaloneAllocationNode(allocation);
 
           nodes.push(allocationNode);
           edges.push(this.buildEdge(root, allocationNode, allocation));
@@ -348,11 +388,7 @@ export const createMidasAdapter = (): Adapter<
             edges.push(...result.edges);
           }
         } else {
-          const allocationNode: Node = {
-            id: allocation.secondLevelAllocation ?? "",
-            name: allocation.secondLevelAllocation ?? "",
-            details: { kind: "Investment" },
-          };
+          const allocationNode = buildStandaloneAllocationNode(allocation);
 
           nodes.push(allocationNode);
           edges.push(this.buildEdge(root, allocationNode, allocation));
