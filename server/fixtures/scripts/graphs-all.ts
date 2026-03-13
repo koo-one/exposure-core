@@ -16,19 +16,35 @@ const run = (scriptPath: string) => {
       stdio: "inherit",
     },
   );
-  if (status) process.exit(status);
+  return status ?? 1;
 };
 
 const dirs = readdirSync(scriptsRoot, { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith("."))
   .map((d) => d.name);
 
+const failures: { name: string; status: number }[] = [];
+
 dirs
-  .filter((n) => n !== "search-index")
+  .filter((n) => n !== "protocol-graphs" && n !== "search-index")
   .sort((a, b) => a.localeCompare(b))
-  .concat("search-index")
+  .concat("protocol-graphs", "search-index")
   .forEach((name) => {
     const scriptPath = resolve(scriptsRoot, name, "index.ts");
 
-    if (existsSync(scriptPath)) run(scriptPath);
+    if (!existsSync(scriptPath)) return;
+
+    const status = run(scriptPath);
+    if (status !== 0) {
+      failures.push({ name, status });
+    }
   });
+
+if (failures.length > 0) {
+  console.error(
+    `graphs-all completed with failures: ${failures
+      .map(({ name, status }) => `${name}(${status})`)
+      .join(", ")}`,
+  );
+  process.exit(1);
+}

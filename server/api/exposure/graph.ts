@@ -1,15 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { buildDraftGraphsByAsset } from "../../src/orchestrator";
-import type { GraphSnapshot } from "../../src/types";
+import { buildProtocolGraphGroups } from "../../src/exposure/protocolGraphs";
 
 import { putJsonToBlob } from "./blob";
-import {
-  canonicalizeNodeId,
-  graphProtocolBlobPath,
-  inferProtocolFolderFromNodeId,
-} from "./paths";
-
-type GraphSnapshotGroup = Record<string, GraphSnapshot>;
+import { graphProtocolBlobPath } from "./paths";
 
 const handler = async (request: VercelRequest, response: VercelResponse) => {
   // Intended to be invoked by Vercel Cron via GET; reject other methods.
@@ -20,28 +13,7 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
   }
 
   try {
-    const draftGraphs = await buildDraftGraphsByAsset();
-    const groupedSnapshots = new Map<string, GraphSnapshotGroup>();
-
-    for (const [asset, store] of draftGraphs) {
-      const snapshot = store.toSnapshot({ sources: [] });
-      const rootNodeId = snapshot.nodes[0]?.id;
-
-      if (!rootNodeId) {
-        throw new Error(`Missing root node id for asset: ${asset}`);
-      }
-
-      const normalizedRootNodeId = canonicalizeNodeId(rootNodeId);
-      const protocol = inferProtocolFolderFromNodeId(normalizedRootNodeId);
-
-      if (!protocol) {
-        throw new Error(`Missing protocol folder for asset: ${asset}`);
-      }
-
-      const currentGroup = groupedSnapshots.get(protocol) ?? {};
-      currentGroup[normalizedRootNodeId] = snapshot;
-      groupedSnapshots.set(protocol, currentGroup);
-    }
+    const { assetCount, groupedSnapshots } = await buildProtocolGraphGroups();
 
     const results = await Promise.all(
       Array.from(groupedSnapshots.entries()).map(
@@ -60,7 +32,7 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
     );
 
     response.status(200).json({
-      count: Array.from(draftGraphs.keys()).length,
+      count: assetCount,
       protocols: results,
     });
   } catch (error) {

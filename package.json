@@ -9,8 +9,8 @@
     "build:web": "pnpm -C apps/web build",
     "start:web": "pnpm -C apps/web start",
     "lint:web": "pnpm -C apps/web lint",
-    "graphs:all": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
-    "graphs:upload": "tsx --env-file=.env.production server/fixtures/scripts/graphs-upload.ts",
+    "graphs:dev": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
+    "graphs:prod": "tsx --env-file=.env.production server/api/exposure/graphs-upload.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"

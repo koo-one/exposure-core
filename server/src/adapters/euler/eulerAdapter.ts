@@ -167,18 +167,41 @@ export const createEulerAdapter = (): Adapter<
       const fetchChainCatalog = async (
         config: EulerChainConfig,
       ): Promise<EulerChainCatalog> => {
+        const earnVaults = await fetchEulerEarnVaults(config);
         const [
-          earnVaults,
           labelsByVault,
           entitiesById,
           pricesByAsset,
           openInterestByLiability,
         ] = await Promise.all([
-          fetchEulerEarnVaults(config.subgraphUrl),
-          fetchEulerLabelsVaults(config.chainId),
-          fetchEulerLabelEntities(config.chainId),
-          fetchEulerPrices(config.chainId),
-          fetchEulerVaultOpenInterest(config.chainId),
+          fetchEulerLabelsVaults(config.chainId).catch((error) => {
+            console.warn(
+              `Euler labels fetch failed for ${config.chainKey}:${config.chainId}`,
+              error,
+            );
+            return new Map();
+          }),
+          fetchEulerLabelEntities(config.chainId).catch((error) => {
+            console.warn(
+              `Euler label entities fetch failed for ${config.chainKey}:${config.chainId}`,
+              error,
+            );
+            return new Map();
+          }),
+          fetchEulerPrices(config.chainId).catch((error) => {
+            console.warn(
+              `Euler prices fetch failed for ${config.chainKey}:${config.chainId}`,
+              error,
+            );
+            return new Map();
+          }),
+          fetchEulerVaultOpenInterest(config.chainId).catch((error) => {
+            console.warn(
+              `Euler open-interest fetch failed for ${config.chainKey}:${config.chainId}`,
+              error,
+            );
+            return new Map();
+          }),
         ]);
 
         const entityNameByAddress = new Map<string, string>();
@@ -216,7 +239,7 @@ export const createEulerAdapter = (): Adapter<
         ];
         const evkVaults = await fetchEulerEvkVaults(
           unique as Address[],
-          config.subgraphUrl,
+          config,
         );
 
         // mapping evk vault addr with evk vault info (e.g name, supplyApy)
