@@ -31,5 +31,13 @@ const debankAdapterFactories = new Set<AdapterFactory>([
 ]);
 
 export const shouldSkipAdapterFactory = (factory: AdapterFactory): boolean => {
+  // Local fixture generation should not depend on a real Debank key.
+  // In dev, protocol scripts can use mocked fetch responses and still write
+  // snapshots under `server/fixtures/output/`, so only prod/blob-style runs
+  // should skip Debank-backed adapters when the key is missing.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return false;
+  }
+
   return debankAdapterFactories.has(factory) && !process.env.DEBANK_ACCESS_KEY;
 };
