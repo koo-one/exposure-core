@@ -8,7 +8,12 @@ import React, {
   useCallback,
 } from "react";
 import { createPortal } from "react-dom";
-import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
+import {
+  GraphSnapshot,
+  GraphNode,
+  GraphEdge,
+  GraphAllocationPreview,
+} from "@/types";
 import { getDirectChildren } from "@/lib/graph";
 import { getNodeTypeLabel } from "@/lib/nodeType";
 import {
@@ -24,13 +29,6 @@ const AssetTreeMapKonva = dynamic(
     ssr: false,
   },
 );
-
-const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
-  if (!value || typeof value !== "object") return false;
-
-  const snapshot = value as Partial<GraphSnapshot>;
-  return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
-};
 
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
@@ -75,12 +73,6 @@ export default function AssetTreeMap({
     w: number;
     h: number;
   } | null>(null);
-  const [allocationsByNodeId, setAllocationsByNodeId] = useState<
-    Map<string, { id: string; name: string; value: number; node?: GraphNode }[]>
-  >(new Map());
-  const [attemptedNestedNodeIds, setAttemptedNestedNodeIds] = useState<
-    Set<string>
-  >(new Set());
   const measureContainer = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -181,7 +173,7 @@ export default function AssetTreeMap({
   }, [hoverState, graphIndex]);
 
   const chartData = useMemo(() => {
-    if (!data || !rootNodeId) return [];
+    if (!data || !rootNodeId || !graphIndex) return [];
 
     const root = data.nodes.find((n) => n.id === rootNodeId);
     if (!root) return [];
@@ -195,21 +187,7 @@ export default function AssetTreeMap({
       children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
     }
 
-    const nodesById =
-      graphIndex?.nodesById ??
-      new Map(data.nodes.map((n) => [normalizeId(n.id), n] as const));
-    const edgesByFrom =
-      graphIndex?.edgesByFrom ??
-      (() => {
-        const map = new Map<string, GraphEdge[]>();
-        for (const edge of data.edges) {
-          const fromId = normalizeId(edge.from);
-          const list = map.get(fromId);
-          if (list) list.push(edge);
-          else map.set(fromId, [edge]);
-        }
-        return map;
-      })();
+    const { nodesById, edgesByFrom } = graphIndex;
 
     const isTerminalNodeId = (nodeId: string): boolean => {
       return (edgesByFrom.get(normalizeId(nodeId)) ?? []).length === 0;
@@ -234,6 +212,12 @@ export default function AssetTreeMap({
     };
     const canDetectTerminal = graphRootIds instanceof Set;
 
+    const nestedAllocationsByNodeId = new Map<string, GraphAllocationPreview[]>(
+      Object.entries(data.nestedAllocations ?? {}).map(
+        ([nodeId, allocations]) => [normalizeId(nodeId), allocations],
+      ),
+    );
+
     const mappedChildren = children.map((c) => {
       const isLeafInSnapshot = isTerminalNodeId(c.id);
       const hasDownstreamGraph = canDetectTerminal
@@ -242,25 +226,22 @@ export default function AssetTreeMap({
 
       const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
-      const outgoingEdges = edgesByFrom.get(normalizeId(c.id)) ?? [];
+      const normalizedChildId = normalizeId(c.id);
+      const outgoingEdges = edgesByFrom.get(normalizedChildId) ?? [];
       const directLeavesCount = outgoingEdges.length;
-
-      // Map allocations for mini-treemap within the tile
-      const localAllocations = outgoingEdges
-        .map((e) => {
-          const toNode = nodesById.get(normalizeId(e.to));
-          return {
-            id: e.to,
-            name: toNode?.name ?? e.to,
-            value: Math.abs(e.allocationUsd),
-            node: toNode,
-          };
-        })
-        .sort((a, b) => b.value - a.value);
-
-      const fallbackKey = normalizeId(c.id);
       const allocations =
-        allocationsByNodeId.get(fallbackKey) ?? localAllocations;
+        nestedAllocationsByNodeId.get(normalizedChildId) ??
+        outgoingEdges
+          .map((e) => {
+            const toNode = nodesById.get(normalizeId(e.to));
+            return {
+              id: e.to,
+              name: toNode?.name ?? e.to,
+              value: Math.abs(e.allocationUsd),
+              node: toNode,
+            };
+          })
+          .sort((a, b) => b.value - a.value);
 
       const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
       const kind = (c.node?.details?.kind ?? "").toLowerCase();
@@ -361,115 +342,6 @@ export default function AssetTreeMap({
     containerSize,
     graphRootIds,
     graphIndex,
-    allocationsByNodeId,
-  ]);
-
-  useEffect(() => {
-    if (!data || !rootNodeId) return;
-
-    const root = data.nodes.find((n) => n.id === rootNodeId);
-    if (!root) return;
-
-    let children = getDirectChildren(root, data.nodes, data.edges);
-    if (isOthersView && othersChildrenIds) {
-      const scope = new Set(
-        othersChildrenIds.map((id) => id.trim().toLowerCase()),
-      );
-      children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
-    }
-
-    const missingIds = children
-      .map((child) => normalizeId(child.id))
-      .filter(
-        (id) => !allocationsByNodeId.has(id) && !attemptedNestedNodeIds.has(id),
-      );
-
-    if (missingIds.length === 0) return;
-
-    let cancelled = false;
-
-    const load = async () => {
-      const updates = new Map<
-        string,
-        { id: string; name: string; value: number; node?: GraphNode }[]
-      >();
-      const attempted = new Set<string>();
-
-      await Promise.all(
-        missingIds.slice(0, 50).map(async (id) => {
-          attempted.add(id);
-          try {
-            const response = await fetch(
-              `/api/graph/${encodeURIComponent(id)}`,
-            );
-            if (!response.ok) return;
-
-            const payload = (await response.json()) as unknown;
-            if (!isGraphSnapshot(payload)) return;
-
-            const snapshot = payload;
-
-            const nodesById = new Map(
-              snapshot.nodes.map(
-                (node) => [normalizeId(node.id), node] as const,
-              ),
-            );
-            const allocations = snapshot.edges
-              .filter((edge) => normalizeId(edge.from) === id)
-              .map((edge) => {
-                const node = nodesById.get(normalizeId(edge.to));
-                return {
-                  id: edge.to,
-                  name: node?.name ?? edge.to,
-                  value: Math.abs(edge.allocationUsd),
-                  node,
-                };
-              })
-              .filter(
-                (entry) => Number.isFinite(entry.value) && entry.value > 0,
-              )
-              .sort((a, b) => b.value - a.value);
-
-            if (allocations.length > 0) {
-              updates.set(id, allocations);
-            }
-          } catch (error) {
-            console.error(`Failed to fetch 2-hop data for node ${id}:`, error);
-          }
-        }),
-      );
-
-      if (cancelled) return;
-
-      setAttemptedNestedNodeIds((prev) => {
-        const next = new Set(prev);
-        attempted.forEach((id) => next.add(id));
-        return next;
-      });
-
-      if (updates.size === 0) return;
-
-      setAllocationsByNodeId((prev) => {
-        const next = new Map(prev);
-        updates.forEach((allocations, id) => {
-          next.set(id, allocations);
-        });
-        return next;
-      });
-    };
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    allocationsByNodeId,
-    attemptedNestedNodeIds,
-    data,
-    isOthersView,
-    othersChildrenIds,
-    rootNodeId,
   ]);
 
   if (!data || chartData.length === 0) {

@@ -26,8 +26,16 @@ export interface GraphEdge {
   lendingPosition?: "collateral" | "borrow";
 }
 
+export interface GraphAllocationPreview {
+  id: string;
+  name: string;
+  value: number;
+  node?: GraphNode;
+}
+
 export interface GraphSnapshot {
   nodes: GraphNode[];
   edges: GraphEdge[];
   sources: string[];
+  nestedAllocations?: Record<string, GraphAllocationPreview[]>;
 }

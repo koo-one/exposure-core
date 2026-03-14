@@ -9,24 +9,25 @@ import {
   inferProtocolFolderFromNodeId,
   protocolToFolder,
 } from "@/lib/blobPaths";
+import { resolveRootNode } from "@/lib/graph";
 import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
 import { listGraphProtocolBlobPaths, tryHeadBlobUrl } from "@/lib/vercelBlob";
-import type { GraphSnapshot } from "@/types";
+import type { GraphAllocationPreview, GraphSnapshot } from "@/types";
 
 export const runtime = "nodejs";
 
-const normalizeNodeIdFromPathParam = (raw: string): string => {
-  let decoded = raw;
-  try {
-    decoded = decodeURIComponent(raw);
-  } catch {
-    decoded = raw;
-  }
+interface BlobProtocolPayload {
+  path: string;
+  url: string;
+  snapshots: Record<string, unknown>;
+}
 
-  return canonicalizeNodeId(decoded);
-};
+interface FixtureProtocolPayload {
+  path: string;
+  snapshots: Record<string, unknown>;
+}
 
-const decodedNodeIdFromPathParam = (raw: string): string => {
+const decodePathParam = (raw: string): string => {
   let decoded = raw;
   try {
     decoded = decodeURIComponent(raw);
@@ -37,6 +38,14 @@ const decodedNodeIdFromPathParam = (raw: string): string => {
   return decoded.trim();
 };
 
+const normalizeNodeIdFromPathParam = (raw: string): string => {
+  return canonicalizeNodeId(decodePathParam(raw));
+};
+
+const decodedNodeIdFromPathParam = (raw: string): string => {
+  return decodePathParam(raw);
+};
+
 const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
   if (!value || typeof value !== "object") return false;
 
@@ -44,32 +53,102 @@ const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
   return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
 };
 
+const normalizeAllocationPreviews = (
+  snapshot: GraphSnapshot,
+  nodeId: string,
+): GraphAllocationPreview[] => {
+  const normalizedNodeId = canonicalizeNodeId(nodeId);
+  const nodesById = new Map(
+    snapshot.nodes.map((node) => [canonicalizeNodeId(node.id), node] as const),
+  );
+
+  return snapshot.edges
+    .filter((edge) => canonicalizeNodeId(edge.from) === normalizedNodeId)
+    .map((edge) => {
+      const node = nodesById.get(canonicalizeNodeId(edge.to));
+      return {
+        id: edge.to,
+        name: node?.name ?? edge.to,
+        value: Math.abs(edge.allocationUsd),
+        node,
+      };
+    })
+    .filter((entry) => Number.isFinite(entry.value) && entry.value > 0)
+    .sort((a, b) => b.value - a.value);
+};
+
+const loadBlobProtocolPayload = async (
+  protocol: string,
+): Promise<BlobProtocolPayload | null> => {
+  const path = graphProtocolBlobPath(protocol);
+  const url = await tryHeadBlobUrl(path);
+
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as unknown;
+    if (!payload || typeof payload !== "object") return null;
+
+    return {
+      path,
+      url,
+      snapshots: payload as Record<string, unknown>,
+    };
+  } catch (error) {
+    console.error(`Failed to load snapshot group from ${url}:`, error);
+    return null;
+  }
+};
+
+const loadFixtureProtocolPayload = async (
+  protocol: string,
+): Promise<FixtureProtocolPayload | null> => {
+  const fixturesRoot = resolveRepoPathFromWebCwd(
+    "server",
+    "fixtures",
+    "output",
+  );
+  const path = resolve(fixturesRoot, `${protocol}.json`);
+
+  try {
+    const raw = await readFile(path, "utf8");
+    const payload = JSON.parse(raw) as unknown;
+    if (!payload || typeof payload !== "object") return null;
+
+    return {
+      path,
+      snapshots: payload as Record<string, unknown>,
+    };
+  } catch {
+    return null;
+  }
+};
+
 const loadBlobSnapshotForNode = async (
   normalizedId: string,
   protocolFolders: string[],
-): Promise<{ snapshot: GraphSnapshot; path: string; url: string } | null> => {
+): Promise<{
+  snapshot: GraphSnapshot;
+  path: string;
+  url: string;
+  snapshots?: Record<string, unknown>;
+} | null> => {
   for (const protocol of protocolFolders) {
-    const path = graphProtocolBlobPath(protocol);
-    const url = await tryHeadBlobUrl(path);
+    const payload = await loadBlobProtocolPayload(protocol);
+    if (!payload) continue;
 
-    if (!url) continue;
+    const snapshot = payload.snapshots[normalizedId];
 
-    try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) continue;
-
-      const payload = (await response.json()) as unknown;
-      if (!payload || typeof payload !== "object") continue;
-
-      const snapshots = payload as Record<string, unknown>;
-      const snapshot = snapshots[normalizedId];
-
-      if (isGraphSnapshot(snapshot)) {
-        return { snapshot, path, url };
-      }
-    } catch (error) {
-      console.error(`Failed to load snapshot from ${url}:`, error);
-      // try next protocol group
+    if (isGraphSnapshot(snapshot)) {
+      return {
+        snapshot,
+        path: payload.path,
+        url: payload.url,
+        snapshots: payload.snapshots,
+      };
     }
   }
 
@@ -159,39 +238,92 @@ const listFixtureProtocolFolders = async (): Promise<string[]> => {
 const loadFixtureSnapshotForNode = async (
   normalizedId: string,
   protocolFolders: string[],
-): Promise<{ snapshot: GraphSnapshot; path: string } | null> => {
-  const fixturesRoot = resolveRepoPathFromWebCwd(
-    "server",
-    "fixtures",
-    "output",
-  );
-
+): Promise<{
+  snapshot: GraphSnapshot;
+  path: string;
+  snapshots?: Record<string, unknown>;
+} | null> => {
   for (const protocol of protocolFolders) {
-    const path = resolve(fixturesRoot, `${protocol}.json`);
+    const payload = await loadFixtureProtocolPayload(protocol);
+    if (!payload) continue;
 
-    try {
-      const raw = await readFile(path, "utf8");
-      const payload = JSON.parse(raw) as unknown;
-      if (!payload || typeof payload !== "object") continue;
+    const snapshot = payload.snapshots[normalizedId];
 
-      const snapshots = payload as Record<string, unknown>;
-      const snapshot = snapshots[normalizedId];
-
-      if (isGraphSnapshot(snapshot)) {
-        return { snapshot, path };
-      }
-    } catch {
-      // try next protocol group
+    if (isGraphSnapshot(snapshot)) {
+      return { snapshot, path: payload.path, snapshots: payload.snapshots };
     }
   }
 
   return null;
 };
 
+const buildNestedAllocations = async (
+  snapshot: GraphSnapshot,
+  normalizedId: string,
+  chain: string | null,
+  initialProtocolSnapshots: Record<string, unknown> | null,
+  loadProtocolPayload: (
+    protocol: string,
+  ) => Promise<Record<string, unknown> | null>,
+): Promise<Record<string, GraphAllocationPreview[]>> => {
+  const rootNode = resolveRootNode(
+    snapshot.nodes,
+    normalizedId,
+    chain ?? undefined,
+  );
+  if (!rootNode) return {};
+
+  const directChildren = Array.from(
+    new Set(
+      snapshot.edges
+        .filter((edge) => edge.from === rootNode.id)
+        .map((edge) => canonicalizeNodeId(edge.to)),
+    ),
+  );
+
+  const nestedAllocations: Record<string, GraphAllocationPreview[]> = {};
+  const protocolCache = new Map<string, Record<string, unknown> | null>();
+  const rootProtocol = inferProtocolFolderFromNodeId(normalizedId);
+  if (rootProtocol && initialProtocolSnapshots) {
+    protocolCache.set(rootProtocol, initialProtocolSnapshots);
+  }
+
+  for (const childId of directChildren) {
+    const localAllocations = normalizeAllocationPreviews(snapshot, childId);
+    if (localAllocations.length > 0) {
+      nestedAllocations[childId] = localAllocations;
+      continue;
+    }
+
+    const protocol = inferProtocolFolderFromNodeId(childId);
+    if (!protocol) continue;
+
+    let snapshots = protocolCache.get(protocol);
+    if (snapshots === undefined) {
+      snapshots = await loadProtocolPayload(protocol);
+      protocolCache.set(protocol, snapshots);
+    }
+
+    const childSnapshot = snapshots?.[childId];
+    if (!isGraphSnapshot(childSnapshot)) continue;
+
+    const allocations = normalizeAllocationPreviews(childSnapshot, childId);
+    if (allocations.length > 0) {
+      nestedAllocations[childId] = allocations;
+    }
+  }
+
+  return nestedAllocations;
+};
+
 const resolveGroupedFixtureSnapshotForRequest = async (
   normalizedId: string,
   request: Request,
-): Promise<{ snapshot: GraphSnapshot; path: string } | null> => {
+): Promise<{
+  snapshot: GraphSnapshot;
+  path: string;
+  snapshots?: Record<string, unknown>;
+} | null> => {
   const fixtureProtocolFolders = await resolveProtocolFolders(
     blobProtocolCandidatesForNode(normalizedId, request),
     listFixtureProtocolFolders,
@@ -237,7 +369,12 @@ const resolveBlobGroupedForRequest = async (
   normalizedId: string,
   request: Request,
 ): Promise<{
-  resolved: { snapshot: GraphSnapshot; path: string; url: string } | null;
+  resolved: {
+    snapshot: GraphSnapshot;
+    path: string;
+    url: string;
+    snapshots?: Record<string, unknown>;
+  } | null;
   blobProtocolFolders: string[];
 }> => {
   const blobProtocolFolders = await resolveProtocolFolders(
@@ -323,6 +460,7 @@ export async function GET(
 
   const normalizedId = normalizeNodeIdFromPathParam(id);
   const decodedId = decodedNodeIdFromPathParam(id);
+  const chain = new URL(request.url).searchParams.get("chain");
 
   if (!normalizedId) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
@@ -337,7 +475,19 @@ export async function GET(
     );
 
     if (groupedResolved) {
-      return NextResponse.json(groupedResolved.snapshot);
+      const nestedAllocations = await buildNestedAllocations(
+        groupedResolved.snapshot,
+        normalizedId,
+        chain,
+        groupedResolved.snapshots ?? null,
+        async (protocol) =>
+          (await loadFixtureProtocolPayload(protocol))?.snapshots ?? null,
+      );
+
+      return NextResponse.json({
+        ...groupedResolved.snapshot,
+        nestedAllocations,
+      });
     }
 
     const candidates = await fixturePathCandidatesForRequest(
@@ -375,7 +525,19 @@ export async function GET(
   );
 
   if (resolved) {
-    return NextResponse.json(resolved.snapshot);
+    const nestedAllocations = await buildNestedAllocations(
+      resolved.snapshot,
+      normalizedId,
+      chain,
+      resolved.snapshots ?? null,
+      async (protocol) =>
+        (await loadBlobProtocolPayload(protocol))?.snapshots ?? null,
+    );
+
+    return NextResponse.json({
+      ...resolved.snapshot,
+      nestedAllocations,
+    });
   }
 
   return NextResponse.json(
