@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SearchIndexEntry } from "@/constants";
+import { SNAPSHOT_TIME_HEADER, type SearchIndexEntry } from "@/constants";
 import {
   hasProtocolLogo,
   getProtocolLogoPath,
@@ -92,19 +92,42 @@ export function AppHeader({
   }, [query]);
 
   useEffect(() => {
-    const now = new Date();
-    const hours = now.getUTCHours();
-    const lastSnapshotHour = Math.floor(hours / 12) * 12;
-    const lastSnapshot = new Date(now);
-    lastSnapshot.setUTCHours(lastSnapshotHour, 0, 0, 0);
-    setSnapshotTime(
-      lastSnapshot.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "UTC",
-        hour12: false,
-      }) + " UTC",
-    );
+    const controller = new AbortController();
+
+    const loadSnapshotTime = async () => {
+      try {
+        const response = await fetch("/api/search-index", {
+          method: "HEAD",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+
+        const rawSnapshotTime = response.headers.get(SNAPSHOT_TIME_HEADER);
+        if (!rawSnapshotTime) return;
+
+        const snapshotDate = new Date(rawSnapshotTime);
+        if (Number.isNaN(snapshotDate.getTime())) return;
+
+        setSnapshotTime(
+          snapshotDate.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "UTC",
+            hour12: false,
+          }) + " UTC",
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Failed to load snapshot time:", error);
+      }
+    };
+
+    void loadSnapshotTime();
+
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {

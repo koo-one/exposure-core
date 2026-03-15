@@ -1,3 +1,5 @@
+export const SNAPSHOT_TIME_HEADER = "x-exposure-snapshot-at";
+
 export interface SearchIndexEntry {
   id: string;
   chain: string;
