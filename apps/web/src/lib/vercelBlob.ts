@@ -1,5 +1,16 @@
 import { head, list } from "@vercel/blob";
 
+export const getBlobUploadedAt = async (
+  pathname: string,
+): Promise<Date | null> => {
+  try {
+    const result = await head(pathname);
+    return result.uploadedAt;
+  } catch {
+    return null;
+  }
+};
+
 export const tryHeadBlobUrl = async (
   pathname: string,
 ): Promise<string | null> => {
