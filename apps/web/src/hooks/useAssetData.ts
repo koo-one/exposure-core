@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GraphSnapshot, GraphNode } from "@/types";
 import { resolveRootNode, calculateNodeContext } from "@/lib/graph";
@@ -33,6 +33,7 @@ export function useAssetData(props: UseAssetDataProps | null) {
   const [pageTitle, setPageTitle] = useState<string>(id || "");
   const [isOthersView, setIsOthersView] = useState(false);
   const [othersChildrenIds, setOthersChildrenIds] = useState<string[]>([]);
+  const latestRequestIdRef = useRef(0);
 
   const focusTrail = useMemo(
     () => parseParamList(searchParams.get("focusTrail")),
@@ -110,6 +111,10 @@ export function useAssetData(props: UseAssetDataProps | null) {
     }
 
     const fetchData = async () => {
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatestRequest = () => latestRequestIdRef.current === requestId;
+
       setLoading(true);
       try {
         const queryParams = new URLSearchParams();
@@ -126,6 +131,8 @@ export function useAssetData(props: UseAssetDataProps | null) {
         }
 
         const json: GraphSnapshot = await response.json();
+        if (!isLatestRequest()) return;
+
         setGraphData(json);
 
         const resolvedRoot = resolveRootNode(json.nodes, id, chain);
@@ -143,10 +150,14 @@ export function useAssetData(props: UseAssetDataProps | null) {
           setTvl(null);
         }
       } catch (error) {
-        console.error(error);
-        setGraphData(null);
+        if (isLatestRequest()) {
+          console.error(error);
+          setGraphData(null);
+        }
       } finally {
-        setLoading(false);
+        if (isLatestRequest()) {
+          setLoading(false);
+        }
       }
     };
 

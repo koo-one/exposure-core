@@ -339,17 +339,6 @@ function HomeInner() {
     return strictMatch || byId[0] || null;
   }, [dynamicIndex, activeAssetId, activeAssetChain, activeAssetProtocol]);
 
-  const activeAssetFallback = useMemo(() => {
-    if (!activeAssetId) return null;
-    return {
-      id: canonicalizeNodeId(activeAssetId),
-      chain: (activeAssetChain ?? "global").trim().toLowerCase(),
-      protocol: canonicalizeProtocolToken(activeAssetProtocol ?? ""),
-      name: activeAssetId.trim(),
-      nodeId: canonicalizeNodeId(activeAssetId),
-    } as SearchIndexEntry;
-  }, [activeAssetId, activeAssetChain, activeAssetProtocol]);
-
   const updateParams = useCallback(
     (
       newParams: Record<string, string | null>,
@@ -580,6 +569,39 @@ function HomeInner() {
     )[0];
   }, [dynamicIndex]);
 
+  useEffect(() => {
+    if (!activeAssetId || activeAsset || dynamicIndex.length === 0) {
+      return;
+    }
+
+    if (topAsset) {
+      updateParams(
+        {
+          id: topAsset.id,
+          assetChain: topAsset.chain,
+          assetProtocol: topAsset.protocol,
+          focus: null,
+          focusTrail: null,
+          others: null,
+        },
+        "replace",
+      );
+      return;
+    }
+
+    updateParams(
+      {
+        id: null,
+        assetChain: null,
+        assetProtocol: null,
+        focus: null,
+        focusTrail: null,
+        others: null,
+      },
+      "replace",
+    );
+  }, [activeAsset, activeAssetId, dynamicIndex.length, topAsset, updateParams]);
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
       <AppHeader
@@ -599,7 +621,7 @@ function HomeInner() {
 
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
         <UniversalTreemapView
-          asset={activeAsset || activeAssetFallback || topAsset}
+          asset={activeAsset || topAsset}
           focus={activeFocus}
           onSelectAsset={(id, chain, protocol, history) =>
             updateParams(
