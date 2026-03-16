@@ -10,6 +10,7 @@ import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
 import { GraphNode } from "@/types";
 import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
+import { getDirectChildren } from "@/lib/graph";
 import {
   compactBreadcrumbs,
   limitBreadcrumbHistory,
@@ -219,14 +220,6 @@ function UniversalTreemapView({
     void load();
   }, []);
 
-  if (loading || !graphData) {
-    return (
-      <div className="w-full h-[60vh] flex items-center justify-center bg-black/[0.02] border border-black/5 rounded-3xl">
-        <Activity className="w-8 h-8 text-black/10 animate-pulse" />
-      </div>
-    );
-  }
-
   const currentRootId = focusRootNodeId || rootNode?.id;
   const infoNode = selectedNode ?? rootNode;
   const headerNode =
@@ -237,6 +230,20 @@ function UniversalTreemapView({
           logoKeys: asset.logoKeys ?? infoNode.logoKeys,
         }
       : infoNode;
+  const headerChildren = useMemo(() => {
+    if (!graphData || !headerNode) return [];
+    return getDirectChildren(headerNode, graphData.nodes, graphData.edges)
+      .map((child) => child.node)
+      .filter((child): child is GraphNode => Boolean(child));
+  }, [graphData, headerNode]);
+
+  if (loading || !graphData) {
+    return (
+      <div className="w-full h-[60vh] flex items-center justify-center bg-black/[0.02] border border-black/5 rounded-3xl">
+        <Activity className="w-8 h-8 text-black/10 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -247,6 +254,7 @@ function UniversalTreemapView({
           {headerNode && (
             <RootNodeHeader
               node={headerNode}
+              children={headerChildren}
               tvl={tvl}
               onBack={
                 isOthersView || (rootNode && focusRootNodeId !== rootNode.id)

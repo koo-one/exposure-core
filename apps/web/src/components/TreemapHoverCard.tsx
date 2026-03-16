@@ -12,6 +12,10 @@ export interface TreemapHoverCardDatum {
   isOthers?: boolean;
   childCount?: number;
   isTerminal?: boolean;
+  lendingPair?: {
+    collateral?: string | null;
+    borrow?: string | null;
+  };
 }
 
 interface TreemapHoverCardPayloadItem {
@@ -42,6 +46,16 @@ export const TreemapHoverCard = ({
   const isOthers = resolved?.isOthers;
   const isTerminal = resolved?.isTerminal;
   const childCount = resolved?.childCount;
+  const collateralToken =
+    typeof resolved?.lendingPair?.collateral === "string" &&
+    resolved.lendingPair.collateral.trim().length > 0
+      ? resolved.lendingPair.collateral.trim()
+      : "";
+  const borrowToken =
+    typeof resolved?.lendingPair?.borrow === "string" &&
+    resolved.lendingPair.borrow.trim().length > 0
+      ? resolved.lendingPair.borrow.trim()
+      : "";
 
   const baseKind = isOthers
     ? `Aggregate (${childCount} Items)`
@@ -108,6 +122,37 @@ export const TreemapHoverCard = ({
           {currencyFormatter.format(originalValue)}
         </div>
       </div>
+
+      {!isOthers && (collateralToken || borrowToken) && (
+        <>
+          <div className="h-px w-full bg-white/5 my-4" />
+          <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] mb-3">
+            Lending Relationship
+          </div>
+          <div className="flex flex-col gap-2 mb-6">
+            {collateralToken ? (
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight">
+                  COLLATERAL
+                </div>
+                <div className="text-[10px] font-bold text-white/70 font-mono">
+                  {collateralToken}
+                </div>
+              </div>
+            ) : null}
+            {borrowToken ? (
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight">
+                  BORROW
+                </div>
+                <div className="text-[10px] font-bold text-white/70 font-mono">
+                  {borrowToken}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
 
       {isTerminal && (
         <div className="mb-6 px-3 py-1.5 bg-[#E11D48]/10 border border-[#E11D48]/20 rounded flex items-center justify-center gap-2">

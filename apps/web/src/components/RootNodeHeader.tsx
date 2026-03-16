@@ -6,14 +6,21 @@ import { currencyFormatter, percentFormatter } from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { getNodeLogos } from "@/lib/logos";
 import { getProtocolAppUrl, getProtocolAuditUrl } from "@/lib/protocol";
+import { getRootRelationshipSemantics } from "@/lib/rootRelationship";
 
 interface RootNodeHeaderProps {
   node: GraphNode;
+  children?: GraphNode[];
   tvl?: number | null;
   onBack?: () => void;
 }
 
-export function RootNodeHeader({ node, tvl, onBack }: RootNodeHeaderProps) {
+export function RootNodeHeader({
+  node,
+  children,
+  tvl,
+  onBack,
+}: RootNodeHeaderProps) {
   const logos = getNodeLogos(node);
 
   const apyForDisplay =
@@ -25,6 +32,7 @@ export function RootNodeHeader({ node, tvl, onBack }: RootNodeHeaderProps) {
 
   const appUrl = getProtocolAppUrl(node);
   const auditUrl = getProtocolAuditUrl(node);
+  const relationship = getRootRelationshipSemantics(node, children);
 
   return (
     <div className="flex items-center justify-between gap-4 px-3 py-1.5">
@@ -54,48 +62,58 @@ export function RootNodeHeader({ node, tvl, onBack }: RootNodeHeaderProps) {
           </div>
 
           {/* Identity and Metadata Inline */}
-          <div className="flex items-baseline gap-4 min-w-0">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <div className="font-mono text-[13px] font-bold uppercase tracking-tight truncate">
-                {node.name}
-              </div>
-              <div className="text-[10px] font-bold text-black/30 uppercase tracking-widest truncate shrink-0">
-                {node.protocol} • {node.chain}
-              </div>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-6 shrink-0 border-l border-black/10 pl-4 h-4">
-              <div className="flex items-center gap-1.5">
-                <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em]">
-                  TVL
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-baseline gap-4 min-w-0">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <div className="font-mono text-[13px] font-bold uppercase tracking-tight truncate">
+                  {node.name}
                 </div>
-                <div className="text-[10px] font-bold text-black font-mono">
-                  {typeof tvl === "number"
-                    ? currencyFormatter.format(tvl)
-                    : "—"}
+                <div className="text-[10px] font-bold text-black/30 uppercase tracking-widest truncate shrink-0">
+                  {node.protocol} • {node.chain}
                 </div>
               </div>
 
-              {apyForDisplay !== null && (
+              <div className="hidden sm:flex items-center gap-6 shrink-0 border-l border-black/10 pl-4 h-4">
                 <div className="flex items-center gap-1.5">
                   <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em]">
-                    APY
+                    TVL
                   </div>
-                  <div className="text-[10px] font-bold text-[#00A35C] font-mono">
-                    {percentFormatter.format(apyForDisplay)}
+                  <div className="text-[10px] font-bold text-black font-mono">
+                    {typeof tvl === "number"
+                      ? currencyFormatter.format(tvl)
+                      : "—"}
                   </div>
                 </div>
-              )}
 
-              <div className="flex items-center gap-1.5">
-                <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em] mr-[-2px]">
-                  CURATOR
-                </div>
-                <div className="text-[9px] font-bold text-black/60 uppercase tracking-wide">
-                  {node.details?.curator || "Institutional"}
+                {apyForDisplay !== null && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em]">
+                      APY
+                    </div>
+                    <div className="text-[10px] font-bold text-[#00A35C] font-mono">
+                      {percentFormatter.format(apyForDisplay)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em] mr-[-2px]">
+                    CURATOR
+                  </div>
+                  <div className="text-[9px] font-bold text-black/60 uppercase tracking-wide">
+                    {node.details?.curator || "Institutional"}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {relationship ? (
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <div className="px-1.5 py-0.5 rounded-full border border-black/10 bg-black/[0.03] text-[8px] font-bold text-black/45 uppercase tracking-[0.15em] leading-none">
+                  {relationship.rootBadge}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

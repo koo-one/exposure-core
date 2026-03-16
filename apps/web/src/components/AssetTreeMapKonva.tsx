@@ -30,7 +30,18 @@ interface TreemapTileDatum {
   percent: number;
   nodeId: string;
   fullNode?: GraphNode;
+  logoNode?: {
+    name: string;
+    protocol?: string | null;
+    logoKeys?: string[];
+  };
   lendingPosition?: "collateral" | "borrow";
+  lendingPair?: {
+    collateral?: string | null;
+    borrow?: string | null;
+    borrowAmount?: number | null;
+  };
+  secondaryLabel?: string | null;
   isTerminal?: boolean;
   typeLabel?: string;
   isVault?: boolean;
@@ -109,6 +120,7 @@ const TILE_STYLE = {
   },
   padding: {
     textX: 8,
+    textY: 6,
     inner: 6,
   },
   thresholds: {
@@ -131,13 +143,21 @@ const SR_ONLY_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const getTileLabel = (data: TreemapTileDatum) => {
+const getTileNameText = (data: TreemapTileDatum) => {
   const isOthers = data.isOthers;
   const name = (data.name || "").toUpperCase();
   if (isOthers) {
-    return `+${data.childCount || 0} OTHERS ${currencyFormatter.format(data.originalValue)}`;
+    return `+${data.childCount || 0} OTHERS`;
   }
-  return `${name} ${currencyFormatter.format(data.originalValue)}`;
+  return name;
+};
+
+const getTileValueText = (data: TreemapTileDatum) => {
+  return currencyFormatter.format(data.originalValue);
+};
+
+const getTileAccessibleLabel = (data: TreemapTileDatum) => {
+  return `${getTileNameText(data)} ${getTileValueText(data)}`;
 };
 
 const getPackedTileBounds = (
@@ -178,6 +198,96 @@ const AssetLogo = React.memo(
 );
 
 AssetLogo.displayName = "AssetLogo";
+
+const TileHeaderText = React.memo(
+  ({
+    text,
+    x,
+    y,
+    width,
+    height,
+    fill,
+    align = "left",
+  }: {
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fill: string;
+    align?: "left" | "right" | "center";
+  }) => {
+    return (
+      <Text
+        text={text}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        align={align}
+        verticalAlign="middle"
+        ellipsis
+        wrap="none"
+        fontSize={TILE_STYLE.fontSize}
+        fontFamily={TILE_STYLE.fontFamily}
+        fill={fill}
+        fontStyle="bold"
+        letterSpacing={TILE_STYLE.letterSpacing}
+        listening={false}
+      />
+    );
+  },
+);
+
+TileHeaderText.displayName = "TileHeaderText";
+
+const TileHeaderBadge = React.memo(
+  ({
+    text,
+    x,
+    y,
+    width,
+    isHovered,
+  }: {
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    isHovered: boolean;
+  }) => {
+    return (
+      <Group x={x} y={y} listening={false}>
+        <Rect
+          width={width}
+          height={10}
+          cornerRadius={5}
+          fill={isHovered ? "rgba(255,255,255,0.26)" : "rgba(74,210,128,0.16)"}
+        />
+        <Text
+          text={text}
+          x={0}
+          y={2}
+          width={width}
+          height={8}
+          align="center"
+          verticalAlign="middle"
+          ellipsis
+          wrap="none"
+          fontSize={7}
+          fontFamily={TILE_STYLE.fontFamily}
+          fill={
+            isHovered ? "rgba(255,255,255,0.88)" : TILE_STYLE.colors.innerText
+          }
+          fontStyle="bold"
+          letterSpacing={-0.1}
+          listening={false}
+        />
+      </Group>
+    );
+  },
+);
+
+TileHeaderBadge.displayName = "TileHeaderBadge";
 
 const TreemapTileKonva = React.memo(
   ({
@@ -252,17 +362,15 @@ const TreemapTileKonva = React.memo(
           )
         : 0;
 
-    const logoPaths = data.fullNode ? getNodeLogos(data.fullNode) : [];
+    const logoPaths = data.logoNode
+      ? getNodeLogos(data.logoNode)
+      : data.fullNode
+        ? getNodeLogos(data.fullNode)
+        : [];
     const logoCount = Math.min(logoPaths.length, TILE_STYLE.logo.maxCount);
-    const label = getTileLabel(data);
-    const fontSize = TILE_STYLE.fontSize;
-
-    const textX =
-      logoCount > 0 && width > TILE_STYLE.logo.minWidth
-        ? TILE_STYLE.padding.textX +
-          logoCount * TILE_STYLE.logo.step +
-          TILE_STYLE.logo.gutter
-        : TILE_STYLE.padding.textX;
+    const label = getTileNameText(data);
+    const valueLabel = getTileValueText(data);
+    const secondaryLabel = data.secondaryLabel?.toUpperCase() ?? "";
 
     const handleClick = useCallback(() => {
       if (isOthers && onSelectOthers && data.childIds) {
@@ -292,10 +400,110 @@ const TreemapTileKonva = React.memo(
       [data, onHover],
     );
 
-    // Nested Treemap Calculation
+    // 1. Calculate Header Layout
+    const headerLayout = useMemo(() => {
+      const {
+        thresholds,
+        logo,
+        fontSize,
+        padding,
+        header: headerStyle,
+      } = TILE_STYLE;
+      const paddingX = padding.textX;
+
+      // Visibility Flags
+      const canShowSecondary =
+        !!secondaryLabel &&
+        width > thresholds.othersLabelWidth &&
+        height > thresholds.othersLabelHeight;
+      const canShowValue = width > 120;
+
+      // Preliminary height calculations
+      const logoSize = logo.size;
+      const rowHeight = logoCount > 0 && width > 92 ? logoSize : fontSize + 2;
+      const badgeHeight = 10;
+      const badgeGap = 1;
+      const contentStackHeight =
+        rowHeight + (canShowSecondary ? badgeGap + badgeHeight : 0);
+
+      // Horizontal Placement
+      const logoGap = 6;
+      const valueGap = 6;
+      const totalContentWidth = Math.max(0, width - paddingX * 2);
+
+      // Vertical Placement (Centered with min padding)
+      const stackTop = padding.textY;
+      const finalHeaderHeight = Math.max(
+        headerHeight,
+        stackTop + contentStackHeight,
+        headerStyle.fallback,
+      );
+
+      const canShowLogo =
+        logoCount > 0 && width > 92 && finalHeaderHeight >= 16;
+      const logoAreaWidth = canShowLogo ? logoSize + logoGap : 0;
+      const valueAreaWidth = canShowValue
+        ? Math.min(60, valueLabel.length * 7)
+        : 0;
+      const maxLabelAreaWidth = Math.max(
+        0,
+        totalContentWidth -
+          logoAreaWidth -
+          (canShowValue ? valueAreaWidth + valueGap : 0),
+      );
+      const estimatedLabelWidth = label.length * 6.6;
+      const actualLabelWidth = Math.min(maxLabelAreaWidth, estimatedLabelWidth);
+
+      const labelX = paddingX + logoAreaWidth;
+      const valueX = labelX + actualLabelWidth + valueGap;
+
+      return {
+        height: finalHeaderHeight,
+        visibility: {
+          logo: canShowLogo,
+          value: canShowValue,
+          secondary: canShowSecondary,
+        },
+        logo: {
+          x: paddingX,
+          y: stackTop + (rowHeight - logoSize) / 2,
+          size: logoSize,
+        },
+        label: {
+          x: labelX,
+          y: stackTop,
+          width: actualLabelWidth,
+          height: rowHeight,
+        },
+        value: {
+          x: valueX,
+          y: stackTop,
+          width: valueAreaWidth,
+          height: rowHeight,
+        },
+        secondary: {
+          x: labelX,
+          y: stackTop + rowHeight + badgeGap,
+          width: Math.min(
+            Math.max(42, secondaryLabel.length * 5.5 + 10),
+            totalContentWidth - logoAreaWidth,
+          ),
+        },
+      };
+    }, [
+      width,
+      height,
+      logoCount,
+      label,
+      valueLabel,
+      secondaryLabel,
+      headerHeight,
+    ]);
+
+    // 2. Nested Treemap Calculation
     const innerMargin = TILE_STYLE.padding.inner;
     const availW = Math.max(0, width - innerMargin * 2);
-    const availH = Math.max(0, height - headerHeight - innerMargin * 2);
+    const availH = Math.max(0, height - headerLayout.height - innerMargin * 2);
 
     const nestedLayout = useMemo(() => {
       const allocations = data.allocations || [];
@@ -331,11 +539,6 @@ const TreemapTileKonva = React.memo(
       };
     }, [data.allocations, availW, availH]);
 
-    const centeringHeight =
-      headerHeight > 0
-        ? headerHeight + innerMargin
-        : TILE_STYLE.header.fallback;
-
     return (
       <Group
         x={x}
@@ -367,59 +570,50 @@ const TreemapTileKonva = React.memo(
           height > TILE_STYLE.thresholds.labelHeight && (
             <Group
               clipFunc={(ctx: SceneContext) => {
-                ctx.rect(0, 0, width, centeringHeight);
+                ctx.rect(0, 0, width, headerLayout.height);
               }}
             >
-              {logoPaths.slice(0, TILE_STYLE.logo.maxCount).map((path, idx) => (
+              {headerLayout.visibility.logo && logoPaths[0] && (
                 <AssetLogo
-                  key={path}
-                  url={path}
-                  x={TILE_STYLE.padding.textX + idx * TILE_STYLE.logo.step}
-                  y={centeringHeight / 2 - TILE_STYLE.logo.size / 2}
-                  size={TILE_STYLE.logo.size}
+                  url={logoPaths[0]}
+                  x={headerLayout.logo.x}
+                  y={headerLayout.logo.y}
+                  size={headerLayout.logo.size}
                 />
-              ))}
-              <Text
+              )}
+              <TileHeaderText
                 text={label}
-                x={textX}
-                y={0}
-                width={Math.max(0, width - textX - 4)}
-                height={centeringHeight}
-                verticalAlign="middle"
-                ellipsis
-                wrap="none"
-                fontSize={fontSize}
-                fontFamily={TILE_STYLE.fontFamily}
+                x={headerLayout.label.x}
+                y={headerLayout.label.y}
+                width={headerLayout.label.width}
+                height={headerLayout.label.height}
                 fill={textColor}
-                fontStyle="bold"
-                letterSpacing={TILE_STYLE.letterSpacing}
-                listening={false}
               />
+              {headerLayout.visibility.value && (
+                <TileHeaderText
+                  text={valueLabel}
+                  x={headerLayout.value.x}
+                  y={headerLayout.value.y}
+                  width={headerLayout.value.width}
+                  height={headerLayout.value.height}
+                  fill={textColor}
+                  align="right"
+                />
+              )}
+              {headerLayout.visibility.secondary && (
+                <TileHeaderBadge
+                  text={secondaryLabel}
+                  x={headerLayout.secondary.x}
+                  y={headerLayout.secondary.y}
+                  width={headerLayout.secondary.width}
+                  isHovered={isHovered}
+                />
+              )}
             </Group>
           )}
 
-        {isOthers &&
-          data.childCount &&
-          width > TILE_STYLE.thresholds.othersLabelWidth &&
-          height > TILE_STYLE.thresholds.othersLabelHeight && (
-            <Text
-              text={`+${data.childCount} OTHERS`}
-              x={TILE_STYLE.padding.textX}
-              y={headerHeight + 6}
-              width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
-              fontSize={11}
-              fontFamily={TILE_STYLE.fontFamily}
-              fill={textColor}
-              fontStyle="bold"
-              letterSpacing={TILE_STYLE.letterSpacing}
-              wrap="none"
-              ellipsis
-              listening={false}
-            />
-          )}
-
         {nestedLayout && (
-          <Group x={innerMargin} y={headerHeight + innerMargin}>
+          <Group x={innerMargin} y={headerLayout.height + innerMargin}>
             <Rect
               width={availW}
               height={availH}
@@ -681,7 +875,7 @@ export function AssetTreeMapKonva({
                 type="button"
                 onClick={() => handleTileAction(datum)}
               >
-                {getTileLabel(datum)}
+                {getTileAccessibleLabel(datum)}
               </button>
             );
           })}
