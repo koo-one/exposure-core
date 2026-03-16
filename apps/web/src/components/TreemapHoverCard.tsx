@@ -46,16 +46,8 @@ export const TreemapHoverCard = ({
   const isOthers = resolved?.isOthers;
   const isTerminal = resolved?.isTerminal;
   const childCount = resolved?.childCount;
-  const collateralToken =
-    typeof resolved?.lendingPair?.collateral === "string" &&
-    resolved.lendingPair.collateral.trim().length > 0
-      ? resolved.lendingPair.collateral.trim()
-      : "";
-  const borrowToken =
-    typeof resolved?.lendingPair?.borrow === "string" &&
-    resolved.lendingPair.borrow.trim().length > 0
-      ? resolved.lendingPair.borrow.trim()
-      : "";
+  const collateralToken = (resolved?.lendingPair?.collateral || "").trim();
+  const borrowToken = (resolved?.lendingPair?.borrow || "").trim();
 
   const baseKind = isOthers
     ? `Aggregate (${childCount} Items)`

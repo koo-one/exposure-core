@@ -134,6 +134,13 @@ const TILE_STYLE = {
     selectionFill: "rgba(0, 0, 0, 0.08)",
     innerBorder: "#000000",
     innerText: "rgba(0,0,0,0.6)",
+    badgeBackground: "rgba(74,210,128,0.16)",
+    badgeBackgroundHover: "rgba(255,255,255,0.26)",
+    badgeTextHover: "rgba(255,255,255,0.88)",
+  },
+  textMeasure: {
+    labelCharWidth: 6.6,
+    valueCharWidth: 7,
   },
   header: {
     min: 18,
@@ -288,14 +295,17 @@ const computeTileHeaderLayout = ({
 
   const canShowLogo = logoCount > 0 && width > 92 && finalHeaderHeight >= 16;
   const logoAreaWidth = canShowLogo ? logoSize + logoGap : 0;
-  const valueAreaWidth = canShowValue ? Math.min(60, valueLabel.length * 7) : 0;
+  const valueAreaWidth = canShowValue
+    ? Math.min(60, valueLabel.length * TILE_STYLE.textMeasure.valueCharWidth)
+    : 0;
   const maxLabelAreaWidth = Math.max(
     0,
     totalContentWidth -
       logoAreaWidth -
       (canShowValue ? valueAreaWidth + valueGap : 0),
   );
-  const estimatedLabelWidth = label.length * 6.6;
+  const estimatedLabelWidth =
+    label.length * TILE_STYLE.textMeasure.labelCharWidth;
   const actualLabelWidth = Math.min(maxLabelAreaWidth, estimatedLabelWidth);
 
   const labelX = paddingX + logoAreaWidth;
@@ -457,7 +467,11 @@ const TileHeaderBadge = React.memo(
           width={width}
           height={10}
           cornerRadius={5}
-          fill={isHovered ? "rgba(255,255,255,0.26)" : "rgba(74,210,128,0.16)"}
+          fill={
+            isHovered
+              ? TILE_STYLE.colors.badgeBackgroundHover
+              : TILE_STYLE.colors.badgeBackground
+          }
         />
         <Text
           text={text}
@@ -472,7 +486,9 @@ const TileHeaderBadge = React.memo(
           fontSize={7}
           fontFamily={TILE_STYLE.fontFamily}
           fill={
-            isHovered ? "rgba(255,255,255,0.88)" : TILE_STYLE.colors.innerText
+            isHovered
+              ? TILE_STYLE.colors.badgeTextHover
+              : TILE_STYLE.colors.innerText
           }
           fontStyle="bold"
           letterSpacing={-0.1}

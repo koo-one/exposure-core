@@ -18,7 +18,7 @@ import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
-import { getDirectChildren } from "@/lib/graph";
+import { getDirectChildNodes } from "@/lib/graph";
 import {
   compactBreadcrumbs,
   limitBreadcrumbHistory,
@@ -143,9 +143,7 @@ export default function AssetPage() {
       : infoNode;
   const headerChildren = useMemo(() => {
     if (!graphData || !headerNode) return [];
-    return getDirectChildren(headerNode, graphData.nodes, graphData.edges)
-      .map((child) => child.node)
-      .filter((child): child is GraphNode => Boolean(child));
+    return getDirectChildNodes(headerNode, graphData.nodes, graphData.edges);
   }, [graphData, headerNode]);
 
   useEffect(() => {

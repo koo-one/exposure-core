@@ -31,6 +31,30 @@ const AssetTreeMapKonva = dynamic(
   },
 );
 
+const getMorphoCollateralLabel = (
+  marketName: string,
+  rootUnderlyingSymbol: string,
+): string => {
+  const parts = marketName
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) return marketName;
+  if (!rootUnderlyingSymbol) return parts[parts.length - 1] ?? marketName;
+
+  const normalizedUnderlying = rootUnderlyingSymbol.toLowerCase();
+  const nonDebtParts = parts.filter(
+    (part) => part.toLowerCase() !== normalizedUnderlying,
+  );
+
+  return (
+    nonDebtParts[nonDebtParts.length - 1] ??
+    parts[parts.length - 1] ??
+    marketName
+  );
+};
+
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
   rootNodeId?: string;
@@ -225,26 +249,6 @@ export default function AssetTreeMap({
       const kind = (node?.details?.kind ?? "").trim().toLowerCase();
       return kind.startsWith("lending");
     };
-    const getMorphoCollateralLabel = (marketName: string): string => {
-      const parts = marketName
-        .split("/")
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-      if (parts.length < 2) return marketName;
-      if (!rootUnderlyingSymbol) return parts[parts.length - 1] ?? marketName;
-
-      const normalizedUnderlying = rootUnderlyingSymbol.toLowerCase();
-      const nonDebtParts = parts.filter(
-        (part) => part.toLowerCase() !== normalizedUnderlying,
-      );
-
-      return (
-        nonDebtParts[nonDebtParts.length - 1] ??
-        parts[parts.length - 1] ??
-        marketName
-      );
-    };
 
     const nestedAllocationsByNodeId = new Map<string, GraphAllocationPreview[]>(
       Object.entries(data.nestedAllocations ?? {}).map(
@@ -311,7 +315,9 @@ export default function AssetTreeMap({
             if (borrow) return borrow;
           }
 
-          if (isMorphoLendingMarket) return getMorphoCollateralLabel(node.name);
+          if (isMorphoLendingMarket) {
+            return getMorphoCollateralLabel(node.name, rootUnderlyingSymbol);
+          }
 
           return node.name;
         })(),
@@ -319,7 +325,12 @@ export default function AssetTreeMap({
           ? {
               name: (() => {
                 if (lendingPair?.collateral) return lendingPair.collateral;
-                if (node) return getMorphoCollateralLabel(node.name);
+                if (node) {
+                  return getMorphoCollateralLabel(
+                    node.name,
+                    rootUnderlyingSymbol,
+                  );
+                }
                 return c.id;
               })(),
               logoKeys: lendingPair?.collateral

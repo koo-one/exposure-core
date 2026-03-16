@@ -10,7 +10,7 @@ import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
 import { GraphNode } from "@/types";
 import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
-import { getDirectChildren } from "@/lib/graph";
+import { getDirectChildNodes } from "@/lib/graph";
 import {
   compactBreadcrumbs,
   limitBreadcrumbHistory,
@@ -232,9 +232,7 @@ function UniversalTreemapView({
       : infoNode;
   const headerChildren = useMemo(() => {
     if (!graphData || !headerNode) return [];
-    return getDirectChildren(headerNode, graphData.nodes, graphData.edges)
-      .map((child) => child.node)
-      .filter((child): child is GraphNode => Boolean(child));
+    return getDirectChildNodes(headerNode, graphData.nodes, graphData.edges);
   }, [graphData, headerNode]);
 
   if (loading || !graphData) {
