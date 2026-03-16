@@ -1,4 +1,5 @@
 import type { GraphNode } from "@/types";
+import { ASSET_LOGO_KEYS } from "@/lib/generated/assetLogoKeys";
 
 export function normalizeLogoKey(input: string): string {
   return input
@@ -45,11 +46,9 @@ export function getChainLogoPath(chain: string): string {
 }
 
 export function getAssetLogoPath(assetId: string): string {
-  if (!assetId || assetId.length > 20) return "";
+  if (!assetId) return "";
   const key = normalizeLogoKey(assetId);
-  // We optimistically return the path based on the symbol.
-  // This avoids maintaining a massive hardcoded list of every SVG in the repo.
-  return `/logos/assets/${key}.svg`;
+  return ASSET_LOGO_KEYS.has(key) ? `/logos/assets/${key}.svg` : "";
 }
 
 const ASSET_NAME_STOPWORDS = new Set<string>([
@@ -84,26 +83,52 @@ const ASSET_NAME_STOPWORDS = new Set<string>([
 ]);
 
 const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
+  aave: "aave",
+  "aave token": "aave",
+  axelar: "axelar",
+  "axelar wrapped saga": "axelar",
+  btc: "wbtc",
+  "compounding open dollar": "cusdo",
+  "dai stablecoin": "dai",
   eth: "eth",
+  "eth-a": "eth",
+  "eth-b": "eth",
+  "eth-c": "eth",
+  ethereum: "eth",
+  "fluid gho token": "gho",
+  "fluid tether usd": "usdt",
+  "fluid usd coin": "usdc",
+  "fluid usdt0": "usdt0",
+  gho: "gho",
+  "gho token": "gho",
+  "liquid staked ether": "wsteth",
   "liquid staked ether 2.0": "eth",
   "lombard staked bitcoin": "lbtc",
   "paypal usd": "pyusd",
   rlusd: "rlusd",
+  steth: "wsteth",
   "syrup usdc": "syrupusdc",
   "syrup usdt": "syrupusdt",
   "tether usd": "usdt",
   "usd coin": "usdc",
+  "usd coin/dai stablecoin": "usdc",
+  "wbtc-a": "wbtc",
+  "wbtc-b": "wbtc",
+  "wbtc-c": "wbtc",
   "wrapped btc": "wbtc",
   "wrapped ether": "weth",
+  "wsteth-a": "wsteth",
+  "wsteth-b": "wsteth",
 };
 
 const GENERIC_PT_LOGO_KEY = "pt";
 
 const PT_SPECIAL_CASES: [RegExp, string][] = [
-  [/\bPT\s+Strata\s+Junior\s+USDe\b/i, "jrusde"],
-  [/\bPT\s+Strata\s+Senior\s+USDe\b/i, "srusde"],
-  [/\bPT\s+Staked\s+cap\s+USD\b/i, "stcusd"],
-  [/\bPT\s+Compounding\s+Open\s+Dollar\b/i, "cusdo"],
+  [/\b(?:PT|YT)\s+Strata\s+Junior\s+USDe\b/i, "jrusde"],
+  [/\b(?:PT|YT)\s+Strata\s+Senior\s+USDe\b/i, "srusde"],
+  [/\b(?:PT|YT)\s+Staked\s+cap\s+USD\b/i, "stcusd"],
+  [/\b(?:PT|YT)\s+Compounding\s+Open\s+Dollar\b/i, "cusdo"],
+  [/\bYT\s+Fluid\s+USDT0\b/i, "usdt0"],
   [/\bPTs\s+USDC\b/i, "usdc"],
 ];
 
@@ -188,6 +213,8 @@ function getBrandedAssetLogoKey(name: string): string | null {
   if (exact) return exact;
 
   const colonCandidate = compact.split(":").at(-1)?.trim() ?? "";
+  const exactColon = EXACT_ASSET_LOGO_KEYS[colonCandidate.toLowerCase()];
+  if (exactColon) return exactColon;
   const colonKey = getAssetCandidateKey(colonCandidate);
   if (colonKey) return colonKey;
 
@@ -197,7 +224,10 @@ function getBrandedAssetLogoKey(name: string): string | null {
     .filter((part) => part.length > 0);
 
   const candidates = words
-    .map((part) => getAssetCandidateKey(part))
+    .map(
+      (part) =>
+        EXACT_ASSET_LOGO_KEYS[part.toLowerCase()] ?? getAssetCandidateKey(part),
+    )
     .filter((value): value is string => Boolean(value));
 
   return candidates.length > 0 ? candidates[candidates.length - 1] : null;
@@ -423,9 +453,20 @@ export function getNodeLogos(
 
   const name = node.name.trim();
   const lowerName = name.toLowerCase();
+  const normalizedAssetName = normalizeLogoKey(name);
+
+  const chainLogoPath =
+    CHAIN_LOGO_KEYS.has(normalizeChainKey(name)) &&
+    !ASSET_LOGO_KEYS.has(normalizedAssetName)
+      ? getChainLogoPath(name)
+      : "";
+  if (chainLogoPath) {
+    return [chainLogoPath];
+  }
 
   if (lowerName === "mf-one") {
-    return [getAssetLogoPath(lowerName)];
+    const path = getAssetLogoPath(lowerName);
+    if (path) return [path];
   }
 
   const isTokenLike = (value: string): boolean => {
@@ -453,7 +494,8 @@ export function getNodeLogos(
   const isLowerHyphenatedAssetKey =
     /^[a-z0-9.]+(?:-[a-z0-9.]+)+$/.test(name) && name.length <= 20;
   if (isLowerHyphenatedAssetKey) {
-    return [getAssetLogoPath(name)];
+    const path = getAssetLogoPath(name);
+    if (path) return [path];
   }
 
   // 2. Check for lending market pattern in name (e.g. "WETH/USDC" or "WETH-USDC")
@@ -464,7 +506,10 @@ export function getNodeLogos(
   if (slashParts.length === 2) {
     const [base, quote] = slashParts;
     if (isTokenLike(base) && isTokenLike(quote)) {
-      return [getAssetLogoPath(base), getAssetLogoPath(quote)];
+      const paths = [getAssetLogoPath(base), getAssetLogoPath(quote)].filter(
+        (path): path is string => path.length > 0,
+      );
+      if (paths.length > 0) return paths;
     }
   }
 
@@ -473,7 +518,10 @@ export function getNodeLogos(
   if (dashParts.length === 2) {
     const [base, quote] = dashParts;
     if (isUpperTokenLike(base) && isUpperTokenLike(quote)) {
-      return [getAssetLogoPath(base), getAssetLogoPath(quote)];
+      const paths = [getAssetLogoPath(base), getAssetLogoPath(quote)].filter(
+        (path): path is string => path.length > 0,
+      );
+      if (paths.length > 0) return paths;
     }
   }
 

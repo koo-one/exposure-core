@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "generate:asset-logo-manifest": "tsx scripts/generate-asset-logo-manifest.ts",
+    "dev": "pnpm run generate:asset-logo-manifest && next dev",
+    "build": "pnpm run generate:asset-logo-manifest && next build",
     "start": "next start",
     "lint": "pnpm -C ../.. exec eslint --config eslint.config.mjs apps/web/src"
   },
