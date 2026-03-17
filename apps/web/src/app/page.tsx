@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect, useCallback } from "react";
+import {
+  Suspense,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useDeferredValue,
+} from "react";
 import { Activity } from "lucide-react";
 import { type SearchIndexEntry } from "@/constants";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -11,6 +18,12 @@ import { AppHeader } from "@/components/AppHeader";
 import { GraphNode } from "@/types";
 import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
 import { getDirectChildNodes } from "@/lib/graph";
+import {
+  buildCuratorOptions,
+  buildDropdownResults,
+  filterSearchEntries,
+  prepareSearchIndex,
+} from "@/lib/search";
 import {
   compactBreadcrumbs,
   limitBreadcrumbHistory,
@@ -64,15 +77,6 @@ const buildChainLabel = (
   if (chainNames.length <= 1) return chainNames[0] ?? "";
   if (chainNames.length <= 3) return chainNames.join("/");
   return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
-};
-
-const isMorphoOrEuler = (protocol: string): boolean => {
-  const value = protocol.trim().toLowerCase();
-  return value.startsWith("morpho") || value.startsWith("euler");
-};
-
-const shouldGroupAcrossChains = (protocol: string): boolean => {
-  return !isMorphoOrEuler(protocol);
 };
 
 function UniversalTreemapView({
@@ -318,7 +322,13 @@ function HomeInner() {
   const selectedCurator = searchParams.get("curator") || "all";
   const apyMin = searchParams.get("apyMin") || "";
   const apyMax = searchParams.get("apyMax") || "";
-  const query = searchParams.get("q") || "";
+  const urlQuery = searchParams.get("q") || "";
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const preparedIndex = useMemo(
+    () => prepareSearchIndex(dynamicIndex),
+    [dynamicIndex],
+  );
 
   const activeAssetId = searchParams.get("id");
   const activeAssetChain = searchParams.get("assetChain");
@@ -332,18 +342,18 @@ function HomeInner() {
     const normalizedProtocol = activeAssetProtocol
       ? canonicalizeProtocolToken(activeAssetProtocol)
       : null;
-    const byId = dynamicIndex.filter(
-      (e) => canonicalizeNodeId(e.id) === normalizedId,
+    const byId = preparedIndex.filter(
+      (entry) => entry.normalizedId === normalizedId,
     );
     if (byId.length === 0) return null;
     const strictMatch = byId.find(
-      (e) =>
-        (!normalizedChain || e.chain.toLowerCase() === normalizedChain) &&
+      (entry) =>
+        (!normalizedChain || entry.normalizedChain === normalizedChain) &&
         (!normalizedProtocol ||
-          canonicalizeProtocolToken(e.protocol) === normalizedProtocol),
+          entry.normalizedProtocol === normalizedProtocol),
     );
     return strictMatch || byId[0] || null;
-  }, [dynamicIndex, activeAssetId, activeAssetChain, activeAssetProtocol]);
+  }, [preparedIndex, activeAssetId, activeAssetChain, activeAssetProtocol]);
 
   const updateParams = useCallback(
     (
@@ -370,6 +380,20 @@ function HomeInner() {
     },
     [router, searchParams],
   );
+
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
+
+  useEffect(() => {
+    if (searchQuery === urlQuery) return;
+
+    const timeoutId = window.setTimeout(() => {
+      updateParams({ q: searchQuery });
+    }, 200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery, updateParams, urlQuery]);
 
   useEffect(() => {
     const load = async () => {
@@ -407,166 +431,32 @@ function HomeInner() {
   }, [dynamicIndex]);
 
   const curators = useMemo(() => {
-    const scope = dynamicIndex.filter((entry) => {
-      const protocolMatch =
-        selectedProtocol === "all" ||
-        entry.protocol.toLowerCase() === selectedProtocol.toLowerCase();
-      const chainMatch =
-        selectedChain === "all" ||
-        entry.chain.toLowerCase() === selectedChain.toLowerCase();
-      return protocolMatch && chainMatch;
-    });
-
-    const set = new Set<string>();
-    for (const entry of scope) {
-      if (typeof entry.curator !== "string") continue;
-      const value = entry.curator.trim();
-      if (!value) continue;
-      set.add(value);
-    }
-    return [
-      { label: "Anyone", value: "all" },
-      ...Array.from(set)
-        .sort((a, b) => a.localeCompare(b))
-        .map((c) => ({ label: c, value: c })),
-    ];
-  }, [dynamicIndex, selectedProtocol, selectedChain]);
+    return buildCuratorOptions(preparedIndex, selectedProtocol, selectedChain);
+  }, [preparedIndex, selectedProtocol, selectedChain]);
 
   const filteredResults = useMemo(() => {
-    let results = dynamicIndex;
-    if (selectedProtocol !== "all") {
-      results = results.filter(
-        (e) => e.protocol.toLowerCase() === selectedProtocol.toLowerCase(),
-      );
-    }
-    if (selectedChain !== "all") {
-      results = results.filter(
-        (e) => e.chain.toLowerCase() === selectedChain.toLowerCase(),
-      );
-    }
-    if (query) {
-      const q = query.toLowerCase();
-      results = results.filter((entry) => {
-        const haystack =
-          `${entry.name} ${entry.id} ${entry.nodeId} ${entry.protocol} ${entry.chain}`.toLowerCase();
-        return haystack.includes(q);
-      });
-    }
-    if (apyMin.trim().length > 0 || apyMax.trim().length > 0) {
-      const parseBound = (s: string): number | null => {
-        const trimmed = s.trim();
-        if (trimmed.length === 0) return null;
-        const n = Number(trimmed);
-        return Number.isFinite(n) ? n : null;
-      };
-      const min = parseBound(apyMin);
-      const max = parseBound(apyMax);
-      results = results.filter((entry) => {
-        const apy = typeof entry.apy === "number" ? entry.apy : null;
-        if (apy == null) return false;
-        const apyPercent = apy > 1 ? apy : apy * 100;
-        if (min != null && apyPercent < min) return false;
-        if (max != null && apyPercent > max) return false;
-        return true;
-      });
-    }
-    if (selectedCurator !== "all") {
-      results = results.filter((entry) => entry.curator === selectedCurator);
-    }
-    return results;
+    return filterSearchEntries(preparedIndex, {
+      selectedProtocol,
+      selectedChain,
+      selectedCurator,
+      apyMin,
+      apyMax,
+      query: deferredSearchQuery,
+    });
   }, [
+    preparedIndex,
     selectedProtocol,
     selectedChain,
     selectedCurator,
     apyMin,
     apyMax,
-    query,
-    dynamicIndex,
+    deferredSearchQuery,
   ]);
 
-  const dropdownResults = useMemo(() => {
-    interface GroupInternal {
-      key: string;
-      protocol: string;
-      name: string;
-      logoKeys?: string[];
-      primary: SearchIndexEntry;
-      entries: Map<
-        string,
-        { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
-      >;
-    }
-    const groups = new Map<string, GroupInternal>();
-    const safeTvl = (v: unknown): number | null =>
-      typeof v === "number" && Number.isFinite(v) ? v : null;
-
-    for (const entry of filteredResults) {
-      const protocol = (entry.protocol ?? "").trim();
-      const name = (entry.name ?? "").trim();
-      const chain = (entry.chain ?? "global").trim().toLowerCase();
-      const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
-      const key = shouldGroupAcrossChains(protocol)
-        ? baseKey
-        : `${baseKey}|${chain}|${entry.id.trim().toLowerCase()}`;
-      const tvlUsd = safeTvl(entry.tvlUsd);
-      const existing = groups.get(key);
-      if (!existing) {
-        const entries = new Map<
-          string,
-          { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
-        >();
-        const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
-        entries.set(entryKey, { chain, entry, tvlUsd });
-        groups.set(key, {
-          key,
-          protocol,
-          name: name || entry.name,
-          logoKeys: entry.logoKeys,
-          primary: entry,
-          entries,
-        });
-        continue;
-      }
-      const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
-      const current = existing.entries.get(entryKey);
-      if (!current || (tvlUsd ?? -1) > (current.tvlUsd ?? -1)) {
-        existing.entries.set(entryKey, { chain, entry, tvlUsd });
-      }
-      const primaryTvl = safeTvl(existing.primary.tvlUsd) ?? -1;
-      const nextTvl = tvlUsd ?? -1;
-      if (nextTvl > primaryTvl) existing.primary = entry;
-    }
-
-    const result = Array.from(groups.values()).map((g) => {
-      const chains = Array.from(g.entries.values()).map((rec) => ({
-        chain: rec.chain,
-        entry: rec.entry,
-        tvlUsd: rec.tvlUsd,
-      }));
-      chains.sort((a, b) => (b.tvlUsd ?? -1) - (a.tvlUsd ?? -1));
-      const finiteTvls = chains
-        .map((c) => c.tvlUsd)
-        .filter(
-          (v): v is number => typeof v === "number" && Number.isFinite(v),
-        );
-      const totalTvlUsd = (() => {
-        if (!finiteTvls.length) return null;
-        if (finiteTvls.length === 1) return finiteTvls[0] ?? null;
-        return finiteTvls.reduce((sum, v) => sum + v, 0);
-      })();
-      return {
-        key: g.key,
-        protocol: g.protocol,
-        name: g.name,
-        logoKeys: g.logoKeys,
-        chains,
-        totalTvlUsd,
-        primary: g.primary,
-      };
-    });
-    result.sort((a, b) => (b.totalTvlUsd ?? -1) - (a.totalTvlUsd ?? -1));
-    return result;
-  }, [filteredResults]);
+  const dropdownResults = useMemo(
+    () => buildDropdownResults(filteredResults),
+    [filteredResults],
+  );
 
   const topAsset = useMemo(() => {
     if (dynamicIndex.length === 0) return null;
@@ -616,7 +506,8 @@ function HomeInner() {
         selectedCurator={selectedCurator}
         apyMin={apyMin}
         apyMax={apyMax}
-        query={query}
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
         updateParams={updateParams}
         protocols={protocols}
         chains={chains}

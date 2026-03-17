@@ -13,7 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SNAPSHOT_TIME_HEADER, type SearchIndexEntry } from "@/constants";
+import { SNAPSHOT_TIME_HEADER } from "@/constants";
+import type { DropdownGroup } from "@/lib/search";
 import {
   hasProtocolLogo,
   getProtocolLogoPath,
@@ -30,6 +31,7 @@ interface AppHeaderProps {
   apyMin: string;
   apyMax: string;
   query: string;
+  onQueryChange: (value: string) => void;
   updateParams: (
     params: Record<string, string | null>,
     mode?: "push" | "replace",
@@ -41,17 +43,6 @@ interface AppHeaderProps {
   buildChainLabel: (chains: DropdownGroup["chains"]) => string;
 }
 
-interface DropdownGroup {
-  key: string;
-  protocol: string;
-  name: string;
-  displayName?: string;
-  logoKeys?: string[];
-  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[];
-  totalTvlUsd: number | null;
-  primary: SearchIndexEntry;
-}
-
 export function AppHeader({
   selectedProtocol,
   selectedChain,
@@ -59,6 +50,7 @@ export function AppHeader({
   apyMin,
   apyMax,
   query,
+  onQueryChange,
   updateParams,
   protocols,
   chains,
@@ -186,6 +178,7 @@ export function AppHeader({
       ) {
         if (dropdownResults.length > 0) {
           const first = dropdownResults[0].primary;
+          onQueryChange("");
           updateParams({
             id: first.id,
             assetChain: first.chain,
@@ -199,7 +192,7 @@ export function AppHeader({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dropdownResults, updateParams]);
+  }, [dropdownResults, onQueryChange, updateParams]);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black px-6 py-4 flex items-center justify-between gap-8">
@@ -227,7 +220,7 @@ export function AppHeader({
             type="text"
             placeholder="Search assets, protocols, or chains..."
             value={query}
-            onChange={(e) => updateParams({ q: e.target.value })}
+            onChange={(e) => onQueryChange(e.target.value)}
             onFocus={() => setIsSearchDropdownOpen(true)}
             className="w-full pl-11 pr-12 py-2.5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-4 focus:ring-black/[0.01] transition-all placeholder:text-black/10 text-[11px]"
           />
@@ -265,6 +258,7 @@ export function AppHeader({
                       <button
                         key={group.key}
                         onClick={() => {
+                          onQueryChange("");
                           updateParams(
                             {
                               id: primary.id,
