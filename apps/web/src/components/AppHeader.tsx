@@ -114,14 +114,12 @@ export function AppHeader({
         const day = String(snapshotDate.getUTCDate()).padStart(2, "0");
 
         setSnapshotTime(
-          `${year}-${month}-${day} ` +
-            snapshotDate.toLocaleTimeString("en-GB", {
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "UTC",
-              hour12: false,
-            }) +
-            " UTC",
+          `${year}-${month}-${day} ${snapshotDate.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "UTC",
+            hour12: false,
+          })} UTC`,
         );
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
