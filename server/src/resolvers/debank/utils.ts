@@ -117,7 +117,7 @@ export const inferAssetLogoKey = (raw: string): string | null => {
     if (family) {
       return (
         PT_LOGO_KEY_OVERRIDES[family] ??
-        (PT_REUSABLE_LOGO_KEYS.has(family) ? family : "pt")
+        (PT_REUSABLE_LOGO_KEYS.has(family) ? family : null)
       );
     }
   }
