@@ -1,4 +1,12 @@
-import { head, list } from "@vercel/blob";
+import { head } from "@vercel/blob";
+
+import type { SearchIndexEntry } from "@/constants";
+
+import {
+  graphProtocolBlobPath,
+  protocolToFolder,
+  searchIndexBlobPath,
+} from "@/lib/blobPaths";
 
 export const getBlobUploadedAt = async (
   pathname: string,
@@ -24,19 +32,30 @@ export const tryHeadBlobUrl = async (
 
 export const listGraphProtocolBlobPaths = async (): Promise<string[]> => {
   try {
-    const { blobs } = await list({ prefix: "exposure/graph/" });
+    const url = await tryHeadBlobUrl(searchIndexBlobPath());
+    if (!url) return [];
 
-    return blobs
-      .map((blob) => blob.pathname)
-      .filter(
-        (pathname) =>
-          pathname.endsWith(".json") &&
-          pathname !== "exposure/search-index.json" &&
-          !pathname
-            .slice("exposure/graph/".length, -".json".length)
-            .includes(":"),
-      )
-      .sort((a, b) => a.localeCompare(b));
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return [];
+
+    const payload = (await response.json()) as unknown;
+    if (!Array.isArray(payload)) return [];
+
+    const protocols = new Set<string>();
+
+    for (const entry of payload) {
+      if (!entry || typeof entry !== "object") continue;
+
+      const protocol = (entry as Partial<SearchIndexEntry>).protocol;
+      if (!protocol || typeof protocol !== "string") continue;
+
+      const normalizedProtocol = protocolToFolder(protocol);
+      if (!normalizedProtocol) continue;
+
+      protocols.add(graphProtocolBlobPath(normalizedProtocol));
+    }
+
+    return Array.from(protocols).sort((a, b) => a.localeCompare(b));
   } catch {
     return [];
   }
