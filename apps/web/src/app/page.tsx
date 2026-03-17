@@ -355,6 +355,25 @@ function HomeInner() {
     return strictMatch || byId[0] || null;
   }, [preparedIndex, activeAssetId, activeAssetChain, activeAssetProtocol]);
 
+  const requestedAsset = useMemo(() => {
+    if (!activeAssetId) return null;
+    return {
+      id: canonicalizeNodeId(activeAssetId),
+      chain: activeAssetChain?.trim().toLowerCase() || "global",
+      protocol: activeAssetProtocol
+        ? canonicalizeProtocolToken(activeAssetProtocol)
+        : "",
+      name: activeAsset?.name ?? activeAssetId,
+      nodeId: canonicalizeNodeId(activeAssetId),
+      displayName: activeAsset?.displayName,
+      logoKeys: activeAsset?.logoKeys,
+      apy: activeAsset?.apy,
+      curator: activeAsset?.curator,
+      tvlUsd: activeAsset?.tvlUsd,
+      typeLabel: activeAsset?.typeLabel,
+    } satisfies SearchIndexEntry;
+  }, [activeAsset, activeAssetChain, activeAssetId, activeAssetProtocol]);
+
   const updateParams = useCallback(
     (
       newParams: Record<string, string | null>,
@@ -518,7 +537,7 @@ function HomeInner() {
 
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
         <UniversalTreemapView
-          asset={activeAsset || topAsset}
+          asset={requestedAsset || topAsset}
           focus={activeFocus}
           onSelectAsset={(id, chain, protocol, history) =>
             updateParams(
