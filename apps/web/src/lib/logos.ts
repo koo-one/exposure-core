@@ -20,6 +20,7 @@ export function normalizeProtocolKey(protocol: string): string {
   normalized = normalized.replace(/\s+\d+$/, "");
   if (normalized.startsWith("aave")) return "aave";
   if (normalized.startsWith("morpho")) return "morpho";
+  if (normalized.startsWith("pendle")) return "pendle";
   if (normalized === "fireblock") return "fireblocks";
   return normalized.replace(/\s+/g, "-");
 }
@@ -93,7 +94,8 @@ export function getCuratorLogoPath(curatorKey: string): string {
 
 export function getAssetLogoPath(assetId: string): string {
   if (!assetId) return "";
-  const key = normalizeLogoKey(assetId);
+  const normalized = normalizeLogoKey(assetId);
+  const key = ASSET_LOGO_KEY_ALIASES[normalized] ?? normalized;
   return ASSET_LOGO_KEYS.has(key) ? `/logos/assets/${key}.svg` : "";
 }
 
@@ -128,15 +130,31 @@ const ASSET_NAME_STOPWORDS = new Set<string>([
   "yield",
 ]);
 
+const ASSET_LOGO_KEY_ALIASES: Record<string, string> = {
+  "btc.b": "btck",
+  "mc-usr": "mc_usr",
+  "mf-one": "mfone",
+  stkwell: "well",
+  syzusd: "syusd",
+  ubtc: "unibtc",
+  upgammausdc: "upusdc",
+  whlp: "hwhlp",
+  wpol: "pol",
+  yvausd: "yvvbausd",
+};
+
 const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   aave: "aave",
   "aave token": "aave",
   axelar: "axelar",
   "axelar wrapped saga": "axelar",
   btc: "wbtc",
+  "btc.b": "btck",
+  compweth: "eth",
   "compounding open dollar": "cusdo",
   "dai stablecoin": "dai",
   eth: "eth",
+  "gm:eth/usd[weth-usdc]": "gm",
   "eth-a": "eth",
   "eth-b": "eth",
   "eth-c": "eth",
@@ -145,13 +163,22 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   "fluid tether usd": "usdt",
   "fluid usd coin": "usdc",
   "fluid usdt0": "usdt0",
+  "glv [wbtc-usdc]": "glv-wbtc-usdc",
+  "glv [weth-usdc]": "glv-weth-usdc",
   gho: "gho",
   "gho token": "gho",
   "liquid staked ether": "wsteth",
   "liquid staked ether 2.0": "eth",
   "lombard staked bitcoin": "lbtc",
+  nusd: "snusd",
+  "openeden open dollar": "cusdo",
   "paypal usd": "pyusd",
   rlusd: "rlusd",
+  siusd: "iusd",
+  snusd: "snusd",
+  "stakedao-frxmsusd": "stakedao-frxmsusd",
+  stkwell: "well",
+  syzusd: "syusd",
   steth: "wsteth",
   "syrup usdc": "syrupusdc",
   "syrup usdt": "syrupusdt",
@@ -163,11 +190,17 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   "wbtc-c": "wbtc",
   "wrapped btc": "wbtc",
   "wrapped ether": "weth",
+  ubtc: "unibtc",
+  ueth: "ueth",
+  upgammausdc: "upusdc",
+  "mc-usr": "mc_usr",
+  "mf-one": "mfone",
+  wpol: "pol",
+  whlp: "hwhlp",
   "wsteth-a": "wsteth",
   "wsteth-b": "wsteth",
+  yvausd: "yvvbausd",
 };
-
-const GENERIC_PT_LOGO_KEY = "pt";
 
 const PT_SPECIAL_CASES: [RegExp, string][] = [
   [/\b(?:PT|YT)\s+Strata\s+Junior\s+USDe\b/i, "jrusde"],
@@ -180,8 +213,15 @@ const PT_SPECIAL_CASES: [RegExp, string][] = [
 
 const PT_LOGO_KEY_OVERRIDES: Record<string, string> = {
   ageth: "pt-ageth",
+  avusd: "pt-avusd",
   berastone: "pt-berastone",
+  cusd: "pt-cusd",
   lbtc: "pt-lbtc",
+  nusd: "snusd",
+  sbold: "bold",
+  siusd: "iusd",
+  snusd: "snusd",
+  usdg: "pt-usdg",
   susde: "pt-susde",
   teth: "pt-teth",
   usde: "pt-usde",
@@ -225,6 +265,7 @@ const PT_HYPHENATED_PATTERN = /(?:^|[/\s])(?:e)?PT-([^/\s]+)/i;
 const PT_SPACED_PATTERN = /\bPT\s+([A-Za-z0-9.+]+)(?:\s+vault\b|\s+\d|$)/i;
 const PT_SEGMENT_PATTERN = /(?:^|\s)(?:e)?PT[-\s]/i;
 const TERM_ASSET_PATTERN = /^l([A-Za-z0-9.+]+)-\d+[dwmy]$/i;
+const WRAPPED_LP_PATTERN = /^wrapped-lp-([a-z0-9.+-]+)-\d{1,2}[a-z]{3}\d{4}$/i;
 
 function isNormalizedTokenLike(value: string, maxLength = 14): boolean {
   return (
@@ -258,11 +299,25 @@ function getBrandedAssetLogoKey(name: string): string | null {
   const exact = EXACT_ASSET_LOGO_KEYS[compact.toLowerCase()];
   if (exact) return exact;
 
+  const wrappedLp = compact.match(WRAPPED_LP_PATTERN)?.[1];
+  if (wrappedLp) {
+    const wrappedLpPt = `lp-${normalizeLogoKey(wrappedLp)}`;
+    if (ASSET_LOGO_KEYS.has(wrappedLpPt)) return wrappedLpPt;
+
+    const wrappedLpExact = EXACT_ASSET_LOGO_KEYS[wrappedLp.toLowerCase()];
+    if (wrappedLpExact) return wrappedLpExact;
+
+    const wrappedLpKey = getAssetCandidateKey(wrappedLp);
+    if (wrappedLpKey) return wrappedLpKey;
+  }
+
   const colonCandidate = compact.split(":").at(-1)?.trim() ?? "";
   const exactColon = EXACT_ASSET_LOGO_KEYS[colonCandidate.toLowerCase()];
   if (exactColon) return exactColon;
-  const colonKey = getAssetCandidateKey(colonCandidate);
-  if (colonKey) return colonKey;
+  if (!/\s/.test(colonCandidate)) {
+    const colonKey = getAssetCandidateKey(colonCandidate);
+    if (colonKey) return colonKey;
+  }
 
   const words = compact
     .split(/[\s/()]+/)
@@ -300,6 +355,26 @@ function getInferredAssetLogoPath(name: string): string | null {
   return key ? getAssetLogoPath(key) : null;
 }
 
+function getPtSpecificLogos(name: string): string[] | null {
+  const ptMarketLogos = getPtMarketLogos(name);
+  if (ptMarketLogos) return ptMarketLogos;
+
+  const ptLogo = getPtFamilyLogoPath(name);
+  if (ptLogo && /^pt[-\s]/i.test(name.trim())) {
+    return [ptLogo];
+  }
+
+  return null;
+}
+
+function getLogoPathsFromKeys(logoKeys: string[]): string[] {
+  return logoKeys
+    .map((key) => getBrandedAssetLogoPath(key) ?? getAssetLogoPath(key))
+    .filter(
+      (path): path is string => typeof path === "string" && path.length > 0,
+    );
+}
+
 function normalizePtFamilyKey(value: string): string {
   return value
     .trim()
@@ -310,9 +385,10 @@ function normalizePtFamilyKey(value: string): string {
 function stripPtDateSuffix(value: string): string {
   return value
     .trim()
+    .replace(/\([^)]*\)$/g, "")
+    .replace(/-$/g, "")
     .replace(/-\d{1,2}[A-Z]{3}\d{4}(?:-\d+)?$/i, "")
     .replace(/-\d{4}\/\d{2}\/\d{2}$/i, "")
-    .replace(/\([^)]*\)$/g, "")
     .replace(/-\d+$/i, "")
     .trim();
 }
@@ -320,6 +396,9 @@ function stripPtDateSuffix(value: string): string {
 function getPtLogoKey(name: string): string | null {
   const compact = name.trim().replace(/\s+/g, " ");
   if (!compact) return null;
+
+  const exactPtNameKey = normalizeLogoKey(compact);
+  if (ASSET_LOGO_KEYS.has(exactPtNameKey)) return exactPtNameKey;
 
   for (const [pattern, key] of PT_SPECIAL_CASES) {
     if (pattern.test(compact)) return key;
@@ -334,9 +413,14 @@ function getPtLogoKey(name: string): string | null {
   const family = normalizePtFamilyKey(stripPtDateSuffix(rawFamily));
   if (!family) return null;
 
+  if (family.startsWith("yvvbusdc")) return "yvvbusdc";
+
+  const exactPtFamilyKey = `pt-${family}`;
+  if (ASSET_LOGO_KEYS.has(exactPtFamilyKey)) return exactPtFamilyKey;
+
   return (
     PT_LOGO_KEY_OVERRIDES[family] ??
-    (PT_REUSABLE_LOGO_KEYS.has(family) ? family : GENERIC_PT_LOGO_KEY)
+    (PT_REUSABLE_LOGO_KEYS.has(family) ? family : null)
   );
 }
 
@@ -348,18 +432,52 @@ function getPtFamilyLogoPath(name: string): string | null {
   return path || null;
 }
 
-function getPtMarketLogos(name: string): string[] | null {
-  const parts = name.split("/");
-  if (parts.length !== 2) return null;
+function splitMarketPair(name: string): [string, string] | null {
+  const separatorIndex = name.indexOf("/");
+  if (separatorIndex <= 0 || separatorIndex >= name.length - 1) return null;
 
-  const [baseRaw, quoteRaw] = parts.map((part) => part.trim());
+  const base = name.slice(0, separatorIndex).trim();
+  const quote = name.slice(separatorIndex + 1).trim();
+  return base && quote ? [base, quote] : null;
+}
+
+function getGeneratedAssetBadgePath(label: string): string {
+  const normalized = normalizeLogoKey(label) || "asset";
+  const cleanedLabel = label.replace(/[^A-Za-z0-9+.-]+/g, "").toUpperCase();
+  const text = (cleanedLabel || normalized.toUpperCase()).slice(0, 3);
+  let hash = 0;
+  for (const char of normalized) hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  const background = `hsl(${hash} 65% 46%)`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${background}"/><text x="32" y="37" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" text-anchor="middle">${text}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function getAssetLikeLogoPath(label: string): string {
+  const brandedPath = getBrandedAssetLogoPath(label);
+  if (brandedPath) return brandedPath;
+
+  const inferredPath = getInferredAssetLogoPath(label);
+  if (inferredPath) return inferredPath;
+
+  if (PT_SEGMENT_PATTERN.test(label)) {
+    return getPtFamilyLogoPath(label) ?? "";
+  }
+
+  const normalized = normalizeLogoKey(label);
+  return isNormalizedTokenLike(normalized, 20)
+    ? getGeneratedAssetBadgePath(label)
+    : "";
+}
+
+function getPtMarketLogos(name: string): string[] | null {
+  const parts = splitMarketPair(name);
+  if (!parts) return null;
+
+  const [baseRaw, quoteRaw] = parts;
   if (!baseRaw || !quoteRaw) return null;
 
-  const isTokenLike = (value: string): boolean => {
-    return isNormalizedTokenLike(normalizeLogoKey(value));
-  };
-
-  const baseLogo = isTokenLike(baseRaw) ? getAssetLogoPath(baseRaw) : "";
+  const baseLogo = getAssetLikeLogoPath(baseRaw);
+  const quoteLogo = getAssetLikeLogoPath(quoteRaw);
 
   if (PT_SEGMENT_PATTERN.test(quoteRaw)) {
     const ptLogo = getPtFamilyLogoPath(quoteRaw);
@@ -368,14 +486,11 @@ function getPtMarketLogos(name: string): string[] | null {
 
   if (PT_SEGMENT_PATTERN.test(baseRaw)) {
     const ptLogo = getPtFamilyLogoPath(baseRaw);
-    const quoteLogo = isTokenLike(quoteRaw) ? getAssetLogoPath(quoteRaw) : "";
     if (ptLogo && quoteLogo) return [ptLogo, quoteLogo];
   }
 
-  const baseBrandedLogo = getBrandedAssetLogoPath(baseRaw);
-  const quoteBrandedLogo = getBrandedAssetLogoPath(quoteRaw);
-  if (baseBrandedLogo && quoteBrandedLogo) {
-    return [baseBrandedLogo, quoteBrandedLogo];
+  if (baseLogo && quoteLogo) {
+    return [baseLogo, quoteLogo];
   }
 
   return null;
@@ -399,6 +514,7 @@ const PROTOCOL_LOGO_KEYS = new Set<string>([
   "midas",
   "morpho",
   "okx",
+  "pendle",
   "prime-broker",
   "resolv",
   "safe",
@@ -508,7 +624,14 @@ export function hasChainLogo(chain?: string | null): chain is string {
 }
 
 export function getNodeLogoPath(
-  node: GraphNode | { name: string; protocol?: string | null },
+  node:
+    | GraphNode
+    | {
+        name: string;
+        protocol?: string | null;
+        displayName?: string;
+        logoKeys?: string[];
+      },
 ): string | null {
   const logos = getNodeLogos(node);
   return logos.length > 0 ? logos[0] : null;
@@ -521,9 +644,16 @@ export function getNodeLogoPath(
 export function getNodeLogos(
   node:
     | GraphNode
-    | { name: string; protocol?: string | null; logoKeys?: string[] },
+    | {
+        name: string;
+        protocol?: string | null;
+        displayName?: string;
+        logoKeys?: string[];
+      },
 ): string[] {
-  const logos: string[] = [];
+  const name = node.name.trim();
+  const lowerName = name.toLowerCase();
+  const normalizedAssetName = normalizeLogoKey(name);
 
   const logoKeys = (() => {
     if (typeof node !== "object" || node == null) return null;
@@ -540,16 +670,19 @@ export function getNodeLogos(
       return normalized === "pt" || normalized === "pendle";
     });
 
+    const ptSpecificLogos = getPtSpecificLogos(node.name);
+    if (ptSpecificLogos && !hasOnlyGenericPtLogoKeys) return ptSpecificLogos;
+
     if (hasOnlyGenericPtLogoKeys) {
-      const ptLogo = getPtFamilyLogoPath(node.name);
-      if (ptLogo) return [ptLogo];
+      if (ptSpecificLogos) return ptSpecificLogos;
     }
 
-    const paths = logoKeys
-      .map((k) => getAssetLogoPath(k))
-      .filter((p) => typeof p === "string" && p.length > 0);
+    const paths = getLogoPathsFromKeys(logoKeys);
     if (paths.length > 0) return paths;
   }
+
+  const ptSpecificLogos = getPtSpecificLogos(name);
+  if (ptSpecificLogos) return ptSpecificLogos;
 
   const underlyingSymbol = (() => {
     if (typeof node !== "object" || node == null) return null;
@@ -579,10 +712,6 @@ export function getNodeLogos(
     const assetLogo = getInferredAssetLogoPath(displayName);
     if (assetLogo) return [assetLogo];
   }
-
-  const name = node.name.trim();
-  const lowerName = name.toLowerCase();
-  const normalizedAssetName = normalizeLogoKey(name);
 
   const chainLogoPath =
     CHAIN_LOGO_KEYS.has(normalizeChainKey(name)) &&
@@ -628,16 +757,14 @@ export function getNodeLogos(
   }
 
   // 2. Check for lending market pattern in name (e.g. "WETH/USDC" or "WETH-USDC")
-  const ptMarketLogos = getPtMarketLogos(name);
-  if (ptMarketLogos) return ptMarketLogos;
-
-  const slashParts = name.split("/");
-  if (slashParts.length === 2) {
+  const slashParts = splitMarketPair(name);
+  if (slashParts) {
     const [base, quote] = slashParts;
     if (isTokenLike(base) && isTokenLike(quote)) {
-      const paths = [getAssetLogoPath(base), getAssetLogoPath(quote)].filter(
-        (path): path is string => path.length > 0,
-      );
+      const paths = [
+        getAssetLikeLogoPath(base),
+        getAssetLikeLogoPath(quote),
+      ].filter((path): path is string => path.length > 0);
       if (paths.length > 0) return paths;
     }
   }
@@ -663,7 +790,7 @@ export function getNodeLogos(
     return [getProtocolLogoPath(node.protocol)];
   }
 
-  return logos;
+  return [];
 }
 
 export function getFallbackMonogram(text: string): string {
