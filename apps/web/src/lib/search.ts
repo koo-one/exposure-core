@@ -25,6 +25,11 @@ export interface DropdownGroup {
 const normalizeText = (value: string | null | undefined): string =>
   (value ?? "").trim().toLowerCase();
 
+const normalizeSelectedProtocol = (value: string): string => {
+  const normalized = normalizeText(value);
+  return normalized === "all" ? normalized : canonicalizeProtocolToken(value);
+};
+
 const shouldGroupAcrossChains = (protocol: string): boolean => {
   const value = normalizeText(protocol);
   return !value.startsWith("morpho") && !value.startsWith("euler");
@@ -67,7 +72,7 @@ export const buildCuratorOptions = (
   selectedProtocol: string,
   selectedChain: string,
 ): { label: string; value: string }[] => {
-  const normalizedProtocol = normalizeText(selectedProtocol);
+  const normalizedProtocol = normalizeSelectedProtocol(selectedProtocol);
   const normalizedChain = normalizeText(selectedChain);
   const set = new Set<string>();
 
@@ -104,7 +109,9 @@ export const filterSearchEntries = (
     query: string;
   },
 ): PreparedSearchIndexEntry[] => {
-  const normalizedProtocol = normalizeText(filters.selectedProtocol);
+  const normalizedProtocol = normalizeSelectedProtocol(
+    filters.selectedProtocol,
+  );
   const normalizedChain = normalizeText(filters.selectedChain);
   const normalizedQuery = normalizeText(filters.query);
 
@@ -225,6 +232,7 @@ export const buildDropdownResults = (
     if (nextTvl > primaryTvl) {
       existing.primary = entry;
       existing.displayName = entry.displayName;
+      existing.logoKeys = entry.logoKeys;
     }
   }
 
