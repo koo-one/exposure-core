@@ -2,7 +2,11 @@ import { head } from "@vercel/blob";
 
 import type { SearchIndexEntry } from "@/constants";
 
-import { graphProtocolBlobPath, searchIndexBlobPath } from "@/lib/blobPaths";
+import {
+  graphProtocolBlobPath,
+  protocolToFolder,
+  searchIndexBlobPath,
+} from "@/lib/blobPaths";
 
 export const getBlobUploadedAt = async (
   pathname: string,
@@ -45,7 +49,7 @@ export const listGraphProtocolBlobPaths = async (): Promise<string[]> => {
       const protocol = (entry as Partial<SearchIndexEntry>).protocol;
       if (!protocol || typeof protocol !== "string") continue;
 
-      const normalizedProtocol = protocol.trim().toLowerCase();
+      const normalizedProtocol = protocolToFolder(protocol);
       if (!normalizedProtocol) continue;
 
       protocols.add(graphProtocolBlobPath(normalizedProtocol));
