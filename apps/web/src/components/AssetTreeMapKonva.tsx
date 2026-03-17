@@ -134,9 +134,10 @@ const TILE_STYLE = {
     selectionFill: "rgba(0, 0, 0, 0.08)",
     innerBorder: "#000000",
     innerText: "rgba(0,0,0,0.6)",
-    badgeBackground: "rgba(74,210,128,0.16)",
-    badgeBackgroundHover: "rgba(255,255,255,0.26)",
-    badgeTextHover: "rgba(255,255,255,0.88)",
+    badgeBackground: "rgba(15,23,42,0.14)",
+    badgeBackgroundHover: "rgba(15,23,42,0.88)",
+    badgeText: "rgba(15,23,42,0.92)",
+    badgeTextHover: "rgba(255,255,255,0.96)",
   },
   textMeasure: {
     labelCharWidth: 6.6,
@@ -277,8 +278,9 @@ const computeTileHeaderLayout = ({
 
   const logoSize = logo.size;
   const rowHeight = logoCount > 0 && width > 92 ? logoSize : fontSize + 2;
-  const badgeHeight = 10;
-  const badgeGap = 1;
+  const badgeHeight = 15;
+  const badgeGap = 2;
+  const badgeHorizontalPadding = 8;
   const contentStackHeight =
     rowHeight + (canShowSecondary ? badgeGap + badgeHeight : 0);
 
@@ -310,6 +312,7 @@ const computeTileHeaderLayout = ({
 
   const labelX = paddingX + logoAreaWidth;
   const valueX = labelX + actualLabelWidth + valueGap;
+  const maxBadgeWidth = Math.max(0, totalContentWidth - logoAreaWidth);
 
   return {
     height: finalHeaderHeight,
@@ -339,8 +342,9 @@ const computeTileHeaderLayout = ({
       x: labelX,
       y: stackTop + rowHeight + badgeGap,
       width: Math.min(
-        Math.max(42, secondaryLabel.length * 5.5 + 10),
-        totalContentWidth - logoAreaWidth,
+        secondaryLabel.length * TILE_STYLE.textMeasure.labelCharWidth +
+          badgeHorizontalPadding * 2,
+        maxBadgeWidth,
       ),
     },
   };
@@ -383,6 +387,99 @@ const computeNestedLayout = ({
     children: root.children || [],
     othersCount: Math.max(0, items.length - TILE_STYLE.nested.maxItems),
   };
+};
+
+const placeOthersTileAtBottomRight = (
+  root: d3.HierarchyRectangularNode<TreemapTileDatum>,
+) => {
+  const children = root.children ?? [];
+  const othersNode = children.find((child) => child.data.isOthers);
+  if (!othersNode) return root;
+
+  const width = Math.max(0, Math.round(root.x1 - root.x0));
+  const height = Math.max(0, Math.round(root.y1 - root.y0));
+  const remainingItems = children.filter((child) => child !== othersNode);
+  if (width === 0 || height === 0 || remainingItems.length === 0) return root;
+
+  const totalValue = children.reduce(
+    (sum, child) => sum + Math.max(0, child.value || 0),
+    0,
+  );
+  const othersValue = Math.max(0, othersNode.value || 0);
+  if (totalValue <= 0 || othersValue <= 0 || othersValue >= totalValue) {
+    return root;
+  }
+
+  const othersArea = (othersValue / totalValue) * width * height;
+  const rightColumnWidth = Math.max(
+    1,
+    Math.min(width - 1, Math.round(othersArea / height)),
+  );
+  const bottomRowHeight = Math.max(
+    1,
+    Math.min(height - 1, Math.round(othersArea / width)),
+  );
+  const rightColumnAspect = Math.max(
+    rightColumnWidth / height,
+    height / rightColumnWidth,
+  );
+  const bottomRowAspect = Math.max(
+    width / bottomRowHeight,
+    bottomRowHeight / width,
+  );
+  const useRightColumn = rightColumnAspect <= bottomRowAspect;
+
+  const othersBounds = useRightColumn
+    ? {
+        x0: root.x1 - rightColumnWidth,
+        x1: root.x1,
+        y0: root.y0,
+        y1: root.y1,
+      }
+    : {
+        x0: root.x0,
+        x1: root.x1,
+        y0: root.y1 - bottomRowHeight,
+        y1: root.y1,
+      };
+  const remainingWidth = useRightColumn ? width - rightColumnWidth : width;
+  const remainingHeight = useRightColumn ? height : height - bottomRowHeight;
+
+  if (remainingWidth <= 0 || remainingHeight <= 0) return root;
+
+  const remainingHierarchy = d3
+    .hierarchy<{ children: TreemapTileDatum[] } | TreemapTileDatum>({
+      children: remainingItems.map((child) => child.data),
+    })
+    .sum((d) => ("children" in d ? 0 : d.value))
+    .sort((a, b) => (b.value || 0) - (a.value || 0));
+  const remainingRoot = d3
+    .treemap<{ children: TreemapTileDatum[] } | TreemapTileDatum>()
+    .size([remainingWidth, remainingHeight])
+    .padding(0)
+    .round(true)(remainingHierarchy);
+  const layoutByNodeId = new Map(
+    (remainingRoot.children || []).map((child) => [
+      (child.data as TreemapTileDatum).nodeId,
+      child,
+    ]),
+  );
+
+  for (const child of remainingItems) {
+    const layoutNode = layoutByNodeId.get(child.data.nodeId);
+    if (!layoutNode) continue;
+    child.x0 = root.x0 + layoutNode.x0;
+    child.x1 = root.x0 + layoutNode.x1;
+    child.y0 = root.y0 + layoutNode.y0;
+    child.y1 = root.y0 + layoutNode.y1;
+  }
+
+  othersNode.x0 = othersBounds.x0;
+  othersNode.x1 = othersBounds.x1;
+  othersNode.y0 = othersBounds.y0;
+  othersNode.y1 = othersBounds.y1;
+
+  return root;
 };
 
 const AssetLogo = React.memo(
@@ -461,12 +558,15 @@ const TileHeaderBadge = React.memo(
     width: number;
     isHovered: boolean;
   }) => {
+    const textInset = Math.min(8, width / 2);
+    const textWidth = Math.max(0, width - textInset * 2);
+
     return (
       <Group x={x} y={y} listening={false}>
         <Rect
           width={width}
-          height={10}
-          cornerRadius={5}
+          height={15}
+          cornerRadius={7.5}
           fill={
             isHovered
               ? TILE_STYLE.colors.badgeBackgroundHover
@@ -475,23 +575,23 @@ const TileHeaderBadge = React.memo(
         />
         <Text
           text={text}
-          x={0}
-          y={2}
-          width={width}
-          height={8}
+          x={textInset}
+          y={0}
+          width={textWidth}
+          height={15}
           align="center"
           verticalAlign="middle"
           ellipsis
           wrap="none"
-          fontSize={7}
+          fontSize={11}
           fontFamily={TILE_STYLE.fontFamily}
           fill={
             isHovered
               ? TILE_STYLE.colors.badgeTextHover
-              : TILE_STYLE.colors.innerText
+              : TILE_STYLE.colors.badgeText
           }
           fontStyle="bold"
-          letterSpacing={-0.1}
+          letterSpacing={-0.15}
           listening={false}
         />
       </Group>
@@ -837,15 +937,22 @@ const TreemapTileKonva = React.memo(
               availH > TILE_STYLE.nested.othersLabelMinHeight && (
                 <Text
                   text={`+${nestedLayout.othersCount} OTHERS`}
-                  x={availW - TILE_STYLE.nested.othersLabelOffsetX}
-                  y={availH - TILE_STYLE.nested.othersLabelOffsetY}
+                  x={Math.max(
+                    TILE_STYLE.nested.labelInset,
+                    availW -
+                      TILE_STYLE.nested.othersLabelWidth -
+                      TILE_STYLE.nested.labelInset,
+                  )}
+                  y={Math.max(TILE_STYLE.nested.labelInset, availH - 9)}
                   width={TILE_STYLE.nested.othersLabelWidth}
+                  height={9}
                   fontSize={7}
                   fontFamily={TILE_STYLE.fontFamily}
                   fill={TILE_STYLE.colors.innerText}
                   fontStyle="bold"
                   letterSpacing={TILE_STYLE.nested.labelLetterSpacing}
                   align="right"
+                  verticalAlign="bottom"
                   listening={false}
                 />
               )}
@@ -890,11 +997,13 @@ export function AssetTreeMapKonva({
       .sum((d) => d.value)
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
-    return d3
-      .treemap<TreemapTileDatum>()
-      .size([stageWidth, stageHeight])
-      .padding(0)
-      .round(true)(hierarchy);
+    return placeOthersTileAtBottomRight(
+      d3
+        .treemap<TreemapTileDatum>()
+        .size([stageWidth, stageHeight])
+        .padding(0)
+        .round(true)(hierarchy),
+    );
   }, [data, stageWidth, stageHeight]);
 
   const [dpr, setDpr] = useState(1);

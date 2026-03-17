@@ -244,7 +244,9 @@ export function AppHeader({
                       logoKeys: primary.logoKeys ?? group.logoKeys,
                     }).slice(0, 2);
                     const chainLabel = buildChainLabel(group.chains);
-                    const rowName = group.displayName || group.name;
+                    // Keep dropdown rows pinned to full node names; `displayName`
+                    // can collapse to a token symbol and must not replace it here.
+                    const rowName = group.name || group.displayName || "-";
                     const tvlLabel =
                       typeof group.totalTvlUsd === "number"
                         ? new Intl.NumberFormat("en-US", {
