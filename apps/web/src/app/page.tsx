@@ -396,6 +396,35 @@ function HomeInner() {
     [router, searchParams],
   );
 
+  const navigateToAsset = useCallback(
+    (
+      asset: Pick<SearchIndexEntry, "id" | "chain" | "protocol">,
+      mode: "push" | "replace",
+      history: string[] = [],
+    ) => {
+      updateParams(
+        {
+          id: asset.id,
+          assetChain: asset.chain,
+          assetProtocol: asset.protocol,
+          focus: null,
+          focusTrail: null,
+          others: null,
+          history: history.length > 0 ? history.join(",") : null,
+          q: "",
+        },
+        mode,
+      );
+    },
+    [updateParams],
+  );
+
+  const getRandomAsset = useCallback((): SearchIndexEntry | null => {
+    if (dynamicIndex.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * dynamicIndex.length);
+    return dynamicIndex[randomIndex] ?? null;
+  }, [dynamicIndex]);
+
   useEffect(() => {
     setSearchQuery(urlQuery);
   }, [urlQuery]);
@@ -473,45 +502,29 @@ function HomeInner() {
     [filteredResults],
   );
 
-  const topAsset = useMemo(() => {
-    if (dynamicIndex.length === 0) return null;
-    return [...dynamicIndex].sort(
-      (a, b) => (b.tvlUsd ?? 0) - (a.tvlUsd ?? 0),
-    )[0];
-  }, [dynamicIndex]);
+  const onRandom = useCallback(() => {
+    const asset = getRandomAsset();
+    if (!asset) return;
+    navigateToAsset(asset, "push");
+  }, [getRandomAsset, navigateToAsset]);
 
   useEffect(() => {
-    if (!activeAssetId || activeAsset || dynamicIndex.length === 0) {
+    if (activeAsset || dynamicIndex.length === 0) {
       return;
     }
 
-    if (topAsset) {
-      updateParams(
-        {
-          id: topAsset.id,
-          assetChain: topAsset.chain,
-          assetProtocol: topAsset.protocol,
-          focus: null,
-          focusTrail: null,
-          others: null,
-        },
-        "replace",
-      );
-      return;
+    if (!activeAssetId) {
+      const randomAsset = getRandomAsset();
+      if (!randomAsset) return;
+      navigateToAsset(randomAsset, "replace");
     }
-
-    updateParams(
-      {
-        id: null,
-        assetChain: null,
-        assetProtocol: null,
-        focus: null,
-        focusTrail: null,
-        others: null,
-      },
-      "replace",
-    );
-  }, [activeAsset, activeAssetId, dynamicIndex.length, topAsset, updateParams]);
+  }, [
+    activeAsset,
+    activeAssetId,
+    dynamicIndex.length,
+    getRandomAsset,
+    navigateToAsset,
+  ]);
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
@@ -529,6 +542,7 @@ function HomeInner() {
         curators={curators}
         dropdownResults={dropdownResults}
         buildChainLabel={buildChainLabel}
+        onRandom={onRandom}
       />
 
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
@@ -536,19 +550,7 @@ function HomeInner() {
           asset={requestedAsset || topAsset}
           focus={activeFocus}
           onSelectAsset={(id, chain, protocol, history) =>
-            updateParams(
-              {
-                id,
-                assetChain: chain,
-                assetProtocol: protocol,
-                focus: null,
-                focusTrail: null,
-                others: null,
-                history: history.length > 0 ? history.join(",") : null,
-                q: "",
-              },
-              "push",
-            )
+            navigateToAsset({ id, chain, protocol }, "push", history)
           }
         />
       </main>
