@@ -457,48 +457,53 @@ export default function AssetPage() {
         buildChainLabel={buildChainLabel}
       />
 
-      <div className="bg-black/[0.02] border-b border-black/5 px-10 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-12">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg font-semibold text-black tracking-[0.03em]">
-                {pageTitle}
-              </h1>
-              {activeNodeTypeLabel && (
-                <div className={typeBadgeClassName} title={activeNodeTypeLabel}>
-                  {activeNodeTypeLabel}
-                </div>
-              )}
-              {chainLogoPath && (
-                <Image
-                  src={chainLogoPath}
-                  alt={chain || ""}
-                  width={16}
-                  height={16}
-                  className="object-contain"
-                />
-              )}
+      <div className="border-b border-black/5 bg-black/[0.02]">
+        <div className="app-content-frame flex items-center justify-between px-10 py-4">
+          <div className="flex items-center gap-12">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-4">
+                <h1 className="text-lg font-semibold text-black tracking-[0.03em]">
+                  {pageTitle}
+                </h1>
+                {activeNodeTypeLabel && (
+                  <div
+                    className={typeBadgeClassName}
+                    title={activeNodeTypeLabel}
+                  >
+                    {activeNodeTypeLabel}
+                  </div>
+                )}
+                {chainLogoPath && (
+                  <Image
+                    src={chainLogoPath}
+                    alt={chain || ""}
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          {origin && (
-            <Link
-              href={`/asset/${encodeURIComponent(origin)}`}
-              className="flex items-center gap-2 px-3 py-2 bg-black text-white text-[9px] font-semibold tracking-[0.05em] rounded hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
-            >
-              <RotateCcw className="w-3 h-3 group-hover:rotate-[-45deg] transition-transform" />{" "}
-              Reset to Origin
-            </Link>
-          )}
-          <button className="p-2 border border-black rounded hover:bg-black hover:text-white transition-all">
-            <Activity className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-4">
+            {origin && (
+              <Link
+                href={`/asset/${encodeURIComponent(origin)}`}
+                className="flex items-center gap-2 px-3 py-2 bg-black text-white text-[9px] font-semibold tracking-[0.05em] rounded hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
+              >
+                <RotateCcw className="w-3 h-3 group-hover:rotate-[-45deg] transition-transform" />{" "}
+                Reset to Origin
+              </Link>
+            )}
+            <button className="p-2 border border-black rounded hover:bg-black hover:text-white transition-all">
+              <Activity className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <main className="flex-grow flex flex-col min-h-0 px-6 md:px-24 lg:px-40 py-12">
+      <main className="app-content-frame flex-grow flex flex-col min-h-0 px-6 py-12">
         <div className="flex min-h-0 flex-grow flex-col gap-4">
           <BreadcrumbTrail items={breadcrumbs} />
 

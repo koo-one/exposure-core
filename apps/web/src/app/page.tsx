@@ -535,7 +535,7 @@ function HomeInner() {
         onRandom={onRandom}
       />
 
-      <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
+      <main className="app-content-frame flex-grow flex flex-col px-6 py-12">
         <UniversalTreemapView
           asset={renderAsset}
           focus={activeFocus}
@@ -544,14 +544,6 @@ function HomeInner() {
           }
         />
       </main>
-
-      <footer className="p-12 border-t border-black/[0.03] bg-black/[0.01]">
-        <div className="max-w-[1400px] mx-auto flex flex-col items-center gap-6">
-          <p className="text-[10px] font-semibold text-black/30 tracking-[0.08em] text-center">
-            Paradigm Risk Intelligence // Dynamic Index Monitoring Active
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -24,6 +24,17 @@ body {
   font-family: var(--font-geist-mono), monospace;
 }
 
+.app-content-frame {
+  width: min(calc(100vw - 2rem), 1280px);
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .app-content-frame {
+    width: min(calc(100vw - 3rem), 1280px);
+  }
+}
+
 /* SVG treemap tile interactions */
 .exposure-tile {
   touch-action: manipulation;
