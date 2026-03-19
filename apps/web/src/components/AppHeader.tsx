@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { SNAPSHOT_TIME_HEADER } from "@/constants";
 import type { DropdownGroup } from "@/lib/search";
+import { formatUiLabel } from "@/utils/formatters";
 import {
   hasProtocolLogo,
   getProtocolLogoPath,
@@ -215,10 +216,10 @@ export function AppHeader({
           <Activity className="text-[#00FF85] w-4 h-4" />
         </div>
         <div className="flex flex-col -gap-1">
-          <span className="font-black tracking-tighter uppercase leading-none text-lg">
+          <span className="text-lg font-black tracking-[0.01em] leading-none">
             Exposure
           </span>
-          <span className="text-[7px] font-bold text-black/30 uppercase tracking-[0.2em]">
+          <span className="text-[7px] font-semibold text-black/35 tracking-[0.06em]">
             Risk Registry
           </span>
         </div>
@@ -235,9 +236,9 @@ export function AppHeader({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onFocus={() => setIsSearchDropdownOpen(true)}
-            className="w-full pl-11 pr-12 py-2.5 bg-black/[0.02] border border-black/5 rounded-full font-bold uppercase tracking-tight focus:outline-none focus:border-black/10 focus:ring-4 focus:ring-black/[0.01] transition-all placeholder:text-black/10 text-[11px]"
+            className="w-full pl-11 pr-12 py-2.5 bg-black/[0.02] border border-black/5 rounded-full font-semibold tracking-[0.02em] focus:outline-none focus:border-black/10 focus:ring-4 focus:ring-black/[0.01] transition-all placeholder:text-black/20 text-[11px]"
           />
-          <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 items-center gap-1.5 px-1.5 py-1 bg-black/5 border border-black/5 rounded text-[8px] font-black text-black/40 uppercase pointer-events-none">
+          <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 items-center gap-1.5 px-1.5 py-1 bg-black/5 border border-black/5 rounded text-[8px] font-semibold text-black/40 tracking-[0.04em] pointer-events-none">
             <Command className="w-2 h-2" /> K
           </div>
 
@@ -302,20 +303,20 @@ export function AppHeader({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[10px] font-black uppercase tracking-tight group-hover/item:text-[#00FF85] transition-colors truncate">
+                            <div className="text-[10px] font-semibold tracking-[0.03em] group-hover/item:text-[#00FF85] transition-colors truncate">
                               {rowName}
                             </div>
-                            <div className="text-[8px] font-bold text-black/30 uppercase tracking-widest truncate">
-                              {group.protocol} • {chainLabel}
+                            <div className="text-[8px] font-medium text-black/40 tracking-[0.04em] truncate">
+                              {formatUiLabel(group.protocol)} • {chainLabel}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="text-right">
-                            <div className="text-[7px] font-black text-black/20 uppercase">
+                            <div className="text-[7px] font-semibold text-black/35 tracking-[0.04em]">
                               TVL
                             </div>
-                            <div className="text-[9px] font-black text-black/70 font-mono">
+                            <div className="text-[9px] font-semibold text-black/70 font-mono">
                               {tvlLabel}
                             </div>
                           </div>
@@ -326,8 +327,8 @@ export function AppHeader({
                   })
                 ) : (
                   <div className="p-6 text-center">
-                    <p className="text-[9px] font-bold text-black/30 uppercase tracking-widest">
-                      No matching assets
+                    <p className="text-[9px] font-semibold text-black/35 tracking-[0.05em]">
+                      No Matching Assets
                     </p>
                   </div>
                 )}
@@ -339,7 +340,7 @@ export function AppHeader({
         {onRandom ? (
           <button
             onClick={onRandom}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-black/10 hover:border-black/30 bg-white text-black transition-all duration-200 text-[10px] font-black uppercase tracking-widest active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-black/10 hover:border-black/30 bg-white text-black transition-all duration-200 text-[10px] font-semibold tracking-[0.04em] active:scale-95"
             title="Pick a random asset"
           >
             <Dices className="w-3.5 h-3.5" />
@@ -352,7 +353,7 @@ export function AppHeader({
           <button
             onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 text-[10px] font-black uppercase tracking-widest",
+              "flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 text-[10px] font-semibold tracking-[0.04em]",
               hasActiveFilters || isFilterDropdownOpen
                 ? "bg-black text-white border-black shadow-lg shadow-black/10"
                 : "bg-white border-black/10 hover:border-black/30 text-black",
@@ -373,7 +374,7 @@ export function AppHeader({
           {isFilterDropdownOpen && (
             <div className="absolute top-full right-0 mt-3 w-72 bg-white border border-black shadow-2xl rounded-2xl p-5 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">
+                <h3 className="text-[10px] font-semibold tracking-[0.05em] text-black/45">
                   Query Filters
                 </h3>
                 <button
@@ -386,7 +387,7 @@ export function AppHeader({
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                  <label className="text-[8px] font-semibold tracking-[0.05em] text-black/35">
                     Protocol Selection
                   </label>
                   <FilterPill
@@ -412,7 +413,7 @@ export function AppHeader({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                  <label className="text-[8px] font-semibold tracking-[0.05em] text-black/35">
                     Chain Network
                   </label>
                   <FilterPill
@@ -437,7 +438,7 @@ export function AppHeader({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                  <label className="text-[8px] font-semibold tracking-[0.05em] text-black/35">
                     APY Range (%)
                   </label>
                   <div className="flex items-center gap-2 p-2 border border-black/10 rounded-xl bg-black/[0.01]">
@@ -446,7 +447,7 @@ export function AppHeader({
                       placeholder="MIN"
                       value={apyMin}
                       onChange={(e) => updateParams({ apyMin: e.target.value })}
-                      className="w-full bg-transparent text-[10px] font-bold uppercase tracking-widest focus:outline-none text-center"
+                      className="w-full bg-transparent text-[10px] font-semibold tracking-[0.04em] focus:outline-none text-center"
                     />
                     <div className="w-px h-3 bg-black/10" />
                     <input
@@ -454,13 +455,13 @@ export function AppHeader({
                       placeholder="MAX"
                       value={apyMax}
                       onChange={(e) => updateParams({ apyMax: e.target.value })}
-                      className="w-full bg-transparent text-[10px] font-bold uppercase tracking-widest focus:outline-none text-center"
+                      className="w-full bg-transparent text-[10px] font-semibold tracking-[0.04em] focus:outline-none text-center"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                  <label className="text-[8px] font-semibold tracking-[0.05em] text-black/35">
                     Risk Curator
                   </label>
                   <FilterPill
@@ -484,7 +485,7 @@ export function AppHeader({
                       });
                       setIsFilterDropdownOpen(false);
                     }}
-                    className="text-[8px] font-black uppercase tracking-widest text-black/40 hover:text-black transition-colors"
+                    className="text-[8px] font-semibold tracking-[0.05em] text-black/45 hover:text-black transition-colors"
                   >
                     Reset All Filters
                   </button>
@@ -498,12 +499,12 @@ export function AppHeader({
       {/* Status - Right */}
       <div className="hidden lg:flex items-center gap-4 shrink-0">
         <div className="flex flex-col items-end">
-          <span className="text-[8px] font-black text-black/20 uppercase tracking-widest leading-none mb-1">
+          <span className="text-[8px] font-semibold text-black/35 tracking-[0.05em] leading-none mb-1">
             Graph Data Snapshot (UTC)
           </span>
           <div className="flex items-center gap-1.5">
             <div className="w-1 h-1 rounded-full bg-amber-400" />
-            <span className="text-[9px] font-bold uppercase tracking-tight text-black/60">
+            <span className="text-[9px] font-semibold tracking-[0.03em] text-black/60">
               {snapshotTime || "—"}
             </span>
           </div>

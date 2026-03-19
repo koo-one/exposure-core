@@ -2,7 +2,12 @@
 
 import React from "react";
 import { ChevronRight, ShieldCheck, ExternalLink } from "lucide-react";
-import { currencyFormatter, percentFormatter } from "@/utils/formatters";
+import {
+  currencyFormatter,
+  formatChainLabel,
+  formatUiLabel,
+  percentFormatter,
+} from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { getNodeLogos } from "@/lib/logos";
 import { getProtocolAppUrl, getProtocolAuditUrl } from "@/lib/protocol";
@@ -65,20 +70,21 @@ export function RootNodeHeader({
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="flex items-baseline gap-4 min-w-0">
               <div className="flex items-baseline gap-2 min-w-0">
-                <div className="font-mono text-[13px] font-bold uppercase tracking-tight truncate">
+                <div className="font-mono text-[13px] font-semibold tracking-[0.03em] truncate">
                   {node.name}
                 </div>
-                <div className="text-[10px] font-bold text-black/30 uppercase tracking-widest truncate shrink-0">
-                  {node.protocol} • {node.chain}
+                <div className="text-[10px] font-semibold text-black/55 tracking-[0.04em] truncate shrink-0">
+                  {formatUiLabel(node.protocol)} •{" "}
+                  {formatChainLabel(node.chain)}
                 </div>
               </div>
 
               <div className="hidden sm:flex items-center gap-6 shrink-0 border-l border-black/10 pl-4 h-4">
                 <div className="flex items-center gap-1.5">
-                  <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em]">
+                  <div className="text-[8px] font-semibold text-black/45 tracking-[0.04em]">
                     TVL
                   </div>
-                  <div className="text-[10px] font-bold text-black font-mono">
+                  <div className="text-[10px] font-semibold text-black font-mono">
                     {typeof tvl === "number"
                       ? currencyFormatter.format(tvl)
                       : "—"}
@@ -87,20 +93,20 @@ export function RootNodeHeader({
 
                 {apyForDisplay !== null && (
                   <div className="flex items-center gap-1.5">
-                    <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em]">
+                    <div className="text-[8px] font-semibold text-black/45 tracking-[0.04em]">
                       APY
                     </div>
-                    <div className="text-[10px] font-bold text-[#00A35C] font-mono">
+                    <div className="text-[10px] font-semibold text-[#00A35C] font-mono">
                       {percentFormatter.format(apyForDisplay)}
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center gap-1.5">
-                  <div className="text-[8px] font-bold text-black/20 uppercase tracking-[0.15em] mr-[-2px]">
-                    CURATOR
+                  <div className="text-[8px] font-semibold text-black/45 tracking-[0.04em]">
+                    Curator
                   </div>
-                  <div className="text-[9px] font-bold text-black/60 uppercase tracking-wide">
+                  <div className="text-[9px] font-semibold text-black/72 tracking-[0.04em]">
                     {node.details?.curator || "Institutional"}
                   </div>
                 </div>
@@ -109,7 +115,7 @@ export function RootNodeHeader({
 
             {relationship ? (
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                <div className="px-1.5 py-0.5 rounded-full border border-black/10 bg-black/[0.03] text-[8px] font-bold text-black/45 uppercase tracking-[0.15em] leading-none">
+                <div className="px-1.5 py-0.5 rounded-full border border-black/10 bg-black/[0.03] text-[8px] font-semibold text-black/55 tracking-[0.04em] leading-none">
                   {relationship.rootBadge}
                 </div>
               </div>
@@ -125,7 +131,7 @@ export function RootNodeHeader({
             href={appUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-black text-white text-[8px] font-bold uppercase tracking-wider rounded-full hover:bg-black/80 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-black text-white text-[8px] font-semibold tracking-[0.04em] rounded-full hover:bg-black/80 transition-colors shadow-sm"
           >
             <ExternalLink className="w-2.5 h-2.5" />
             Protocol
@@ -136,7 +142,7 @@ export function RootNodeHeader({
             href={auditUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-2.5 py-1 border border-black/10 bg-white text-[8px] font-bold uppercase tracking-wider rounded-full hover:bg-black/[0.02] transition-colors text-black/60 shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-black/10 bg-white text-[8px] font-semibold tracking-[0.04em] rounded-full hover:bg-black/[0.02] transition-colors text-black/72 shadow-sm"
           >
             <ShieldCheck className="w-2.5 h-2.5" />
             Audit

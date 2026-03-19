@@ -31,37 +31,9 @@ import {
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
 import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
 
-const shortChainLabel = (value: string): string => {
-  const v = value.trim().toLowerCase();
-  switch (v) {
-    case "eth":
-    case "ethereum":
-      return "ETH";
-    case "arb":
-    case "arbitrum":
-    case "arbitrum-one":
-      return "ARB";
-    case "op":
-    case "optimism":
-      return "OP";
-    case "base":
-      return "BASE";
-    case "polygon":
-    case "matic":
-      return "POLY";
-    case "uni":
-    case "unichain":
-      return "UNI";
-    case "hyper":
-    case "hyperliquid":
-      return "HYPER";
-    case "global":
-      return "GLOBAL";
-    default:
-      return v.toUpperCase();
-  }
-};
+const shortChainLabel = (value: string): string => formatChainLabel(value);
 
 const buildChainLabel = (
   chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
@@ -143,7 +115,7 @@ function UniversalTreemapView({
       const [chainFromId = "global", protocolFromId = ""] =
         canonicalId.split(":");
       items.push({
-        label: (assetNameById.get(canonicalId) ?? histId).toUpperCase(),
+        label: assetNameById.get(canonicalId) ?? histId,
         onClick: () =>
           onSelectAsset(
             canonicalId,
@@ -157,7 +129,7 @@ function UniversalTreemapView({
     if (rootNode) {
       const isAtAssetRoot = focusRootNodeId === rootNode.id;
       items.push({
-        label: rootNode.name.toUpperCase(),
+        label: rootNode.name,
         current: isAtAssetRoot && !isOthersView,
         onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
       });
@@ -168,7 +140,7 @@ function UniversalTreemapView({
         const node = nodesById.get(nodeId);
         if (node)
           items.push({
-            label: node.name.toUpperCase(),
+            label: node.name,
             onClick: () => jumpToFocus(node.id),
           });
       });
@@ -180,9 +152,9 @@ function UniversalTreemapView({
       selectedNode.id !== rootNode?.id &&
       !isOthersView
     ) {
-      items.push({ label: selectedNode.name.toUpperCase(), current: true });
+      items.push({ label: selectedNode.name, current: true });
     }
-    if (isOthersView) items.push({ label: "OTHERS", current: true });
+    if (isOthersView) items.push({ label: "Others", current: true });
     return compactBreadcrumbs(items);
   }, [
     history,
@@ -447,7 +419,7 @@ function HomeInner() {
       { label: "All Protocols", value: "all" },
       ...Array.from(set)
         .sort()
-        .map((p) => ({ label: p, value: p })),
+        .map((p) => ({ label: formatUiLabel(p), value: p })),
     ];
   }, [dynamicIndex]);
 
@@ -457,7 +429,7 @@ function HomeInner() {
       { label: "Any Chain", value: "all" },
       ...Array.from(set)
         .sort()
-        .map((c) => ({ label: c, value: c })),
+        .map((c) => ({ label: formatChainLabel(c), value: c })),
     ];
   }, [dynamicIndex]);
 
@@ -575,7 +547,7 @@ function HomeInner() {
 
       <footer className="p-12 border-t border-black/[0.03] bg-black/[0.01]">
         <div className="max-w-[1400px] mx-auto flex flex-col items-center gap-6">
-          <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.6em] text-center">
+          <p className="text-[10px] font-semibold text-black/30 tracking-[0.08em] text-center">
             Paradigm Risk Intelligence // Dynamic Index Monitoring Active
           </p>
         </div>

@@ -421,7 +421,7 @@ export default function AssetTreeMap({
 
   if (!data || chartData.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400 font-mono uppercase tracking-widest bg-[#E6EBF8]">
+      <div className="flex h-full items-center justify-center bg-[#E6EBF8] font-mono text-gray-500 tracking-[0.06em]">
         No Data Channels
       </div>
     );
@@ -434,7 +434,7 @@ export default function AssetTreeMap({
     >
       {isOthersView && (
         <div className="absolute top-10 right-10 z-20 pointer-events-none">
-          <div className="px-5 py-2.5 bg-black border border-black text-[9px] font-black text-[#00FF85] uppercase tracking-[0.3em] shadow-xl">
+          <div className="px-5 py-2.5 bg-black border border-black text-[9px] font-semibold text-[#00FF85] tracking-[0.08em] shadow-xl">
             Aggregate View // Others ({chartData.length})
           </div>
         </div>

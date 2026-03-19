@@ -1,6 +1,6 @@
 import type { GraphNode } from "@/types";
 import { cn } from "@/lib/utils";
-import { currencyFormatter } from "@/utils/formatters";
+import { currencyFormatter, formatUiLabel } from "@/utils/formatters";
 
 export interface TreemapHoverCardDatum {
   nodeId?: string;
@@ -84,8 +84,8 @@ export const TreemapHoverCard = ({
       }}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
-          {kind || "Asset"}
+        <div className="text-[10px] font-semibold text-white/40 tracking-[0.06em]">
+          {formatUiLabel(kind || "Asset")}
         </div>
         <div
           className={cn(
@@ -97,12 +97,12 @@ export const TreemapHoverCard = ({
         />
       </div>
 
-      <div className="text-sm font-bold text-white/90 mb-3 tracking-tight uppercase">
-        {isOthers ? "OTHERS" : name}
+      <div className="text-sm font-semibold text-white/90 mb-3 tracking-[0.03em]">
+        {isOthers ? "Others" : name}
       </div>
 
       <div className="flex flex-col gap-0.5 mb-6">
-        <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em]">
+        <div className="text-[10px] font-semibold text-white/40 tracking-[0.05em]">
           {isOthers ? "Total Aggregate Value" : "Allocation Value"}
         </div>
         <div
@@ -118,14 +118,14 @@ export const TreemapHoverCard = ({
       {!isOthers && (collateralToken || borrowToken) && (
         <>
           <div className="h-px w-full bg-white/5 my-4" />
-          <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] mb-3">
+          <div className="text-[10px] font-semibold text-white/40 tracking-[0.05em] mb-3">
             Lending Relationship
           </div>
           <div className="flex flex-col gap-2 mb-6">
             {collateralToken ? (
               <div className="flex items-center justify-between">
-                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight">
-                  COLLATERAL
+                <div className="text-[10px] font-semibold text-white/70 tracking-[0.03em]">
+                  Collateral
                 </div>
                 <div className="text-[10px] font-bold text-white/70 font-mono">
                   {collateralToken}
@@ -134,8 +134,8 @@ export const TreemapHoverCard = ({
             ) : null}
             {borrowToken ? (
               <div className="flex items-center justify-between">
-                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight">
-                  BORROW
+                <div className="text-[10px] font-semibold text-white/70 tracking-[0.03em]">
+                  Borrow
                 </div>
                 <div className="text-[10px] font-bold text-white/70 font-mono">
                   {borrowToken}
@@ -149,7 +149,7 @@ export const TreemapHoverCard = ({
       {isTerminal && (
         <div className="mb-6 px-3 py-1.5 bg-[#E11D48]/10 border border-[#E11D48]/20 rounded flex items-center justify-center gap-2">
           <div className="w-1 h-1 rounded-full bg-[#E11D48]/60" />
-          <span className="text-[9px] font-bold text-[#FB7185] uppercase tracking-[0.2em]">
+          <span className="text-[9px] font-semibold text-[#FB7185] tracking-[0.06em]">
             End of Path
           </span>
         </div>
@@ -158,7 +158,7 @@ export const TreemapHoverCard = ({
       <div className="h-px w-full bg-white/5 mb-4" />
 
       <div className="flex items-center justify-between">
-        <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em]">
+        <div className="text-[10px] font-semibold text-white/40 tracking-[0.05em]">
           Portfolio Share
         </div>
         <div className="text-xs font-bold text-white font-mono">
@@ -169,13 +169,13 @@ export const TreemapHoverCard = ({
       {downstreamRows.length > 0 && !isOthers && (
         <>
           <div className="h-px w-full bg-white/5 my-4" />
-          <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] mb-3">
+          <div className="text-[10px] font-semibold text-white/40 tracking-[0.05em] mb-3">
             1-Hop Downstream
           </div>
           <div className="flex flex-col gap-2">
             {downstreamRows.map((row) => (
               <div key={row.id} className="flex items-center justify-between">
-                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
+                <div className="text-[10px] font-semibold text-white/70 tracking-[0.03em] truncate pr-3">
                   {row.name || ""}
                 </div>
                 <div className="text-[10px] font-bold text-white/70 font-mono">

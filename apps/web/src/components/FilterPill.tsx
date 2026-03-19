@@ -69,7 +69,7 @@ export function FilterPill({
               {icon}
             </div>
           )}
-          <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+          <span className="text-[10px] font-semibold tracking-[0.04em] whitespace-nowrap">
             {displayLabel || ""}
           </span>
         </div>
@@ -97,7 +97,7 @@ export function FilterPill({
             >
               <span
                 className={cn(
-                  "text-[10px] uppercase tracking-widest font-bold transition-colors",
+                  "text-[10px] font-semibold tracking-[0.04em] transition-colors",
                   value === option.value
                     ? "text-black"
                     : "text-black/40 group-hover:text-black/70",

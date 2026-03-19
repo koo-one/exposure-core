@@ -21,10 +21,10 @@ export function BreadcrumbTrail({
     >
       {items.map((item, idx) => {
         const textClassName = item.current
-          ? "text-[8px] font-black text-black uppercase tracking-[0.2em] whitespace-nowrap"
+          ? "text-[8px] font-semibold text-black tracking-[0.05em] whitespace-nowrap"
           : item.collapsed
-            ? "text-[8px] font-black text-black/25 uppercase tracking-[0.2em] whitespace-nowrap"
-            : "text-[8px] font-black text-black/45 hover:text-black uppercase tracking-[0.2em] transition-colors whitespace-nowrap";
+            ? "text-[8px] font-semibold text-black/25 tracking-[0.05em] whitespace-nowrap"
+            : "text-[8px] font-semibold text-black/45 hover:text-black tracking-[0.05em] transition-colors whitespace-nowrap";
 
         return (
           <div key={`${item.label}-${idx}`} className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export function BreadcrumbTrail({
                 className={
                   item.current || item.collapsed
                     ? textClassName
-                    : "text-[8px] font-black text-black/35 uppercase tracking-[0.2em] whitespace-nowrap"
+                    : "text-[8px] font-semibold text-black/35 tracking-[0.05em] whitespace-nowrap"
                 }
                 aria-current={item.current ? "page" : undefined}
               >

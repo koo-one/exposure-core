@@ -199,9 +199,9 @@ const SR_ONLY_STYLE: React.CSSProperties = {
 
 const getTileNameText = (data: TreemapTileDatum) => {
   const isOthers = data.isOthers;
-  const name = (data.name || "").toUpperCase();
+  const name = data.name || "";
   if (isOthers) {
-    return `+${data.childCount || 0} OTHERS`;
+    return `+${data.childCount || 0} Others`;
   }
   return name;
 };
@@ -759,7 +759,7 @@ const TreemapTileKonva = React.memo(
     const logoCount = Math.min(logoPaths.length, TILE_STYLE.logo.maxCount);
     const label = getTileNameText(data);
     const valueLabel = getTileValueText(data);
-    const secondaryLabel = data.secondaryLabel?.toUpperCase() ?? "";
+    const secondaryLabel = data.secondaryLabel ?? "";
 
     const handleClick = useCallback(() => {
       runTileAction(data, { onSelect, onSelectOthers });
@@ -902,7 +902,7 @@ const TreemapTileKonva = React.memo(
                   {nw > TILE_STYLE.nested.labelMinWidth &&
                     nh > TILE_STYLE.nested.labelMinHeight && (
                       <NestedAllocationLabel
-                        name={(nestedData.name || "").toUpperCase()}
+                        name={nestedData.name || ""}
                         width={nw}
                       />
                     )}

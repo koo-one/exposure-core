@@ -33,11 +33,11 @@ export function TerminalToast({
         />
 
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">
+          <div className="mb-1 text-[10px] font-semibold text-white/35 tracking-[0.06em]">
             System Message
           </div>
-          <div className="text-sm font-bold text-white tracking-tight font-mono">
-            {(toast.message || "").toUpperCase()}
+          <div className="text-sm font-semibold text-white tracking-[0.02em] font-mono">
+            {toast.message || ""}
           </div>
         </div>
 
