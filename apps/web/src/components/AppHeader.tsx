@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   SlidersHorizontal,
   X,
+  Dices,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SNAPSHOT_TIME_HEADER } from "@/constants";
@@ -41,6 +42,7 @@ interface AppHeaderProps {
   curators: { label: string; value: string }[];
   dropdownResults: DropdownGroup[];
   buildChainLabel: (chains: DropdownGroup["chains"]) => string;
+  onRandom?: () => void;
 }
 
 export function AppHeader({
@@ -57,6 +59,7 @@ export function AppHeader({
   curators,
   dropdownResults,
   buildChainLabel,
+  onRandom,
 }: AppHeaderProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,6 +78,24 @@ export function AppHeader({
 
   const isSearchActive = !!(query || hasActiveFilters);
   const showSearchDropdown = isSearchActive && isSearchDropdownOpen;
+
+  const selectSearchResult = useCallback(
+    (group: DropdownGroup) => {
+      const primary = group.primary;
+      onQueryChange("");
+      updateParams(
+        {
+          id: primary.id,
+          assetChain: primary.chain,
+          assetProtocol: primary.protocol,
+          q: "",
+        },
+        "push",
+      );
+      setIsSearchDropdownOpen(false);
+    },
+    [onQueryChange, updateParams],
+  );
 
   // Auto-open search dropdown on query
   useEffect(() => {
@@ -177,22 +198,14 @@ export function AppHeader({
         document.activeElement === searchInputRef.current
       ) {
         if (dropdownResults.length > 0) {
-          const first = dropdownResults[0].primary;
-          onQueryChange("");
-          updateParams({
-            id: first.id,
-            assetChain: first.chain,
-            assetProtocol: first.protocol,
-            q: "",
-          });
+          selectSearchResult(dropdownResults[0]);
           searchInputRef.current?.blur();
         }
-        setIsSearchDropdownOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dropdownResults, onQueryChange, updateParams]);
+  }, [dropdownResults, selectSearchResult]);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black px-6 py-4 flex items-center justify-between gap-8">
@@ -259,19 +272,7 @@ export function AppHeader({
                     return (
                       <button
                         key={group.key}
-                        onClick={() => {
-                          onQueryChange("");
-                          updateParams(
-                            {
-                              id: primary.id,
-                              assetChain: primary.chain,
-                              assetProtocol: primary.protocol,
-                              q: "",
-                            },
-                            "push",
-                          );
-                          setIsSearchDropdownOpen(false);
-                        }}
+                        onClick={() => selectSearchResult(group)}
                         className="w-full flex items-center justify-between p-3 hover:bg-black/[0.02] rounded-xl transition-all group/item"
                       >
                         <div className="flex items-center gap-3 min-w-0 text-left">
@@ -334,6 +335,17 @@ export function AppHeader({
             </div>
           )}
         </div>
+
+        {onRandom ? (
+          <button
+            onClick={onRandom}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-black/10 hover:border-black/30 bg-white text-black transition-all duration-200 text-[10px] font-black uppercase tracking-widest active:scale-95"
+            title="Pick a random asset"
+          >
+            <Dices className="w-3.5 h-3.5" />
+            <span className="hidden md:block">Random</span>
+          </button>
+        ) : null}
 
         {/* Filters Button & Dropdown */}
         <div className="relative" ref={filterDropdownRef}>
