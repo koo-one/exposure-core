@@ -1,10 +1,10 @@
-import { GraphStore } from "./core/graph";
+import { GraphStore } from "./core/graph.js";
 import {
   adapterFactories,
   shouldSkipAdapterFactory,
-} from "./adapters/registry";
-import type { AdapterFactory } from "./adapters/registry";
-import type { AnyAdapter } from "./adapters/types";
+} from "./adapters/registry.js";
+import type { AdapterFactory } from "./adapters/registry.js";
+import type { AnyAdapter } from "./adapters/types.js";
 
 // Orchestrator does not depend on adapter-specific catalog/allocation shapes.
 // We intentionally erase those generics here to avoid union inference issues

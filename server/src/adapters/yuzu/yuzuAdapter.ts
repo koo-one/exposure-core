@@ -1,13 +1,13 @@
-import type { Edge, Node } from "../../types";
+import type { Edge, Node } from "../../types.js";
 import {
   processComplexAppItem,
   processComplexProtocolItem,
   processTokenBalance,
-} from "../../resolvers/debank/debankResolver";
-import { fetchBundleWallets } from "../../resolvers/debank/fetcher";
-import { hasDebankAccessKey } from "../../utils";
-import type { Adapter } from "../types";
-import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics";
+} from "../../resolvers/debank/debankResolver.js";
+import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
+import { hasDebankAccessKey } from "../../utils.js";
+import type { Adapter } from "../types.js";
+import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics.js";
 
 const YUZU_BUNDLE_ID = "220643";
 

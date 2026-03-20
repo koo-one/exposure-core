@@ -1,13 +1,13 @@
 import {
   buildDraftGraphsByAssetReport,
   type AdapterRunFailure,
-} from "../orchestrator";
-import type { AdapterFactory } from "../adapters/registry";
-import type { GraphSnapshot } from "../types";
+} from "../orchestrator.js";
+import type { AdapterFactory } from "../adapters/registry.js";
+import type { GraphSnapshot } from "../types.js";
 import {
   canonicalizeNodeId,
   inferProtocolFolderFromNodeId,
-} from "../utils/graphPaths";
+} from "../utils/graphPaths.js";
 
 export type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 

@@ -1,19 +1,19 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { adapterFactories } from "../../../src/adapters/registry";
-import { getResolvDeploymentNodeIds } from "../../../src/adapters/resolv/deployments";
-import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
+import { adapterFactories } from "../../../src/adapters/registry.js";
+import { getResolvDeploymentNodeIds } from "../../../src/adapters/resolv/deployments.js";
+import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
 import {
   cloneSnapshotWithRootId,
   resolveFixtureOutputPath,
   writeJsonFile,
-} from "../core/io";
-import { createMockFetch, withMockFetch } from "../core/mock-fetch";
+} from "../core/io.js";
+import { createMockFetch, withMockFetch } from "../core/mock-fetch.js";
 import {
   createDebankBundleHandler,
   createDebankHandler,
-} from "../resolvers/debank/mock";
+} from "../resolvers/debank/mock.js";
 
 const RESOLV_BUNDLE_ID = "220554";
 

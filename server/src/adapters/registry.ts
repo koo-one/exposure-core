@@ -1,12 +1,12 @@
-import { createMidasAdapter } from "./midas/midasAdapter";
-import { createMorphoAdapter } from "./morpho/morphoAdapter";
-import { createInfinifiAdapter } from "./infinifi/infinifiAdapter";
-import { createResolvAdapter } from "./resolv/resolvAdapter";
-import { createYuzuAdapter } from "./yuzu/yuzuAdapter";
-import { createEthenaAdapter } from "./ethena/ethenaAdapter";
-import { createGauntletAdapter } from "./gauntlet/gauntletAdapter";
-import { createSkyAdapter } from "./sky/skyAdapter";
-import { createEulerAdapter } from "./euler/eulerAdapter";
+import { createMidasAdapter } from "./midas/midasAdapter.js";
+import { createMorphoAdapter } from "./morpho/morphoAdapter.js";
+import { createInfinifiAdapter } from "./infinifi/infinifiAdapter.js";
+import { createResolvAdapter } from "./resolv/resolvAdapter.js";
+import { createYuzuAdapter } from "./yuzu/yuzuAdapter.js";
+import { createEthenaAdapter } from "./ethena/ethenaAdapter.js";
+import { createGauntletAdapter } from "./gauntlet/gauntletAdapter.js";
+import { createSkyAdapter } from "./sky/skyAdapter.js";
+import { createEulerAdapter } from "./euler/eulerAdapter.js";
 
 export const adapterFactories = {
   midas: createMidasAdapter,

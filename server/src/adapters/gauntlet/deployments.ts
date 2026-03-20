@@ -1,4 +1,4 @@
-import { normalizeChain } from "../../utils";
+import { normalizeChain } from "../../utils.js";
 
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 

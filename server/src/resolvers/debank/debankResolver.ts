@@ -1,19 +1,19 @@
-import type { GraphResult } from "../../adapters/types";
-import type { NodeDetails, Edge, Node } from "../../types";
+import type { GraphResult } from "../../adapters/types.js";
+import type { NodeDetails, Edge, Node } from "../../types.js";
 import {
   fetchComplexAppList,
   fetchComplexProtocolList,
   fetchTokenList,
   type PortfolioItemObject,
-} from "./fetcher";
+} from "./fetcher.js";
 import {
   buildProtocolListItemId,
   buildAppListItemId,
   inferTokenLogoKey,
   isAllocationUsdEligible,
   tokenToUsdValue,
-} from "./utils";
-import { normalizeChain, normalizeProtocol } from "../../utils";
+} from "./utils.js";
+import { normalizeChain, normalizeProtocol } from "../../utils.js";
 
 const processProtocolCommonItem = (params: {
   item: PortfolioItemObject;

@@ -1,8 +1,8 @@
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { parse } from "graphql";
-import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest";
-import type { MorphoAllocation } from "./types";
-import { MORPHO_API_URL } from "./utils";
+import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest.js";
+import type { MorphoAllocation } from "./types.js";
+import { MORPHO_API_URL } from "./utils.js";
 
 interface MorphoVaultState {
   totalAssetsUsd: number;

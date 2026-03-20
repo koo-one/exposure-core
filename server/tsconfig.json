@@ -1,7 +1,7 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -19,6 +19,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src"],
-  "exclude": ["fixtures", "fixtures/scripts"]
+  "include": ["api/**/*.ts", "src/**/*.ts", "fixtures/**/*.ts"]
 }

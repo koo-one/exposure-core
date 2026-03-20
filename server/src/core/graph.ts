@@ -1,4 +1,4 @@
-import type { Edge, GraphSnapshot, Node } from "../types";
+import type { Edge, GraphSnapshot, Node } from "../types.js";
 
 export class GraphStore {
   private nodes = new Map<string, Node>();

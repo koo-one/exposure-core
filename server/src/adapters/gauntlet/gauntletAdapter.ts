@@ -1,10 +1,10 @@
-import type { Edge, Node } from "../../types";
-import type { Adapter } from "../types";
-import { isAllocationUsdEligible } from "../../resolvers/debank/utils";
-import { buildProtocolListItemId } from "../../resolvers/debank/utils";
-import { normalizeProtocol, roundToTwoDecimals, toSlug } from "../../utils";
-import { fetchGauntletMetrics, type GauntletMetrics } from "./metrics";
-import { getGauntletPrimaryDeployment } from "./deployments";
+import type { Edge, Node } from "../../types.js";
+import type { Adapter } from "../types.js";
+import { isAllocationUsdEligible } from "../../resolvers/debank/utils.js";
+import { buildProtocolListItemId } from "../../resolvers/debank/utils.js";
+import { normalizeProtocol, roundToTwoDecimals, toSlug } from "../../utils.js";
+import { fetchGauntletMetrics, type GauntletMetrics } from "./metrics.js";
+import { getGauntletPrimaryDeployment } from "./deployments.js";
 
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 const ASSET_GAUNLET_USD_ALPHA = "gtUSDa" as const;

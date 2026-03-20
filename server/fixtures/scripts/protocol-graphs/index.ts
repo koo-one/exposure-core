@@ -2,9 +2,13 @@ import { readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { GraphSnapshot } from "../../../src/types";
+import type { GraphSnapshot } from "../../../src/types.js";
 
-import { readJson, resolveFixturesOutputRoot, writeJsonFile } from "../core/io";
+import {
+  readJson,
+  resolveFixturesOutputRoot,
+  writeJsonFile,
+} from "../core/io.js";
 
 type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 

@@ -1,14 +1,14 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { adapterFactories } from "../../../src/adapters/registry";
-import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
-import { resolveFixtureOutputPath, writeJsonFile } from "../core/io";
-import { createMockFetch, withMockFetch } from "../core/mock-fetch";
+import { adapterFactories } from "../../../src/adapters/registry.js";
+import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
+import { resolveFixtureOutputPath, writeJsonFile } from "../core/io.js";
+import { createMockFetch, withMockFetch } from "../core/mock-fetch.js";
 import {
   createDebankBundleHandler,
   createDebankHandler,
-} from "../resolvers/debank/mock";
+} from "../resolvers/debank/mock.js";
 
 const YUZU_BUNDLE_ID = "220643";
 

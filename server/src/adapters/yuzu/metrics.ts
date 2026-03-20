@@ -1,4 +1,4 @@
-import { scaleByDecimals } from "../../utils";
+import { scaleByDecimals } from "../../utils.js";
 
 const YUZU_DASHBOARD_URL = "https://yuzu-accountable.yuzu.money/dashboard";
 

@@ -1,15 +1,15 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { adapterFactories } from "../../../src/adapters/registry";
-import { getGauntletDeploymentNodeIds } from "../../../src/adapters/gauntlet/deployments";
-import type { GraphSnapshot } from "../../../src/types";
-import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
+import { adapterFactories } from "../../../src/adapters/registry.js";
+import { getGauntletDeploymentNodeIds } from "../../../src/adapters/gauntlet/deployments.js";
+import type { GraphSnapshot } from "../../../src/types.js";
+import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
 import {
   cloneSnapshotWithRootId,
   resolveFixtureOutputPath,
   writeJsonFile,
-} from "../core/io";
+} from "../core/io.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");

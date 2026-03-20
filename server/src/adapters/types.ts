@@ -1,4 +1,4 @@
-import type { Edge, Node } from "../types";
+import type { Edge, Node } from "../types.js";
 
 export type AnyAdapter = Adapter<unknown, unknown>;
 

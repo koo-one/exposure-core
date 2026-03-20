@@ -1,11 +1,11 @@
-import type { Edge, Node } from "../../types";
+import type { Edge, Node } from "../../types.js";
 import {
   processComplexAppItem,
   processComplexProtocolItem,
-} from "../../resolvers/debank/debankResolver";
-import { fetchBundleWallets } from "../../resolvers/debank/fetcher";
-import { hasDebankAccessKey, roundToTwoDecimals } from "../../utils";
-import type { Adapter } from "../types";
+} from "../../resolvers/debank/debankResolver.js";
+import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
+import { hasDebankAccessKey, roundToTwoDecimals } from "../../utils.js";
+import type { Adapter } from "../types.js";
 
 const INFINIFI_BUNDLE_ID = "220816";
 const INFINIFI_API_URL = "https://eth-api.infinifi.xyz/api/protocol/data";

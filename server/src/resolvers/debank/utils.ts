@@ -3,8 +3,8 @@ import {
   normalizeProtocol,
   roundToTwoDecimals,
   toSlug,
-} from "../../utils";
-import type { TokenObject } from "./fetcher";
+} from "../../utils.js";
+import type { TokenObject } from "./fetcher.js";
 
 const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   eth: "eth",

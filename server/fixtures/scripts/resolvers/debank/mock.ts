@@ -1,6 +1,6 @@
 import { resolve, isAbsolute } from "node:path";
 import { readFile, readdir } from "node:fs/promises";
-import { jsonResponse, type MockFetchHandler } from "../../core/mock-fetch";
+import { jsonResponse, type MockFetchHandler } from "../../core/mock-fetch.js";
 
 const tryReadJson = async (path: string): Promise<unknown | null> => {
   try {

@@ -1,6 +1,6 @@
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { parse } from "graphql";
-import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest";
+import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest.js";
 import type { Address } from "viem";
 
 /**

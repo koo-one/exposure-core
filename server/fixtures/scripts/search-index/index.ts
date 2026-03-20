@@ -5,8 +5,12 @@ import { fileURLToPath } from "node:url";
 import {
   buildSearchIndexFromProtocolGroups,
   type GraphSnapshotGroup,
-} from "../../../src/exposure/searchIndex";
-import { readJson, resolveFixturesOutputRoot, writeJsonFile } from "../core/io";
+} from "../../../src/exposure/searchIndex.js";
+import {
+  readJson,
+  resolveFixturesOutputRoot,
+  writeJsonFile,
+} from "../core/io.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");

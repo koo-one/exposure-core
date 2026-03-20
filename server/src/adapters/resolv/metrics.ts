@@ -1,9 +1,9 @@
-import { roundToTwoDecimals, scaleByDecimals } from "../../utils";
+import { roundToTwoDecimals, scaleByDecimals } from "../../utils.js";
 import {
   pickNumber,
   pickPercentRatio,
   runDuneQueryRow,
-} from "../../resolvers/dune/duneClient";
+} from "../../resolvers/dune/duneClient.js";
 
 const QUERY_IDS = {
   TVL: 4360119,

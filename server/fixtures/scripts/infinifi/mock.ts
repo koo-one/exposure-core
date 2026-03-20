@@ -1,8 +1,8 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { MockFetchHandler } from "../core/mock-fetch";
-import { jsonResponse } from "../core/mock-fetch";
-import { readJson } from "../core/io";
+import type { MockFetchHandler } from "../core/mock-fetch.js";
+import { jsonResponse } from "../core/mock-fetch.js";
+import { readJson } from "../core/io.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");

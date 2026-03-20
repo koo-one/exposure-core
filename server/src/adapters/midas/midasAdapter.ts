@@ -1,9 +1,9 @@
-import type { Edge, Node } from "../../types";
+import type { Edge, Node } from "../../types.js";
 import {
   processComplexAppItem,
   processComplexProtocolItem,
-} from "../../resolvers/debank/debankResolver";
-import { hasDebankAccessKey, toSlug } from "../../utils";
+} from "../../resolvers/debank/debankResolver.js";
+import { hasDebankAccessKey, toSlug } from "../../utils.js";
 import {
   buildVaultBaseUrl,
   buildVaultLocationTokensUrl,
@@ -17,10 +17,10 @@ import {
   MIDAS_VAULTS_URL,
   normalizeWalletCategory,
   OFFCHAIN_LOCATION_NAMES,
-} from "./deltaY";
-import { getCuratorForAsset } from "./curators";
-import { getMidasPrimaryDeployment } from "./deployments";
-import type { Adapter } from "../types";
+} from "./deltaY.js";
+import { getCuratorForAsset } from "./curators.js";
+import { getMidasPrimaryDeployment } from "./deployments.js";
+import type { Adapter } from "../types.js";
 
 export interface MidasAllocation {
   createdAt: string;

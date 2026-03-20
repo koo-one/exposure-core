@@ -1,14 +1,14 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { adapterFactories } from "../../../src/adapters/registry";
-import { getEthenaDeploymentNodeIds } from "../../../src/adapters/ethena/deployments";
-import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
+import { adapterFactories } from "../../../src/adapters/registry.js";
+import { getEthenaDeploymentNodeIds } from "../../../src/adapters/ethena/deployments.js";
+import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
 import {
   cloneSnapshotWithRootId,
   resolveFixtureOutputPath,
   writeJsonFile,
-} from "../core/io";
+} from "../core/io.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");

@@ -1,4 +1,4 @@
-import { normalizeNodeId, toDeploymentNodeIds } from "../deployments";
+import { normalizeNodeId, toDeploymentNodeIds } from "../deployments.js";
 
 const PROTOCOL = "resolv" as const;
 

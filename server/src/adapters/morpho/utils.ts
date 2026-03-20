@@ -1,5 +1,5 @@
-import { normalizeChain, roundToTwoDecimals, toSlug } from "../../utils";
-import type { MorphoAllocation } from "./types";
+import { normalizeChain, roundToTwoDecimals, toSlug } from "../../utils.js";
+import type { MorphoAllocation } from "./types.js";
 
 export const MORPHO_API_URL = "https://api.morpho.org/graphql";
 

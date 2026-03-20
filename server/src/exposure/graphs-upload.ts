@@ -1,12 +1,12 @@
 import { pathToFileURL } from "node:url";
 
-import { adapterFactories } from "../adapters/registry";
-import type { AdapterRunFailure } from "../orchestrator";
+import { adapterFactories } from "../adapters/registry.js";
+import type { AdapterRunFailure } from "../orchestrator.js";
 
-import { putJsonToBlob } from "./blob";
-import { graphProtocolBlobPath, searchIndexBlobPath } from "./paths";
-import { buildProtocolGraphGroups } from "./protocolGraphs";
-import { buildSearchIndexFromProtocolGroups } from "./searchIndex";
+import { putJsonToBlob } from "./blob.js";
+import { graphProtocolBlobPath, searchIndexBlobPath } from "./paths.js";
+import { buildProtocolGraphGroups } from "./protocolGraphs.js";
+import { buildSearchIndexFromProtocolGroups } from "./searchIndex.js";
 
 interface UploadGraphsResult {
   assetCount: number;

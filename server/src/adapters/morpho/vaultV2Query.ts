@@ -1,7 +1,7 @@
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { parse } from "graphql";
-import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest";
-import { MORPHO_API_URL } from "./utils";
+import { gql, graphqlRequest } from "../../resolvers/graphql/graphqlRequest.js";
+import { MORPHO_API_URL } from "./utils.js";
 
 export type VaultV2Adapter =
   | {

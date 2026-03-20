@@ -1,4 +1,4 @@
-import { normalizeChain, toSlug } from "../../utils";
+import { normalizeChain, toSlug } from "../../utils.js";
 
 const MIDAS_PROTOCOL = "midas" as const;
 

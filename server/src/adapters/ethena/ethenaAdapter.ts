@@ -1,7 +1,7 @@
-import type { Edge, Node } from "../../types";
-import { roundToTwoDecimals, scaleByDecimals, toSlug } from "../../utils";
-import type { Adapter } from "../types";
-import { fetchEthenaCatalog, type EthenaCatalog } from "./metrics";
+import type { Edge, Node } from "../../types.js";
+import { roundToTwoDecimals, scaleByDecimals, toSlug } from "../../utils.js";
+import type { Adapter } from "../types.js";
+import { fetchEthenaCatalog, type EthenaCatalog } from "./metrics.js";
 
 const ETHENA_PROTOCOL = "ethena" as const;
 

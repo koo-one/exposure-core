@@ -1,16 +1,16 @@
-import type { Edge, Node } from "../../types";
-import type { Adapter } from "../types";
-import { isAllocationUsdEligible } from "../../resolvers/debank/utils";
+import type { Edge, Node } from "../../types.js";
+import type { Adapter } from "../types.js";
+import { isAllocationUsdEligible } from "../../resolvers/debank/utils.js";
 import {
   buildMorphoMarketId,
   buildMorphoVaultId,
   resolveAllocationUsd,
-} from "./utils";
-import type { MorphoVaultV2, VaultV2Adapter } from "./vaultV2Query";
-import type { MorphoVaultV1 } from "./vaultV1Query";
-import type { MorphoAllocation } from "./types";
-import { fetchVaultV1s } from "./vaultV1Query";
-import { fetchVaultV2s } from "./vaultV2Query";
+} from "./utils.js";
+import type { MorphoVaultV2, VaultV2Adapter } from "./vaultV2Query.js";
+import type { MorphoVaultV1 } from "./vaultV1Query.js";
+import type { MorphoAllocation } from "./types.js";
+import { fetchVaultV1s } from "./vaultV1Query.js";
+import { fetchVaultV2s } from "./vaultV2Query.js";
 
 // NOTE: We could model the catalog as `(MorphoVaultV1 | MorphoVaultV2)[]`, but wrapping each entry
 // as `{ vaultV1 } | { vaultV2 }` gives us a reliable discriminant (`"vaultV1" in entry`) and

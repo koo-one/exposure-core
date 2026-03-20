@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-import { uploadGraphs } from "../../src/exposure/graphs-upload";
+import { uploadGraphs } from "../../src/exposure/graphs-upload.js";
 
 const hasValidCronAuth = (
   authHeader: string | undefined,

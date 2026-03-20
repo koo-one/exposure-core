@@ -2,21 +2,21 @@ import { readdir } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { adapterFactories } from "../../../src/adapters/registry";
-import { getMidasDeploymentNodeIds } from "../../../src/adapters/midas/deployments";
-import type { GraphSnapshot } from "../../../src/types";
-import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
+import { adapterFactories } from "../../../src/adapters/registry.js";
+import { getMidasDeploymentNodeIds } from "../../../src/adapters/midas/deployments.js";
+import type { GraphSnapshot } from "../../../src/types.js";
+import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
 import {
   cloneSnapshotWithRootId,
   readJson,
   resolveFixtureOutputPath,
   writeJsonFile,
-} from "../core/io";
-import { createMockFetch, withMockFetch } from "../core/mock-fetch";
+} from "../core/io.js";
+import { createMockFetch, withMockFetch } from "../core/mock-fetch.js";
 import {
   createMidasAllocationsHandler,
   type MidasAllocationFixture,
-} from "./mock";
+} from "./mock.js";
 
 interface Scenario {
   name: string;

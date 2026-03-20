@@ -1,7 +1,7 @@
-import type { Edge, Node } from "../../types";
-import { roundToTwoDecimals } from "../../utils";
+import type { Edge, Node } from "../../types.js";
+import { roundToTwoDecimals } from "../../utils.js";
 import { formatUnits, type Address } from "viem";
-import type { Adapter } from "../types";
+import type { Adapter } from "../types.js";
 import {
   EULER_CHAIN_CONFIGS,
   type EulerChainConfig,
@@ -15,7 +15,7 @@ import {
   type EulerLabelEntity,
   type EulerLabelsVault,
   type EulerEvkVault,
-} from "./metrics";
+} from "./metrics.js";
 
 const EULER_PROTOCOL = "euler";
 

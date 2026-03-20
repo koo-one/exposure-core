@@ -1,12 +1,12 @@
-import type { Edge, Node } from "../../types";
-import { roundToTwoDecimals, toSlug } from "../../utils";
-import type { Adapter } from "../types";
+import type { Edge, Node } from "../../types.js";
+import { roundToTwoDecimals, toSlug } from "../../utils.js";
+import type { Adapter } from "../types.js";
 import {
   fetchSkyAllocations,
   fetchSkyMetrics,
   type SkyIlk,
   type SkyMetrics,
-} from "./metrics";
+} from "./metrics.js";
 
 const SKY_PROTOCOL = "sky";
 const ASSET_STUSDS = "stUSDS";

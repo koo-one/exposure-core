@@ -1,6 +1,9 @@
-import type { Edge, GraphSnapshot } from "../types";
+import type { Edge, GraphSnapshot } from "../types.js";
 
-import { inferAssetLogoKey, normalizeLogoKey } from "../resolvers/debank/utils";
+import {
+  inferAssetLogoKey,
+  normalizeLogoKey,
+} from "../resolvers/debank/utils.js";
 
 export type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 

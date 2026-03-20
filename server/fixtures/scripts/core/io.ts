@@ -1,7 +1,7 @@
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import type { Edge, GraphSnapshot, Node } from "../../../src/types";
+import type { Edge, GraphSnapshot, Node } from "../../../src/types.js";
 
 export const writeJsonFile = async (
   path: string,

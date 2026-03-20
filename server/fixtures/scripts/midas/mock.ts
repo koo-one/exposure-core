@@ -1,12 +1,12 @@
-import type { MockFetchHandler } from "../core/mock-fetch";
-import { jsonResponse } from "../core/mock-fetch";
+import type { MockFetchHandler } from "../core/mock-fetch.js";
+import { jsonResponse } from "../core/mock-fetch.js";
 import {
   isWalletLocationName,
   MIDAS_PROVIDER_NAME,
   normalizeWalletCategory,
   toLocationSlug,
   WALLET_LOCATION_NAMES,
-} from "../../../src/adapters/midas/deltaY";
+} from "../../../src/adapters/midas/deltaY.js";
 
 export interface MidasAllocationFixture {
   product?: string;
