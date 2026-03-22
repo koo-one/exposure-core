@@ -27,8 +27,26 @@ export function RootNodeHeader({
   onBack,
 }: RootNodeHeaderProps) {
   const logos = getNodeLogos(node);
-  const curator = node.details?.curator?.trim() || "";
-  const curatorLogos = getCuratorLogos(node.details?.curator);
+  const isEulerEarnVault =
+    node.protocol === "euler" && node.details?.subtype === "Earn Vault";
+  const childAllocatorNames = isEulerEarnVault
+    ? Array.from(
+        new Set(
+          (children ?? [])
+            .map((child) => child.details?.curator?.trim() || "")
+            .filter(Boolean),
+        ),
+      )
+    : [];
+  const curatorNames = (() => {
+    const rootCurator = node.details?.curator?.trim() || "";
+    if (rootCurator) return [rootCurator];
+    if (isEulerEarnVault) return childAllocatorNames;
+    return [];
+  })();
+  const curator = curatorNames.join(", ");
+  const curatorLogos = curatorNames.flatMap((name) => getCuratorLogos(name));
+  const curatorLabel = isEulerEarnVault ? "Capital allocator" : "Curator";
 
   const apyForDisplay =
     typeof node.apy === "number"
@@ -106,7 +124,7 @@ export function RootNodeHeader({
 
                 <div className="flex items-center gap-1.5">
                   <div className="text-[8px] font-semibold text-black/45 tracking-[0.04em]">
-                    Curator
+                    {curatorLabel}
                   </div>
                   <div
                     className="relative h-[14px] w-[58px] shrink-0"
