@@ -2,6 +2,7 @@
 
 import React, {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -119,6 +120,11 @@ export default function AssetTreeMap({
     setHoverState(null);
     setTooltipSize(null);
   }, [rootNodeId, isOthersView]);
+
+  useLayoutEffect(() => {
+    setHoverState(null);
+    setTooltipSize(null);
+  }, [containerSize.width, containerSize.height]);
 
   useEffect(() => {
     const el = containerRef.current;

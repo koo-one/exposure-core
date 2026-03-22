@@ -98,6 +98,13 @@ interface NestedLayout {
   othersCount: number;
 }
 
+interface VisibleNestedChild {
+  node: d3.HierarchyRectangularNode<
+    { children: AllocationItem[] } | AllocationItem
+  >;
+  bounds: ReturnType<typeof getPackedTileBounds>;
+}
+
 interface AssetTreeMapKonvaProps {
   data: TreemapTileDatum[];
   width: number;
@@ -839,6 +846,24 @@ const TreemapTileKonva = React.memo(
         }),
       [data.allocations, availW, availH],
     );
+    const visibleNestedChildren = useMemo<VisibleNestedChild[]>(
+      () =>
+        (nestedLayout?.children ?? []).flatMap((n) => {
+          const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
+          if (bounds.width <= 0 || bounds.height <= 0) {
+            return [];
+          }
+
+          return [{ node: n, bounds }];
+        }),
+      [nestedLayout],
+    );
+    const hiddenNestedCount = Math.max(
+      0,
+      (nestedLayout?.children.length ?? 0) - visibleNestedChildren.length,
+    );
+    const nestedOthersCount =
+      (nestedLayout?.othersCount ?? 0) + hiddenNestedCount;
 
     return (
       <Group
@@ -902,17 +927,12 @@ const TreemapTileKonva = React.memo(
               listening={false}
             />
 
-            {nestedLayout.children.flatMap((n) => {
-              const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
+            {visibleNestedChildren.map(({ node: n, bounds }) => {
               const nw = bounds.width;
               const nh = bounds.height;
               const nestedData = n.data as AllocationItem;
 
-              if (nw <= 0 || nh <= 0) {
-                return [];
-              }
-
-              return [
+              return (
                 <Group key={nestedData.id} x={bounds.x} y={bounds.y}>
                   <Rect
                     width={nw}
@@ -927,8 +947,8 @@ const TreemapTileKonva = React.memo(
                         width={nw}
                       />
                     )}
-                </Group>,
-              ];
+                </Group>
+              );
             })}
 
             {availW > 0 && (
@@ -953,11 +973,11 @@ const TreemapTileKonva = React.memo(
               />
             )}
 
-            {nestedLayout.othersCount > 0 &&
+            {nestedOthersCount > 0 &&
               availW > TILE_STYLE.nested.othersLabelMinWidth &&
               availH > TILE_STYLE.nested.othersLabelMinHeight && (
                 <Text
-                  text={`+${nestedLayout.othersCount} OTHERS`}
+                  text={`+${nestedOthersCount} OTHERS`}
                   x={Math.max(
                     TILE_STYLE.nested.labelInset,
                     availW -
