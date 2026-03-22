@@ -130,16 +130,24 @@ export function RootNodeHeader({
                     className="relative h-[14px] w-[58px] shrink-0"
                     title={curator || undefined}
                   >
-                    {curatorLogos.slice(0, 2).map((logo, idx) => (
-                      <img
-                        key={logo}
-                        src={logo}
-                        alt=""
-                        className="h-[14px] w-auto max-w-[46px] object-contain absolute top-0"
-                        style={{ left: `${idx * 12}px` }}
-                        loading="lazy"
-                      />
-                    ))}
+                    {curatorLogos.length > 0 ? (
+                      curatorLogos
+                        .slice(0, 2)
+                        .map((logo, idx) => (
+                          <img
+                            key={logo}
+                            src={logo}
+                            alt=""
+                            className="h-[14px] w-auto max-w-[46px] object-contain absolute top-0"
+                            style={{ left: `${idx * 12}px` }}
+                            loading="lazy"
+                          />
+                        ))
+                    ) : curator ? (
+                      <div className="text-[9px] font-semibold text-black/72 tracking-[0.04em] truncate max-w-[140px]">
+                        {curator}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
