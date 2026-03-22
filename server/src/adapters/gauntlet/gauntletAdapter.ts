@@ -2,9 +2,16 @@ import type { Edge, Node } from "../../types.js";
 import type { Adapter } from "../types.js";
 import { isAllocationUsdEligible } from "../../resolvers/debank/utils.js";
 import { buildProtocolListItemId } from "../../resolvers/debank/utils.js";
-import { normalizeProtocol, roundToTwoDecimals, toSlug } from "../../utils.js";
+import {
+  normalizeChain,
+  normalizeProtocol,
+  roundToTwoDecimals,
+  toSlug,
+} from "../../utils.js";
 import { fetchGauntletMetrics, type GauntletMetrics } from "./metrics.js";
 import { getGauntletPrimaryDeployment } from "./deployments.js";
+import { fetchVaultV1s } from "../morpho/vaultV1Query.js";
+import { fetchVaultV2s } from "../morpho/vaultV2Query.js";
 
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 const ASSET_GAUNLET_USD_ALPHA = "gtUSDa" as const;
@@ -27,26 +34,74 @@ const GAUNTLET_ASSET_NAME_OVERRIDES: Record<string, string> = {
 // Gauntlet UI hides small allocations; match that behavior for snapshot parity.
 const MIN_GAUNTLET_UI_ALLOCATION_USD = 100_000;
 
+interface GauntletMorphoProtocolIndex {
+  v1: Set<string>;
+  v2: Set<string>;
+}
+
+let morphoProtocolIndexPromise: Promise<GauntletMorphoProtocolIndex> | null =
+  null;
+
+const buildGauntletMorphoProtocolIndex =
+  async (): Promise<GauntletMorphoProtocolIndex> => {
+    const [v1Vaults, v2Vaults] = await Promise.all([
+      fetchVaultV1s(),
+      fetchVaultV2s(),
+    ]);
+
+    const v1 = new Set<string>();
+    const v2 = new Set<string>();
+
+    for (const vault of v1Vaults) {
+      const chain = normalizeChain(vault.chain.network);
+      v1.add(`${chain}:${vault.address.toLowerCase()}`);
+    }
+
+    for (const vault of v2Vaults) {
+      const chain = normalizeChain(vault.chain.network);
+      v2.add(`${chain}:${vault.address.toLowerCase()}`);
+    }
+
+    return { v1, v2 };
+  };
+
+const getGauntletMorphoProtocolIndex =
+  async (): Promise<GauntletMorphoProtocolIndex> => {
+    if (!morphoProtocolIndexPromise) {
+      morphoProtocolIndexPromise = buildGauntletMorphoProtocolIndex();
+    }
+
+    return morphoProtocolIndexPromise;
+  };
+
 const isGauntletUiAllocationEligible = (allocationUsd: number): boolean => {
   return allocationUsd >= MIN_GAUNTLET_UI_ALLOCATION_USD;
 };
 
-const GAUNTLET_V2_SUFFIX_REGEX = /(^|\s)\(?v2\)?$/;
-
-const resolveGauntletAllocationProtocol = (
+const resolveGauntletAllocationProtocol = async (
+  chain: string,
   protocol: string,
-  displayName: string | null,
-): string => {
+  assetAddress: string,
+): Promise<string> => {
   const normalizedProtocol = normalizeProtocol(protocol);
+  const normalizedChain = normalizeChain(chain);
+  const identityKey = `${normalizedChain}:${assetAddress}`.toLowerCase();
 
-  if (normalizedProtocol !== "morpho-v1") {
+  if (!normalizedProtocol.startsWith("morpho")) {
     return normalizedProtocol;
   }
 
-  const normalizedDisplayName = displayName?.trim().toLowerCase() ?? "";
+  if (!assetAddress) {
+    return normalizedProtocol;
+  }
 
-  if (GAUNTLET_V2_SUFFIX_REGEX.test(normalizedDisplayName)) {
-    return "morpho-v2";
+  try {
+    const index = await getGauntletMorphoProtocolIndex();
+
+    if (index.v2.has(identityKey)) return "morpho-v2";
+    if (index.v1.has(identityKey)) return "morpho-v1";
+  } catch {
+    // Keep Gauntlet output resilient if Morpho catalog fetches fail.
   }
 
   return normalizedProtocol;
@@ -156,9 +211,10 @@ export const createGauntletAdapter = (): Adapter<
 
           if (!protocol) continue;
 
-          const resolvedProtocol = resolveGauntletAllocationProtocol(
+          const resolvedProtocol = await resolveGauntletAllocationProtocol(
+            chain,
             protocol,
-            asset.displayName,
+            asset.assetAddress,
           );
 
           const nodeId = buildProtocolListItemId(
