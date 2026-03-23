@@ -13,7 +13,7 @@ import { slugifyVaultName } from "@/lib/incident/types";
 import type { GraphSnapshot } from "@/types";
 import { StatusBadge } from "@/components/incident/StatusBadge";
 import { ExposureBar } from "@/components/incident/ExposureBar";
-import { getCuratorLogoKey } from "@/components/incident/ProtocolRow";
+import { getCuratorLogoKey } from "@/lib/incident/logos";
 
 export const revalidate = 600;
 

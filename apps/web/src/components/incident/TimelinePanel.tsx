@@ -12,35 +12,16 @@ interface TimelinePanelProps {
   entries: TimelineEntry[];
 }
 
-const TAG_STYLES: Record<
-  TimelineEntry["tag"],
-  { dotColor: string; pillBg: string; pillText: string; label: string }
-> = {
-  exploit: {
-    dotColor: "#E11D48",
-    pillBg: "rgba(225,29,72,0.08)",
-    pillText: "#E11D48",
-    label: "Exploit",
-  },
-  response: {
-    dotColor: "#00A35C",
-    pillBg: "rgba(0,163,92,0.08)",
-    pillText: "#00A35C",
-    label: "Response",
-  },
-  curator: {
-    dotColor: "#1a8fa8",
-    pillBg: "rgba(26,143,168,0.08)",
-    pillText: "#1a8fa8",
-    label: "Curator",
-  },
-  update: {
-    dotColor: "rgba(0,0,0,0.25)",
-    pillBg: "rgba(0,0,0,0.04)",
-    pillText: "rgba(0,0,0,0.4)",
-    label: "Update",
-  },
+const TAG_LABELS: Record<TimelineEntry["tag"], string> = {
+  exploit: "Exploit",
+  response: "Response",
+  curator: "Curator",
+  update: "Update",
 };
+
+const GHOST_DOT = "rgba(0,0,0,0.15)";
+const GHOST_PILL_BG = "rgba(0,0,0,0.04)";
+const GHOST_PILL_TEXT = "rgba(0,0,0,0.40)";
 
 export function TimelinePanel({ entries }: TimelinePanelProps) {
   return (
@@ -57,7 +38,6 @@ export function TimelinePanel({ entries }: TimelinePanelProps) {
 
       <div className="flex flex-col gap-0">
         {entries.map((entry, i) => {
-          const style = TAG_STYLES[entry.tag];
           return (
             <div
               key={i}
@@ -78,7 +58,7 @@ export function TimelinePanel({ entries }: TimelinePanelProps) {
                   top: 16,
                   width: 8,
                   height: 8,
-                  backgroundColor: style.dotColor,
+                  backgroundColor: GHOST_DOT,
                   zIndex: 1,
                 }}
               />
@@ -103,11 +83,11 @@ export function TimelinePanel({ entries }: TimelinePanelProps) {
                       fontSize: 7,
                       letterSpacing: "0.1em",
                       padding: "1px 6px",
-                      backgroundColor: style.pillBg,
-                      color: style.pillText,
+                      backgroundColor: GHOST_PILL_BG,
+                      color: GHOST_PILL_TEXT,
                     }}
                   >
-                    {style.label}
+                    {TAG_LABELS[entry.tag]}
                   </span>
                 </div>
 

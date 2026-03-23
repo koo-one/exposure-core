@@ -11,7 +11,7 @@ const config: IncidentConfig = {
   toxicAssets: [
     { symbol: "USR", name: "Resolv USD", color: "#ef4444" },
     { symbol: "wstUSR", name: "Wrapped Staked USR", color: "#f59e0b" },
-    { symbol: "RLP", name: "Resolv Liquidity Pool", color: "#8b5cf6" },
+    { symbol: "RLP", name: "Resolv Liquidity Pool", color: "#e8700a" },
   ],
   toxicAssetNodeIds: [
     "eth:resolv:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110",
@@ -239,6 +239,15 @@ const config: IncidentConfig = {
       chains: ["eth"],
       status: "covering",
       statusNote: "Inverse Finance promising to cover bad debt",
+      exposureUsd: 0,
+      toxicAssetBreakdown: [],
+    },
+    {
+      source: "manual",
+      name: "Gearbox USDC",
+      protocol: "gearbox",
+      chains: ["eth"],
+      status: "affected",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
