@@ -1,0 +1,248 @@
+import type { IncidentConfig } from "@/lib/incident/types";
+
+const config: IncidentConfig = {
+  slug: "resolv-usr",
+  title: "USR Contagion",
+  subtitle: "Resolv Labs USR Exploit — Cascading DeFi Exposure",
+  status: "active",
+  incidentDate: "2026-03-22",
+  description:
+    "The Resolv Labs USR exploit has created cascading exposure across DeFi vaults and protocols. Vaults with allocations to markets using USR, wstUSR, or RLP as collateral face at-risk capital.",
+  toxicAssets: [
+    { symbol: "USR", name: "Resolv USD", color: "#ef4444" },
+    { symbol: "wstUSR", name: "Wrapped Staked USR", color: "#f59e0b" },
+    { symbol: "RLP", name: "Resolv Liquidity Pool", color: "#8b5cf6" },
+  ],
+  toxicAssetNodeIds: [
+    "eth:resolv:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110",
+    "eth:resolv:0x1202f5c7b4b9e47a1a484e8b270be34dbbc75055",
+    "eth:resolv:0x4956b52ae2ff65d74ca2d61207523288e4528f96",
+  ],
+  lastUpdated: "2026-03-23T08:00:00Z",
+  timeline: [
+    {
+      date: "2026-03-22",
+      text: "USR exploit identified; initial vault exposure mapped",
+    },
+    {
+      date: "2026-03-23",
+      text: "Contagion dashboard launched with 29+ affected vaults",
+    },
+  ],
+  affectedVaults: [
+    {
+      source: "adapter",
+      name: "Gauntlet USDC Core",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "Gauntlet",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x8eb67a509616cd6a7c1b3c8c21d48ff57df3d458",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Gauntlet USDC Frontier",
+      protocol: "morpho",
+      chains: ["eth", "base"],
+      curator: "Gauntlet",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0xc582f04d8a82795aa2ff9c8bb4c1c889fe7b754e",
+        base: "base:morpho-v1:0x236919f11ff9ea9550a4287696c2fc9e18e6e890",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Resolv USDC",
+      protocol: "morpho",
+      chains: ["eth"],
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x132e6c9c33a62d7727cd359b1f51e5b566e485eb",
+      },
+    },
+    {
+      source: "adapter",
+      name: "9Summits USDC",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "9Summits",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x1e2aaadcf528b9cc08f43d4fd7db488ce89f5741",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Extrafi XLend USDC",
+      protocol: "morpho",
+      chains: ["base"],
+      curator: "Extrafi",
+      status: "affected",
+      nodeIds: {
+        base: "base:morpho-v1:0x23479229e52ab6aad312d0b03df9f33b46753b5e",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Re7 USDC",
+      protocol: "morpho",
+      chains: ["base"],
+      curator: "Re7",
+      status: "affected",
+      nodeIds: {
+        base: "base:morpho-v1:0x12afdefb2237a5963e7bab3e2d46ad0eee70406e",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Seamless USDC Vault",
+      protocol: "morpho",
+      chains: ["base"],
+      curator: "Seamless",
+      status: "affected",
+      nodeIds: {
+        base: "base:morpho-v1:0x616a4e1db48e22028f6bbf20444cd3b8e3273738",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Apostro Resolv USDC",
+      protocol: "morpho",
+      chains: ["eth", "base"],
+      curator: "Apostro",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x214b47c50057efaa7adc1b1c2608c3751cd77d78",
+        base: "base:morpho-v1:0xcddcdd18a16ed441f6cb10c3909e5e7ec2b9e8f3",
+      },
+    },
+    {
+      source: "adapter",
+      name: "August AUSD",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "August",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x9b7cca326004967f9d2b7cf5f2328d82cf65b302",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Clearstar Yield USDC",
+      protocol: "morpho",
+      chains: ["eth", "arb"],
+      curator: "Clearstar",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x9b5e92fd227876b4c07a8c02367e2cb23c639dfa",
+        arb: "arb:morpho-v1:0x64ca76e2525fc6ab2179300c15e343d73e42f958",
+      },
+    },
+    {
+      source: "adapter",
+      name: "kpk USDC Yield",
+      protocol: "morpho",
+      chains: ["eth", "arb"],
+      curator: "kpk",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x9178ebe0691593184c1d785a864b62a326cc3509",
+        arb: "arb:morpho-v1:0x2c609d9cfc9dda2db5c128b2a665d921ec53579d",
+      },
+    },
+    {
+      source: "adapter",
+      name: "MEV Capital USDC",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "MEV Capital",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0xd63070114470f685b75b74d60eec7c1113d33a3d",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Keyrock USDC",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "Keyrock",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x6c26793c7f1e2785c09b460676e797b716f0bc8e",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Re7 USDC Core",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "Re7",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x341193ed21711472e71aeca4a942123452bd0dda",
+      },
+    },
+    {
+      source: "adapter",
+      name: "MEV Capital USD0",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "MEV Capital",
+      status: "affected",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x749794e985af5a9a384b9cee6d88dab4ce1576a1",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Euler Arbitrum Yield USDC",
+      protocol: "euler",
+      chains: ["arb"],
+      status: "affected",
+      nodeIds: { arb: "arb:euler:0x05d28a86e057364f6ad1a88944297e58fc6160b3" },
+    },
+    {
+      source: "adapter",
+      name: "Resolv USDC vault",
+      protocol: "euler",
+      chains: ["eth"],
+      status: "affected",
+      nodeIds: { eth: "eth:euler:0xcbc9b61177444a793b85442d3a953b90f6170b7d" },
+    },
+    {
+      source: "manual",
+      name: "mBASIS",
+      protocol: "midas",
+      chains: ["eth", "base"],
+      status: "affected",
+      exposureUsd: 0,
+      toxicAssetBreakdown: [],
+    },
+    {
+      source: "manual",
+      name: "mAPOLLO",
+      protocol: "midas",
+      chains: ["eth"],
+      status: "affected",
+      exposureUsd: 0,
+      toxicAssetBreakdown: [],
+    },
+    {
+      source: "manual",
+      name: "DOLA",
+      protocol: "inverse",
+      chains: ["eth"],
+      status: "covering",
+      statusNote: "Inverse Finance promising to cover bad debt",
+      exposureUsd: 0,
+      toxicAssetBreakdown: [],
+    },
+  ],
+};
+
+export default config;
