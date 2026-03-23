@@ -391,26 +391,34 @@ const config: IncidentConfig = {
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
-      exposureUsd: 1_284_955, // Direct USR exposure — full vault TVL
-      toxicAssetBreakdown: [{ asset: "USR", amountUsd: 1_284_955, pct: 1 }],
+      // Source: api.upshift.finance — fetched 2026-03-24
+      // Direct USR exposure — full vault TVL
+      exposureUsd: 2_198_169,
+      toxicAssetBreakdown: [{ asset: "USR", amountUsd: 2_198_169, pct: 1 }],
     },
     {
       source: "manual",
-      name: "coreUSDC",
+      name: "Upshift Core USDC",
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
-      statusNote: "Meta-vault — USR allocation % unknown. Breakdown TBD.",
+      // Source: api.upshift.finance — fetched 2026-03-24
+      // Total TVL $268K — USR allocation % unknown
+      totalTvlUsd: 268_469,
+      statusNote: "Meta-vault — USR allocation % unknown.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
     {
       source: "manual",
-      name: "upUSDC",
+      name: "Upshift USDC",
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
-      statusNote: "USR allocation % unknown. Breakdown TBD.",
+      // Source: api.upshift.finance — fetched 2026-03-24
+      // Total TVL $18.84M — USR allocation % unknown
+      totalTvlUsd: 18_838_001,
+      statusNote: "USR allocation % unknown.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
@@ -420,7 +428,10 @@ const config: IncidentConfig = {
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
-      statusNote: "AUSD vault — USR allocation % unknown. Breakdown TBD.",
+      // Source: api.upshift.finance — fetched 2026-03-24
+      // Total TVL $441K — AUSD vault, USR allocation % unknown
+      totalTvlUsd: 441_136,
+      statusNote: "AUSD vault — USR allocation % unknown.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
