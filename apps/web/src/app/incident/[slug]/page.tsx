@@ -20,6 +20,7 @@ import { ProtocolRow } from "@/components/incident/ProtocolRow";
 import { TimelinePanel } from "@/components/incident/TimelinePanel";
 import { AnimatedCounter } from "@/components/incident/AnimatedCounter";
 import { VaultTable } from "@/components/incident/VaultTable";
+import { FollowBanner } from "@/components/incident/FollowBanner";
 import {
   ToxicAssetDonut,
   type DonutEntry,
@@ -884,6 +885,8 @@ export default async function IncidentPage({
           </div>
         </div>
       </div>
+
+      <FollowBanner />
     </div>
   );
 }
