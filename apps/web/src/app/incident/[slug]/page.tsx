@@ -261,22 +261,23 @@ export default async function IncidentPage({
     }),
   );
 
-  // ── Radar chart data (vault count distribution) ──
+  // ── Radar chart data (exposure amount distribution) ──
   const toRadarEntries = (
     byKey: Record<string, { exposureUsd: number; vaultCount: number }>,
     getIcon: (key: string) => string,
     getLabel: (key: string) => string,
   ): RadarEntry[] => {
-    const totalVaults = Object.values(byKey).reduce(
-      (sum, v) => sum + v.vaultCount,
+    const totalUsd = Object.values(byKey).reduce(
+      (sum, v) => sum + v.exposureUsd,
       0,
     );
-    if (totalVaults === 0) return [];
+    if (totalUsd === 0) return [];
 
     return Object.entries(byKey)
-      .map(([key, { vaultCount }]) => ({
+      .filter(([, { exposureUsd }]) => exposureUsd > 0)
+      .map(([key, { exposureUsd }]) => ({
         name: getLabel(key),
-        value: (vaultCount / totalVaults) * 100,
+        value: (exposureUsd / totalUsd) * 100,
         iconSrc: getIcon(key),
       }))
       .sort((a, b) => b.value - a.value);
