@@ -22,17 +22,16 @@ interface ProtocolRowProps {
   breakdown?: BreakdownEntry[];
 }
 
-/** Mini donut chart (SVG) with hover tooltip */
+/** Mini donut chart (SVG) — pure render, no state */
 function MiniDonut({
   breakdown,
   total,
-  size = 40,
+  size = 32,
 }: {
   breakdown: BreakdownEntry[];
   total: number;
   size?: number;
 }) {
-  const [hover, setHover] = useState(false);
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 3;
@@ -50,79 +49,35 @@ function MiniDonut({
     });
 
   return (
-    <div
-      className="relative flex-shrink-0 cursor-default"
-      style={{ width: size, height: size }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+    <svg
+      width={size}
+      height={size}
+      className="flex-shrink-0"
+      style={{ transform: "rotate(-90deg)" }}
     >
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="rgba(0,0,0,0.04)"
+        strokeWidth={4}
+      />
+      {segments.map((seg) => (
         <circle
+          key={seg.asset}
           cx={cx}
           cy={cy}
           r={r}
           fill="none"
-          stroke="rgba(0,0,0,0.04)"
-          strokeWidth={5}
+          stroke={seg.color}
+          strokeWidth={4}
+          strokeDasharray={`${seg.len} ${circumference - seg.len}`}
+          strokeDashoffset={-seg.offset}
+          strokeLinecap="butt"
         />
-        {segments.map((seg) => (
-          <circle
-            key={seg.asset}
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={seg.color}
-            strokeWidth={5}
-            strokeDasharray={`${seg.len} ${circumference - seg.len}`}
-            strokeDashoffset={-seg.offset}
-            strokeLinecap="butt"
-          />
-        ))}
-      </svg>
-
-      {/* Tooltip */}
-      {hover && segments.length > 0 && (
-        <div
-          className="absolute right-0 bottom-full mb-2 z-50 rounded-lg py-2 px-3 min-w-[180px]"
-          style={{
-            backgroundColor: "#1a1a1a",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-          }}
-        >
-          {segments.map((seg) => {
-            const icon = getAssetIcon(seg.asset);
-            return (
-              <div
-                key={seg.asset}
-                className="flex items-center justify-between gap-3 py-1"
-              >
-                <div className="flex items-center gap-2">
-                  {icon ? (
-                    <img
-                      src={icon}
-                      alt={seg.asset}
-                      className="w-4 h-4 rounded-full"
-                    />
-                  ) : (
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: seg.color }}
-                    />
-                  )}
-                  <span className="text-white text-xs font-medium">
-                    {seg.asset}
-                  </span>
-                </div>
-                <span className="text-white/60 text-xs font-mono">
-                  {formatUsdCompact(seg.amountUsd)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      ))}
+    </svg>
   );
 }
 
@@ -137,22 +92,65 @@ export function ProtocolRow({
   breakdown,
 }: ProtocolRowProps) {
   const [imgError, setImgError] = useState(false);
+  const [hover, setHover] = useState(false);
   const showFallback = !logoSrc || imgError;
 
   const total = breakdown?.reduce((s, b) => s + b.amountUsd, 0) ?? 0;
+  const hasBreakdown = breakdown && breakdown.length > 0 && total > 0;
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 transition-colors cursor-default"
-      style={{ borderRadius: 4 }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.backgroundColor =
-          "rgba(0,0,0,0.02)";
+      className="relative flex items-center gap-3 px-3 py-2.5 transition-colors cursor-default"
+      style={{
+        borderRadius: 4,
+        backgroundColor: hover ? "rgba(0,0,0,0.02)" : "",
       }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.backgroundColor = "";
-      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
+      {/* Tooltip — anchored to the row */}
+      {hover && hasBreakdown && (
+        <div
+          className="absolute right-0 bottom-full mb-1 z-50 rounded-lg py-2 px-3 min-w-[180px]"
+          style={{
+            backgroundColor: "#1a1a1a",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          }}
+        >
+          {breakdown
+            .filter((b) => b.amountUsd > 0)
+            .map((b) => {
+              const icon = getAssetIcon(b.asset);
+              return (
+                <div
+                  key={b.asset}
+                  className="flex items-center justify-between gap-3 py-1"
+                >
+                  <div className="flex items-center gap-2">
+                    {icon ? (
+                      <img
+                        src={icon}
+                        alt={b.asset}
+                        className="w-4 h-4 rounded-full"
+                      />
+                    ) : (
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: b.color }}
+                      />
+                    )}
+                    <span className="text-white text-xs font-medium">
+                      {b.asset}
+                    </span>
+                  </div>
+                  <span className="text-white/60 text-xs font-mono">
+                    {formatUsdCompact(b.amountUsd)}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      )}
       {/* Logo / Initials */}
       <div
         className="flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden"
