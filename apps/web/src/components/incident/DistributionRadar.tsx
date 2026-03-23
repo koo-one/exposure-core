@@ -98,7 +98,11 @@ export function DistributionRadar({ entries }: DistributionRadarProps) {
             >[0])
           }
         />
-        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+        <PolarRadiusAxis
+          domain={[0, "dataMax"]}
+          tick={false}
+          axisLine={false}
+        />
         <Radar
           dataKey="value"
           stroke="#3b82f6"
