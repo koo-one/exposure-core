@@ -13,7 +13,8 @@
     "graphs:prod": "tsx --tsconfig server/tsconfig.json --env-file=.env.production server/src/exposure/graphs-upload.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run --config apps/web/vitest.config.ts",
+    "test:watch": "vitest --config apps/web/vitest.config.ts"
   },
   "lint-staged": {
     "**/*.{js,mjs,ts,tsx,json,md}": "prettier --write",
@@ -44,6 +45,7 @@
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.1"
+    "typescript-eslint": "^8.50.1",
+    "vitest": "^4.1.0"
   }
 }
