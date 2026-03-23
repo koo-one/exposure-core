@@ -243,9 +243,14 @@ const config: IncidentConfig = {
       chains: ["eth"],
       status: "affected",
       statusNote:
-        "FiRM accepts DOLA/wstUSR LP as collateral ($50M ceiling). Direct wstUSR exposure. Bad debt amount TBD.",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+        "FiRM wstUSR-DOLA markets paused. $340K DOLA debt outstanding backed by crashed wstUSR LP collateral.",
+      // Source: inverse.finance/api/f2/fixed-markets — fetched 2026-03-24
+      // wstUSR-DOLA (Convex): $340,062 totalDebt, LP price $0.209 (~90% loss)
+      // yv-wstUSR-DOLA (Yearn): $0 totalDebt
+      // USR-DOLA markets: ceiling reduced to $0, fully unwound
+      // To update: curl https://www.inverse.finance/api/f2/fixed-markets
+      exposureUsd: 340_062,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 340_062, pct: 1 }],
     },
     {
       source: "manual",
