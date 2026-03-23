@@ -54,7 +54,7 @@ const TAG_COLORS: Record<TimelineEntry["tag"], { bg: string; text: string }> = {
   exploit: { bg: "rgba(220,38,38,0.08)", text: "rgba(220,38,38,0.70)" },
   response: { bg: "rgba(0,163,92,0.08)", text: "rgba(0,163,92,0.70)" },
   curator: { bg: "rgba(37,99,235,0.08)", text: "rgba(37,99,235,0.70)" },
-  update: { bg: "rgba(0,0,0,0.04)", text: "rgba(0,0,0,0.40)" },
+  update: { bg: "var(--border)", text: "var(--text-secondary)" },
   governance: { bg: "rgba(124,58,237,0.08)", text: "rgba(124,58,237,0.70)" },
 };
 
@@ -77,7 +77,7 @@ function DetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+        className="rounded-xl surface max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
         style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -89,7 +89,7 @@ function DetailModal({
               style={{
                 fontSize: 9,
                 letterSpacing: "0.12em",
-                color: "rgba(0,0,0,0.3)",
+                color: "var(--text-tertiary)",
               }}
             >
               {entry.date}
@@ -109,7 +109,7 @@ function DetailModal({
           </div>
           <p
             className="text-sm font-semibold leading-snug"
-            style={{ color: "rgba(0,0,0,0.80)" }}
+            style={{ color: "var(--text-primary)" }}
           >
             {entry.text}
           </p>
@@ -121,7 +121,7 @@ function DetailModal({
           {details.description && (
             <p
               className="text-sm leading-relaxed"
-              style={{ color: "rgba(0,0,0,0.55)" }}
+              style={{ color: "var(--text-secondary)" }}
             >
               {details.description}
             </p>
@@ -135,7 +135,7 @@ function DetailModal({
                 style={{
                   fontSize: 8,
                   letterSpacing: "0.15em",
-                  color: "rgba(0,0,0,0.25)",
+                  color: "var(--text-tertiary)",
                 }}
               >
                 Posts
@@ -146,26 +146,26 @@ function DetailModal({
                   href={tweet.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-lg p-3 transition-colors hover:bg-black/[0.02]"
-                  style={{ border: "1px solid rgba(0,0,0,0.06)" }}
+                  className="block rounded-lg p-3 transition-colors hover:opacity-80"
+                  style={{ border: "1px solid var(--border)" }}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
                     <span
                       className="font-bold text-xs"
-                      style={{ color: "rgba(0,0,0,0.70)" }}
+                      style={{ color: "var(--text-primary)" }}
                     >
                       {tweet.author}
                     </span>
                     <span
                       className="text-xs"
-                      style={{ color: "rgba(0,0,0,0.30)" }}
+                      style={{ color: "var(--text-tertiary)" }}
                     >
                       {tweet.handle}
                     </span>
                   </div>
                   <p
                     className="text-xs leading-relaxed"
-                    style={{ color: "rgba(0,0,0,0.55)" }}
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     {tweet.text}
                   </p>
@@ -182,7 +182,7 @@ function DetailModal({
                 style={{
                   fontSize: 8,
                   letterSpacing: "0.15em",
-                  color: "rgba(0,0,0,0.25)",
+                  color: "var(--text-tertiary)",
                 }}
               >
                 Actions Taken
@@ -191,7 +191,7 @@ function DetailModal({
                 <div
                   key={i}
                   className="rounded-lg p-3"
-                  style={{ border: "1px solid rgba(0,0,0,0.06)" }}
+                  style={{ border: "1px solid var(--border)" }}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <img
@@ -204,7 +204,7 @@ function DetailModal({
                     />
                     <span
                       className="font-bold text-xs capitalize"
-                      style={{ color: "rgba(0,0,0,0.70)" }}
+                      style={{ color: "var(--text-primary)" }}
                     >
                       {action.action}
                     </span>
@@ -212,7 +212,7 @@ function DetailModal({
                   {action.market && (
                     <p
                       className="text-xs font-mono"
-                      style={{ color: "rgba(0,0,0,0.35)" }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       {action.market}
                     </p>
@@ -230,7 +230,7 @@ function DetailModal({
                 style={{
                   fontSize: 8,
                   letterSpacing: "0.15em",
-                  color: "rgba(0,0,0,0.25)",
+                  color: "var(--text-tertiary)",
                 }}
               >
                 Sources
@@ -242,7 +242,7 @@ function DetailModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70"
-                  style={{ color: "rgba(0,0,0,0.45)", fontWeight: 600 }}
+                  style={{ color: "var(--text-secondary)", fontWeight: 600 }}
                 >
                   <span>{link.label}</span>
                   <span style={{ fontSize: 9 }}>↗</span>
@@ -256,10 +256,10 @@ function DetailModal({
         <div className="px-5 pb-4">
           <button
             onClick={onClose}
-            className="w-full rounded-lg py-2 text-xs font-semibold transition-colors hover:bg-black/[0.06]"
+            className="w-full rounded-lg py-2 text-xs font-semibold transition-colors hover:opacity-80"
             style={{
-              border: "1px solid rgba(0,0,0,0.08)",
-              color: "rgba(0,0,0,0.40)",
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
             }}
           >
             Close
@@ -287,7 +287,7 @@ function TimelineEntryList({
         style={{
           left: 11,
           width: 1,
-          backgroundColor: "rgba(0,0,0,0.06)",
+          backgroundColor: "var(--border)",
         }}
       />
 
@@ -331,7 +331,7 @@ function TimelineEntryList({
                     style={{
                       fontSize: 8,
                       letterSpacing: "0.12em",
-                      color: "rgba(0,0,0,0.3)",
+                      color: "var(--text-tertiary)",
                     }}
                   >
                     {entry.date}
@@ -349,7 +349,7 @@ function TimelineEntryList({
                     {TAG_LABELS[entry.tag]}
                   </span>
                   {hasDetails && (
-                    <span style={{ fontSize: 8, color: "rgba(0,0,0,0.20)" }}>
+                    <span style={{ fontSize: 8, color: "var(--text-tertiary)" }}>
                       ↗
                     </span>
                   )}
@@ -358,7 +358,7 @@ function TimelineEntryList({
                 {/* Text */}
                 <p
                   className="text-sm leading-snug"
-                  style={{ color: "rgba(0,0,0,0.65)" }}
+                  style={{ color: "var(--text-primary)" }}
                 >
                   {entry.text}
                 </p>
@@ -372,7 +372,7 @@ function TimelineEntryList({
                     className="inline-flex items-center gap-1 mt-1 transition-opacity hover:opacity-70"
                     style={{
                       fontSize: 9,
-                      color: "rgba(0,0,0,0.35)",
+                      color: "var(--text-secondary)",
                       fontWeight: 600,
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -385,11 +385,11 @@ function TimelineEntryList({
                 {/* View details */}
                 {hasDetails && (
                   <button
-                    className="block mt-1.5 uppercase font-black transition-colors hover:text-black/50 cursor-pointer"
+                    className="block mt-1.5 uppercase font-black transition-colors hover:opacity-70 cursor-pointer"
                     style={{
                       fontSize: 8,
                       letterSpacing: "0.1em",
-                      color: "rgba(0,0,0,0.25)",
+                      color: "var(--text-tertiary)",
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -424,7 +424,7 @@ function AllTimelineModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col"
+        className="rounded-xl surface max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col"
         style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -436,21 +436,21 @@ function AllTimelineModal({
               style={{
                 fontSize: 8,
                 letterSpacing: "0.2em",
-                color: "rgba(0,0,0,0.25)",
+                color: "var(--text-tertiary)",
               }}
             >
               Timeline
             </p>
             <p
               className="text-sm font-semibold mt-0.5"
-              style={{ color: "rgba(0,0,0,0.60)" }}
+              style={{ color: "var(--text-secondary)" }}
             >
               {entries.length} events
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-black/20 hover:text-black/50 transition-colors cursor-pointer"
+            className="opacity-30 hover:opacity-70 transition-colors cursor-pointer"
             style={{ fontSize: 18 }}
           >
             ×
@@ -482,10 +482,10 @@ export function TimelinePanel({ entries }: TimelinePanelProps) {
       {hasMore && (
         <button
           onClick={() => setShowAll(true)}
-          className="w-full mt-3 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-black/[0.04] cursor-pointer"
+          className="w-full mt-3 rounded-lg py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80 cursor-pointer"
           style={{
-            border: "1px solid rgba(0,0,0,0.06)",
-            color: "rgba(0,0,0,0.30)",
+            border: "1px solid var(--border)",
+            color: "var(--text-tertiary)",
           }}
         >
           View all {entries.length} events →

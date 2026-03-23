@@ -63,7 +63,7 @@ export function AnimatedCounter({
   }, [target, duration]);
 
   return (
-    <span className={`font-mono font-bold text-black ${className ?? ""}`}>
+    <span className={`font-mono font-bold ${className ?? ""}`} style={{ color: "var(--text-primary)" }}>
       {formatValue(current, format)}
     </span>
   );

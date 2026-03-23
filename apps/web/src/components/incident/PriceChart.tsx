@@ -86,14 +86,14 @@ export function PriceChart() {
   const chartColor = "#5792ff";
 
   return (
-    <div className="bg-white px-5 py-4 flex flex-col">
+    <div className="px-5 py-4 flex flex-col" style={{ backgroundColor: "var(--surface)" }}>
       {/* Panel label */}
       <p
         className="uppercase font-black mb-2"
         style={{
           fontSize: 8,
           letterSpacing: "0.2em",
-          color: "rgba(0,0,0,0.25)",
+          color: "var(--text-tertiary)",
         }}
       >
         USR Price
@@ -103,8 +103,8 @@ export function PriceChart() {
       {!loading && data.length > 0 && (
         <div className="flex items-baseline gap-2 mb-3">
           <span
-            className="font-mono font-bold text-black"
-            style={{ fontSize: 28, letterSpacing: "-0.03em" }}
+            className="font-mono font-bold"
+            style={{ fontSize: 28, letterSpacing: "-0.03em", color: "var(--text-primary)" }}
           >
             ${currentPrice.toFixed(4)}
           </span>
@@ -117,7 +117,7 @@ export function PriceChart() {
           </span>
           <span
             className="font-mono"
-            style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}
+            style={{ fontSize: 10, color: "var(--text-tertiary)" }}
           >
             peg: $1.00
           </span>
@@ -129,14 +129,14 @@ export function PriceChart() {
         {loading ? (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "rgba(0,0,0,0.2)", fontSize: 11 }}
+            style={{ color: "var(--text-tertiary)", fontSize: 11 }}
           >
             Loading…
           </div>
         ) : error ? (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "rgba(0,0,0,0.25)", fontSize: 11 }}
+            style={{ color: "var(--text-tertiary)", fontSize: 11 }}
           >
             Price data unavailable
           </div>
@@ -163,14 +163,14 @@ export function PriceChart() {
                         day: "numeric",
                       });
                 }}
-                tick={{ fontSize: 9, fill: "rgba(0,0,0,0.3)" }}
+                tick={{ fontSize: 9, fill: "var(--text-tertiary)" }}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={40}
               />
               <YAxis
                 domain={[0, 1.05]}
-                tick={{ fontSize: 9, fill: "rgba(0,0,0,0.3)" }}
+                tick={{ fontSize: 9, fill: "var(--text-tertiary)" }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `$${v.toFixed(2)}`}
@@ -178,8 +178,8 @@ export function PriceChart() {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid rgba(0,0,0,0.08)",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                   borderRadius: 6,
                   fontSize: 11,
                   padding: "6px 10px",
@@ -222,8 +222,8 @@ export function PriceChart() {
               className="rounded-full transition-colors select-none cursor-pointer"
               style={{
                 padding: "3px 10px",
-                backgroundColor: active ? "#000" : "transparent",
-                color: active ? "#fff" : "rgba(0,0,0,0.35)",
+                backgroundColor: active ? "var(--text-primary)" : "transparent",
+                color: active ? "var(--surface)" : "var(--text-secondary)",
                 fontSize: 9,
                 fontWeight: 900,
                 letterSpacing: "0.08em",

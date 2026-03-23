@@ -59,7 +59,7 @@ export function IncidentBanner({
           </span>
           <span
             className="block text-sm leading-snug"
-            style={{ color: "rgba(0,0,0,0.45)" }}
+            style={{ color: "var(--text-secondary)" }}
           >
             {description}
           </span>
@@ -70,7 +70,7 @@ export function IncidentBanner({
       <span
         className="flex-shrink-0 uppercase font-black"
         style={{
-          color: "rgba(0,0,0,0.30)",
+          color: "var(--text-tertiary)",
           fontSize: 8,
           letterSpacing: "0.12em",
           whiteSpace: "nowrap",

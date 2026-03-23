@@ -35,20 +35,20 @@ export function FollowBanner() {
       <div
         className="max-w-[680px] mx-auto mb-6 mx-4 rounded-xl px-5 py-4 flex items-center gap-4"
         style={{
-          backgroundColor: "#fff",
-          border: "1px solid rgba(0,0,0,0.08)",
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
           boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
         }}
       >
         <div className="flex-1 min-w-0">
           <p
-            className="font-semibold text-black"
-            style={{ fontSize: 13, lineHeight: 1.4 }}
+            className="font-semibold"
+            style={{ fontSize: 13, lineHeight: 1.4, color: "var(--text-primary)" }}
           >
             Want early access to new dashboards?
           </p>
           <p
-            style={{ fontSize: 12, color: "rgba(0,0,0,0.45)", lineHeight: 1.4 }}
+            style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}
           >
             Join our community for exposure.forum beta updates.
           </p>
@@ -72,8 +72,8 @@ export function FollowBanner() {
 
         <button
           onClick={handleDismiss}
-          className="flex-shrink-0 text-black/20 hover:text-black/50 transition-colors cursor-pointer"
-          style={{ fontSize: 18, lineHeight: 1 }}
+          className="flex-shrink-0 transition-colors cursor-pointer"
+          style={{ fontSize: 18, lineHeight: 1, color: "var(--text-tertiary)" }}
           aria-label="Dismiss"
         >
           &times;

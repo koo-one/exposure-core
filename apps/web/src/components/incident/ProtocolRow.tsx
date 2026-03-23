@@ -183,14 +183,14 @@ export function ProtocolRow({
       {/* Name + meta */}
       <div className="flex-1 min-w-0">
         <div
-          className="font-black text-black truncate"
-          style={{ fontSize: 11 }}
+          className="font-black truncate"
+          style={{ fontSize: 11, color: "var(--text-primary)" }}
         >
           {name}
         </div>
         <div
           className="truncate"
-          style={{ color: "rgba(0,0,0,0.35)", fontSize: 9, fontWeight: 500 }}
+          style={{ color: "var(--text-secondary)", fontSize: 9, fontWeight: 500 }}
         >
           {meta}
         </div>
@@ -200,8 +200,8 @@ export function ProtocolRow({
       {breakdown && breakdown.length > 0 && total > 0 ? (
         <div className="flex items-center gap-2 flex-shrink-0">
           <span
-            className="font-mono font-bold text-black"
-            style={{ fontSize: 11 }}
+            className="font-mono font-bold"
+            style={{ fontSize: 11, color: "var(--text-primary)" }}
           >
             {formatUsdCompact(total)}
           </span>
@@ -211,8 +211,8 @@ export function ProtocolRow({
         <div className="flex flex-col items-end flex-shrink-0">
           {amount && (
             <span
-              className="font-mono font-bold text-black"
-              style={{ fontSize: 11 }}
+              className="font-mono font-bold"
+              style={{ fontSize: 11, color: "var(--text-primary)" }}
             >
               {amount}
             </span>
@@ -223,7 +223,7 @@ export function ProtocolRow({
               style={{
                 fontSize: 8,
                 letterSpacing: "0.12em",
-                color: "rgba(0,0,0,0.3)",
+                color: "var(--text-tertiary)",
               }}
             >
               {statusText}

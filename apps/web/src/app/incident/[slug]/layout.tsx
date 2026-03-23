@@ -49,7 +49,7 @@ export default async function IncidentLayout({
   if (!config) notFound();
 
   return (
-    <div className="min-h-screen bg-gray-50 text-black">
+    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-secondary)", color: "var(--text-primary)" }}>
       <IncidentNav
         title={config.title}
         lastUpdated={new Date().toISOString()}

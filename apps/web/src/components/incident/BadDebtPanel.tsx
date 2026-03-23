@@ -74,44 +74,44 @@ export function BadDebtPanel({
   return (
     <div
       className="grid grid-cols-2"
-      style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.05)" }}
+      style={{ gap: 1, backgroundColor: "var(--border)" }}
     >
       {/* Realized debt — neutral */}
-      <div className="bg-white p-4">
+      <div className="p-4" style={{ backgroundColor: "var(--surface)" }}>
         <p
           className="uppercase font-black mb-1"
           style={{
             fontSize: 8,
             letterSpacing: "0.2em",
-            color: "rgba(0,0,0,0.25)",
+            color: "var(--text-tertiary)",
           }}
         >
           Realized Debt
         </p>
         <p
-          className="font-mono font-bold text-black tracking-tight"
-          style={{ fontSize: 20 }}
+          className="font-mono font-bold tracking-tight"
+          style={{ fontSize: 20, color: "var(--text-primary)" }}
         >
           {formatUsdCompact(realizedDebt)}
         </p>
       </div>
 
       {/* Covered debt — neutral with protocol logos */}
-      <div className="bg-white p-4">
+      <div className="p-4" style={{ backgroundColor: "var(--surface)" }}>
         <p
           className="uppercase font-black mb-1"
           style={{
             fontSize: 8,
             letterSpacing: "0.2em",
-            color: "rgba(0,0,0,0.25)",
+            color: "var(--text-tertiary)",
           }}
         >
           Covered / Promised
         </p>
         {coveredDebt > 0 ? (
           <p
-            className="font-mono font-bold text-black tracking-tight"
-            style={{ fontSize: 20 }}
+            className="font-mono font-bold tracking-tight"
+            style={{ fontSize: 20, color: "var(--text-primary)" }}
           >
             {formatUsdCompact(coveredDebt)}
           </p>
@@ -123,8 +123,8 @@ export function BadDebtPanel({
           </div>
         ) : (
           <p
-            className="font-mono font-bold text-black tracking-tight"
-            style={{ fontSize: 20 }}
+            className="font-mono font-bold tracking-tight"
+            style={{ fontSize: 20, color: "var(--text-primary)" }}
           >
             $0
           </p>
@@ -132,40 +132,40 @@ export function BadDebtPanel({
       </div>
 
       {/* Uncovered gap — neutral */}
-      <div className="bg-white p-4">
+      <div className="p-4" style={{ backgroundColor: "var(--surface)" }}>
         <p
           className="uppercase font-black mb-1"
           style={{
             fontSize: 8,
             letterSpacing: "0.2em",
-            color: "rgba(0,0,0,0.25)",
+            color: "var(--text-tertiary)",
           }}
         >
           Uncovered Gap
         </p>
         <p
-          className="font-mono font-bold text-black tracking-tight"
-          style={{ fontSize: 20 }}
+          className="font-mono font-bold tracking-tight"
+          style={{ fontSize: 20, color: "var(--text-primary)" }}
         >
           {formatUsdCompact(uncoveredGap)}
         </p>
       </div>
 
       {/* Recovery rate — neutral */}
-      <div className="bg-white p-4">
+      <div className="p-4" style={{ backgroundColor: "var(--surface)" }}>
         <p
           className="uppercase font-black mb-1"
           style={{
             fontSize: 8,
             letterSpacing: "0.2em",
-            color: "rgba(0,0,0,0.25)",
+            color: "var(--text-tertiary)",
           }}
         >
           Recovery Rate
         </p>
         <p
-          className="font-mono font-bold text-black tracking-tight"
-          style={{ fontSize: 20 }}
+          className="font-mono font-bold tracking-tight"
+          style={{ fontSize: 20, color: "var(--text-primary)" }}
         >
           {formatPercent(recoveryRate)}
         </p>

@@ -722,6 +722,21 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 23, 2026 · 17:53 UTC",
+      tag: "exploit" as const,
+      text: "Resolv Labs sends onchain message to exploiter address, outlining path for return of funds.",
+      details: {
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "An onchain message has been sent to the exploiter address, outlining a clear path for contact and return of funds in line with industry practices. The investigation is ongoing.",
+            url: "https://x.com/ResolvLabs/status/2036139405157736564",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
@@ -735,7 +750,7 @@ export default async function IncidentPage({
 
   // Panel header shared style helper
   const panelHeader = (title: string) => (
-    <div className="text-[8px] font-black text-black/30 tracking-[0.3em] uppercase mb-3 pb-2 border-b border-black/[0.04]">
+    <div className="text-[8px] font-black tracking-[0.3em] uppercase mb-3 pb-2" style={{ color: "var(--text-tertiary)", borderBottom: "1px solid var(--border)" }}>
       {title}
     </div>
   );
@@ -755,16 +770,16 @@ export default async function IncidentPage({
     .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-secondary)" }}>
       {/* Centered content container */}
       <div className="max-w-[1280px] mx-auto px-6 py-6">
         {/* Outer wrapper with gap-px grid-line effect */}
         <div
           className="flex flex-col"
-          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+          style={{ gap: 1, backgroundColor: "var(--border)" }}
         >
           {/* ── Incident Banner ── */}
-          <div className="bg-white px-5 py-3">
+          <div className="px-5 py-3" style={{ backgroundColor: "var(--surface)" }}>
             <IncidentBanner
               title={config.title}
               description={config.description}
@@ -776,18 +791,19 @@ export default async function IncidentPage({
           {/* ── Row 1: Total At-Risk | USR Price Chart ── */}
           <div
             className="grid grid-cols-1 md:grid-cols-2"
-            style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+            style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
             {/* Total At-Risk */}
-            <div className="bg-white px-5 py-4">
+            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
               {panelHeader("Total At-Risk Allocation")}
               <div className="flex flex-col gap-1">
                 <div
-                  className="font-mono font-bold text-black"
+                  className="font-mono font-bold"
                   style={{
                     fontSize: 48,
                     letterSpacing: "-0.03em",
                     lineHeight: 1,
+                    color: "var(--text-primary)",
                   }}
                 >
                   <AnimatedCounter
@@ -797,7 +813,7 @@ export default async function IncidentPage({
                 </div>
                 <p
                   className="uppercase font-semibold"
-                  style={{ fontSize: 10, color: "rgba(0,0,0,0.30)" }}
+                  style={{ fontSize: 10, color: "var(--text-tertiary)" }}
                 >
                   across {summary.vaultCount} vault
                   {summary.vaultCount !== 1 ? "s" : ""} ·{" "}
@@ -814,10 +830,10 @@ export default async function IncidentPage({
           {/* ── Row 2: Bad Debt Status | Donut by Toxic Asset ── */}
           <div
             className="grid grid-cols-1 md:grid-cols-2"
-            style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+            style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
             {/* Bad Debt */}
-            <div className="bg-white px-5 py-4">
+            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
               {panelHeader("Bad Debt Status")}
               <BadDebtPanel
                 realizedDebt={summary.totalToxicExposureUsd}
@@ -833,7 +849,7 @@ export default async function IncidentPage({
             </div>
 
             {/* Donut by Toxic Asset */}
-            <div className="bg-white px-5 py-4">
+            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
               {panelHeader("By Toxic Asset")}
               <ToxicAssetDonut
                 entries={donutEntries}
@@ -845,7 +861,7 @@ export default async function IncidentPage({
           {/* ── Row 3: Metrics Strip (4-col) ── */}
           <div
             className="grid grid-cols-2 md:grid-cols-4"
-            style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+            style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
             <MetricCard
               label="Affected Vaults"
@@ -874,11 +890,11 @@ export default async function IncidentPage({
             className="grid grid-cols-1 md:grid-cols-2"
             style={{
               gap: 1,
-              backgroundColor: "rgba(0,0,0,0.06)",
+              backgroundColor: "var(--border)",
             }}
           >
             {/* Exposure by Protocol */}
-            <div className="bg-white px-5 py-4">
+            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
               {panelHeader("Exposure by Protocol")}
               <div className="space-y-1">
                 {sortedProtocols.map(([protocol, data]) => {
@@ -927,20 +943,20 @@ export default async function IncidentPage({
             </div>
 
             {/* Timeline */}
-            <div className="bg-white px-5 py-4">
+            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
               {panelHeader("Timeline")}
               <TimelinePanel entries={timelineEntries} />
             </div>
           </div>
 
           {/* ── Row 5: Vault Table (full-width) ── */}
-          <div className="bg-white px-5 py-4">
+          <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
             {panelHeader("All Affected Vaults")}
             <VaultTable vaults={vaults} toxicAssets={config.toxicAssets} />
           </div>
 
           {/* ── Footer ── */}
-          <div className="bg-white mt-px px-5 py-3 flex justify-between text-[8px] font-semibold text-black/15 uppercase tracking-wide">
+          <div className="mt-px px-5 py-3 flex justify-between text-[8px] font-semibold uppercase tracking-wide" style={{ backgroundColor: "var(--surface)", color: "var(--text-tertiary)" }}>
             <span>
               Exposure Core · Data refreshed every 10 min · Last update:{" "}
               {timestamp}

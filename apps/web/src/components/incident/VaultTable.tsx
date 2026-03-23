@@ -127,8 +127,8 @@ function ChainLogo({ chain }: { chain: string }) {
       <span
         className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
         style={{
-          backgroundColor: "rgba(0,0,0,0.04)",
-          color: "rgba(0,0,0,0.50)",
+          backgroundColor: "var(--surface-secondary)",
+          color: "var(--text-secondary)",
         }}
       >
         {chain}
@@ -412,9 +412,9 @@ function FilterDropdown({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
         style={{
-          border: "1px solid rgba(0,0,0,0.10)",
-          color: count > 0 ? "#000" : "rgba(0,0,0,0.50)",
-          backgroundColor: count > 0 ? "rgba(0,0,0,0.04)" : "transparent",
+          border: "1px solid var(--border)",
+          color: count > 0 ? "var(--text-primary)" : "var(--text-secondary)",
+          backgroundColor: count > 0 ? "var(--surface-secondary)" : "transparent",
         }}
       >
         <span>{label}</span>
@@ -428,7 +428,7 @@ function FilterDropdown({
         )}
         <span
           className="text-[10px]"
-          style={{ color: "rgba(0,0,0,0.30)", marginLeft: 2 }}
+          style={{ color: "var(--text-tertiary)", marginLeft: 2 }}
         >
           {open ? "\u25B2" : "\u25BC"}
         </span>
@@ -437,9 +437,9 @@ function FilterDropdown({
         <div
           className="absolute left-0 top-full mt-1 z-50 rounded-lg py-1 min-w-[160px]"
           style={{
-            backgroundColor: "#fff",
-            border: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            backgroundColor: "var(--surface)",
+            border: "1px solid var(--border)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
           }}
         >
           {options.map((opt) => {
@@ -456,7 +456,7 @@ function FilterDropdown({
                 <span
                   className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
                   style={{
-                    borderColor: isActive ? "#000" : "rgba(0,0,0,0.15)",
+                    borderColor: isActive ? "var(--text-primary)" : "var(--border)",
                     backgroundColor: isActive ? "#000" : "transparent",
                   }}
                 >
@@ -479,7 +479,7 @@ function FilterDropdown({
                   )}
                 </span>
                 {logoPath && <FilterLogo src={logoPath(opt)} alt={opt} />}
-                <span style={{ color: "rgba(0,0,0,0.70)" }}>{display}</span>
+                <span style={{ color: "var(--text-primary)" }}>{display}</span>
               </button>
             );
           })}
@@ -577,12 +577,12 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
   const renderSortIndicator = (col: SortColumn) => {
     if (sortColumn !== col)
       return (
-        <span style={{ color: "rgba(0,0,0,0.20)" }} className="ml-1">
+        <span style={{ color: "var(--text-tertiary)" }} className="ml-1">
           &uarr;&darr;
         </span>
       );
     return (
-      <span className="ml-1" style={{ color: "rgba(0,0,0,0.50)" }}>
+      <span className="ml-1" style={{ color: "var(--text-secondary)" }}>
         {sortDirection === "asc" ? "\u25B2" : "\u25BC"}
       </span>
     );
@@ -621,10 +621,11 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
             placeholder="Search vaults..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg px-3 py-1.5 text-xs text-black placeholder:text-black/30 outline-none focus:ring-1 focus:ring-black/10"
+            className="w-full rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1"
             style={{
-              backgroundColor: "rgba(0,0,0,0.02)",
-              border: "1px solid rgba(0,0,0,0.06)",
+              backgroundColor: "var(--surface-secondary)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
             }}
           />
         </div>
@@ -633,15 +634,15 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
       {/* Table */}
       <div
         className="overflow-x-auto rounded-lg"
-        style={{ border: "1px solid rgba(0,0,0,0.06)" }}
+        style={{ border: "1px solid var(--border)" }}
       >
         <table className="w-full text-sm" style={{ minWidth: 700 }}>
           <thead
             className="sticky top-0 z-10 uppercase"
             style={{
-              backgroundColor: "rgba(0,0,0,0.03)",
-              borderBottom: "1px solid rgba(0,0,0,0.06)",
-              color: "rgba(0,0,0,0.30)",
+              backgroundColor: "var(--surface-secondary)",
+              borderBottom: "1px solid var(--border)",
+              color: "var(--text-tertiary)",
               fontSize: 10,
               fontWeight: 300,
               letterSpacing: "0.06em",
@@ -657,8 +658,16 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposureUsd")}
               >
-                At-Risk
-                {renderSortIndicator("exposureUsd")}
+                <span className="relative group/th inline-flex items-center gap-1">
+                  At-Risk{renderSortIndicator("exposureUsd")}
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
+                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                    <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
+                  </svg>
+                  <span className="absolute left-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+                    Amount of vault capital allocated to toxic Resolv assets (USR, wstUSR, RLP). This is the capital at risk of loss from the exploit.
+                  </span>
+                </span>
               </th>
               <th className="px-4 py-3 text-left whitespace-nowrap">
                 Exposure
@@ -667,7 +676,16 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposurePct")}
               >
-                %{renderSortIndicator("exposurePct")}
+                <span className="relative group/th inline-flex items-center gap-1 justify-end">
+                  %{renderSortIndicator("exposurePct")}
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
+                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                    <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
+                  </svg>
+                  <span className="absolute right-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+                    Percentage of total vault deposits exposed to toxic Resolv assets. Higher % means greater relative risk for depositors.
+                  </span>
+                </span>
               </th>
               <th
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
@@ -685,7 +703,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 <tr
                   key={`${ve.vault.protocol}-${ve.vault.name}`}
                   className="transition-colors hover:bg-black/[0.02]"
-                  style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}
+                  style={{ borderBottom: "1px solid var(--border)" }}
                 >
                   {/* Network */}
                   <td
@@ -716,7 +734,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         protocol={ve.vault.protocol}
                         curator={ve.vault.curator}
                       />
-                      <span className="font-medium text-black truncate min-w-0">
+                      <span className="font-medium truncate min-w-0" style={{ color: "var(--text-primary)" }}>
                         {ve.vault.name}
                       </span>
                     </div>
@@ -724,19 +742,19 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* At-Risk */}
                   <td className="px-4 py-3 text-left font-mono whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
                         unknown
                       </span>
                     ) : (
                       <div style={{ lineHeight: 1.4 }}>
                         <span
-                          style={{ fontSize: 12, color: "rgba(0,0,0,0.70)" }}
+                          style={{ fontSize: 12, color: "var(--text-primary)" }}
                         >
                           {formatNumberCompact(ve.toxicExposureUsd)}{" "}
                           <span
                             style={{
                               fontWeight: 400,
-                              color: "rgba(0,0,0,0.40)",
+                              color: "var(--text-secondary)",
                             }}
                           >
                             {inferUnderlyingAsset(
@@ -749,8 +767,8 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                             className="inline-block rounded mt-0.5"
                             style={{
                               fontSize: 10,
-                              color: "rgba(0,0,0,0.35)",
-                              backgroundColor: "rgba(0,0,0,0.04)",
+                              color: "var(--text-secondary)",
+                              backgroundColor: "var(--surface-secondary)",
                               padding: "1px 5px",
                             }}
                           >
@@ -763,7 +781,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* Exposure — token icons */}
                   <td className="px-4 py-3">
                     {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
                         —
                       </span>
                     ) : ve.breakdown.length > 0 ? (
@@ -772,7 +790,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         toxicAssets={toxicAssets}
                       />
                     ) : (
-                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
                         —
                       </span>
                     )}
@@ -780,14 +798,14 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* % with mini ring */}
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
                         —
                       </span>
                     ) : (
                       <div className="flex items-center justify-end gap-2">
                         <span
                           className="font-mono"
-                          style={{ fontSize: 12, color: "rgba(0,0,0,0.35)" }}
+                          style={{ fontSize: 12, color: "var(--text-secondary)" }}
                         >
                           {(ve.exposurePct * 100).toFixed(1)}%
                         </span>
@@ -806,7 +824,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 <td
                   colSpan={7}
                   className="px-4 py-10 text-center text-sm"
-                  style={{ color: "rgba(0,0,0,0.30)" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   No vaults match the current filters.
                 </td>
@@ -818,7 +836,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
 
       <p
         className="mt-2 text-xs text-right"
-        style={{ color: "rgba(0,0,0,0.20)" }}
+        style={{ color: "var(--text-tertiary)" }}
       >
         {sorted.length} of {vaults.length} vaults
       </p>

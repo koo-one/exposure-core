@@ -66,10 +66,11 @@ export function ExposureBar({
       {/* Tooltip */}
       {showTooltip && normalized.length > 0 && (
         <div
-          className="absolute z-50 left-0 bottom-full mb-2 bg-white border rounded-lg shadow-lg px-3 py-2 min-w-[160px]"
+          className="absolute z-50 left-0 bottom-full mb-2 border rounded-lg shadow-lg px-3 py-2 min-w-[160px]"
           style={{
-            borderColor: "rgba(0,0,0,0.08)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+            backgroundColor: "var(--surface)",
+            borderColor: "var(--border)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
           }}
         >
           {normalized.map((entry) => (
@@ -86,11 +87,11 @@ export function ExposureBar({
                       colorBySymbol[entry.asset] ?? "rgba(0,0,0,0.15)",
                   }}
                 />
-                <span style={{ color: "rgba(0,0,0,0.5)", fontWeight: 500 }}>
+                <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>
                   {entry.asset}
                 </span>
               </span>
-              <span className="font-mono" style={{ color: "rgba(0,0,0,0.7)" }}>
+              <span className="font-mono" style={{ color: "var(--text-primary)" }}>
                 {entry.pct.toFixed(1)}% · {formatUsdCompact(entry.amountUsd)}
               </span>
             </div>
@@ -105,11 +106,11 @@ export function ExposureBar({
                   className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
                 />
-                <span style={{ color: "rgba(0,0,0,0.3)", fontWeight: 500 }}>
+                <span style={{ color: "var(--text-tertiary)", fontWeight: 500 }}>
                   Safe
                 </span>
               </span>
-              <span className="font-mono" style={{ color: "rgba(0,0,0,0.3)" }}>
+              <span className="font-mono" style={{ color: "var(--text-tertiary)" }}>
                 {remainingPct.toFixed(1)}%
               </span>
             </div>
