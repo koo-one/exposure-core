@@ -135,7 +135,10 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
         {/* Center label */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center justify-center">
-            <span className="font-mono text-[13px] font-bold leading-tight">
+            <span
+              className="font-mono text-[13px] font-bold leading-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
               {formatUsdCompact(total)}
             </span>
             <span
