@@ -92,7 +92,7 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
                   <div
                     style={{
                       backgroundColor: "var(--surface)",
-                      border: "1px solid rgba(0,0,0,0.08)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
                       padding: "8px 12px",
                       fontSize: 12,
@@ -112,9 +112,18 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
                           style={{ backgroundColor: d.color }}
                         />
                       )}
-                      <span style={{ fontWeight: 700 }}>{d.symbol}</span>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        {d.symbol}
+                      </span>
                     </div>
-                    <div style={{ color: "rgba(0,0,0,0.5)", marginTop: 2 }}>
+                    <div
+                      style={{ color: "var(--text-secondary)", marginTop: 2 }}
+                    >
                       {formatUsdCompact(d.exposureUsd)} ({pct}%)
                     </div>
                   </div>
@@ -129,7 +138,10 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
             <span className="font-mono text-[13px] font-bold leading-tight">
               {formatUsdCompact(total)}
             </span>
-            <span className="text-[7px] uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
+            <span
+              className="text-[7px] uppercase tracking-widest"
+              style={{ color: "var(--text-tertiary)" }}
+            >
               Total
             </span>
           </div>
