@@ -1,7 +1,7 @@
 import type { IncidentConfig } from "@/lib/incident/types";
 
 const config: IncidentConfig = {
-  slug: "resolv-usr",
+  slug: "resolv",
   title: "USR Contagion",
   subtitle: "Resolv Labs USR Exploit — Cascading DeFi Exposure",
   status: "active",

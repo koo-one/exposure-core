@@ -2,14 +2,14 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
-import { formatUsdCompact } from "@/lib/incident/format";
+import { formatUsdCompact, formatNumberCompact } from "@/lib/incident/format";
 import {
   getCuratorIcon,
   getProtocolIcon,
   getChainIcon,
+  getAssetIcon,
 } from "@/lib/incident/logos";
 import { StatusBadge } from "./StatusBadge";
-import { ExposureBar } from "./ExposureBar";
 
 interface VaultTableProps {
   vaults: VaultExposure[];
@@ -136,6 +136,163 @@ function FilterLogo({ src, alt }: { src: string; alt: string }) {
       className="w-4 h-4 flex-shrink-0"
       onError={() => setError(true)}
     />
+  );
+}
+
+/** Extract likely underlying asset symbol from vault name */
+function inferUnderlyingAsset(name: string): string | null {
+  const tokens = ["USDC", "USDT", "ETH", "WETH", "DAI", "USD0", "AUSD", "DOLA"];
+  for (const t of tokens) {
+    if (name.toUpperCase().includes(t)) return t.toLowerCase();
+  }
+  return null;
+}
+
+/* ── Mini Ring Chart (SVG for proper transparency) ── */
+function MiniRing({
+  pct,
+  size = 16,
+  color = "#5792ff",
+}: {
+  pct: number;
+  size?: number;
+  color?: string;
+}) {
+  const clamp = Math.min(Math.max(pct, 0), 1);
+  const r = size / 2 - 2;
+  const circumference = 2 * Math.PI * r;
+  const filled = circumference * clamp;
+  return (
+    <svg
+      width={size}
+      height={size}
+      className="flex-shrink-0"
+      style={{ transform: "rotate(-90deg)" }}
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="rgba(128,128,128,0.15)"
+        strokeWidth={2.5}
+      />
+      {clamp > 0 && (
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={2.5}
+          strokeDasharray={`${filled} ${circumference - filled}`}
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
+
+/* ── Exposure Token Icons with tooltip ── */
+function ExposureTokenIcons({
+  breakdown,
+  toxicAssets,
+}: {
+  breakdown: VaultExposure["breakdown"];
+  toxicAssets: ToxicAssetDef[];
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const colorBySymbol = Object.fromEntries(
+    toxicAssets.map((a) => [a.symbol, a.color]),
+  );
+
+  return (
+    <div
+      className="relative inline-flex"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div className="flex items-center -space-x-1">
+        {breakdown.map((b) => {
+          const icon = getAssetIcon(b.asset);
+          return icon ? (
+            <img
+              key={b.asset}
+              src={icon}
+              alt={b.asset}
+              className="w-5 h-5 rounded-full ring-2 ring-white"
+            />
+          ) : (
+            <div
+              key={b.asset}
+              className="w-5 h-5 rounded-full ring-2 ring-white flex items-center justify-center"
+              style={{
+                backgroundColor: colorBySymbol[b.asset] ?? "#999",
+              }}
+            >
+              <span
+                className="text-white"
+                style={{ fontSize: 6, fontWeight: 800 }}
+              >
+                {b.asset.slice(0, 2)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tooltip */}
+      {showTooltip && breakdown.length > 0 && (
+        <div
+          className="absolute left-0 bottom-full mb-2 z-50 rounded-lg py-2 px-3 min-w-[220px]"
+          style={{
+            backgroundColor: "#1a1a1a",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          }}
+        >
+          {breakdown.map((b) => {
+            const icon = getAssetIcon(b.asset);
+            const pct = b.pct > 1 ? b.pct / 100 : b.pct;
+            return (
+              <div
+                key={b.asset}
+                className="flex items-center justify-between gap-4 py-1"
+              >
+                <div className="flex items-center gap-2">
+                  {icon ? (
+                    <img
+                      src={icon}
+                      alt={b.asset}
+                      className="w-4 h-4 rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{
+                        backgroundColor: colorBySymbol[b.asset] ?? "#999",
+                      }}
+                    />
+                  )}
+                  <span className="text-white text-xs font-medium">
+                    {b.asset}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/60 text-xs font-mono">
+                    {formatUsdCompact(b.amountUsd)}
+                  </span>
+                  <MiniRing
+                    pct={pct}
+                    size={14}
+                    color={colorBySymbol[b.asset] ?? "#5792ff"}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -407,10 +564,12 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
       >
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "38%" }} />
-            <col style={{ width: "34%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
             <col style={{ width: "18%" }} />
+            <col style={{ width: "16%" }} />
           </colgroup>
           <thead
             className="sticky top-0 z-10 text-xs uppercase"
@@ -426,11 +585,21 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
               <th className="px-4 py-3 text-left whitespace-nowrap">Network</th>
               <th className="px-4 py-3 text-left whitespace-nowrap">Vault</th>
               <th
-                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposureUsd")}
               >
-                Exposure
+                At-Risk
                 <SortIndicator col="exposureUsd" />
+              </th>
+              <th className="px-4 py-3 text-left whitespace-nowrap">
+                Exposure
+              </th>
+              <th
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
+                onClick={() => handleSort("exposurePct")}
+              >
+                %
+                <SortIndicator col="exposurePct" />
               </th>
               <th
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
@@ -471,46 +640,74 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         protocol={ve.vault.protocol}
                         curator={ve.vault.curator}
                       />
-                      <div className="min-w-0">
-                        <span className="font-medium text-black block truncate">
-                          {ve.vault.name}
-                        </span>
-                        {ve.vault.curator && (
-                          <span
-                            className="block truncate"
-                            style={{ fontSize: 10, color: "rgba(0,0,0,0.35)" }}
-                          >
-                            {ve.vault.curator}
-                          </span>
-                        )}
-                      </div>
+                      <span className="font-medium text-black truncate min-w-0">
+                        {ve.vault.name}
+                      </span>
                     </div>
                   </td>
+                  {/* At-Risk */}
+                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
+                    {isPending ? (
+                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                        unknown
+                      </span>
+                    ) : (
+                      <div>
+                        <span
+                          style={{ fontSize: 12, color: "rgba(0,0,0,0.70)" }}
+                        >
+                          {formatNumberCompact(ve.toxicExposureUsd)}{" "}
+                          <span
+                            style={{
+                              fontWeight: 400,
+                              color: "rgba(0,0,0,0.40)",
+                            }}
+                          >
+                            {inferUnderlyingAsset(
+                              ve.vault.name,
+                            )?.toUpperCase() ?? "USD"}
+                          </span>
+                        </span>
+                        <div
+                          style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
+                        >
+                          {formatUsdCompact(ve.toxicExposureUsd)}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  {/* Exposure — token icons */}
                   <td className="px-4 py-3">
                     {isPending ? (
                       <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
-                        pending
+                        —
+                      </span>
+                    ) : ve.breakdown.length > 0 ? (
+                      <ExposureTokenIcons
+                        breakdown={ve.breakdown}
+                        toxicAssets={toxicAssets}
+                      />
+                    ) : (
+                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                        —
+                      </span>
+                    )}
+                  </td>
+                  {/* % with mini ring */}
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {isPending ? (
+                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                        —
                       </span>
                     ) : (
-                      <div className="flex items-center gap-3">
-                        <div className="w-16 flex-shrink-0">
-                          <ExposureBar
-                            breakdown={ve.breakdown}
-                            toxicAssets={toxicAssets}
-                          />
-                        </div>
+                      <div className="flex items-center justify-end gap-2">
                         <span
-                          className="font-mono whitespace-nowrap"
-                          style={{ fontSize: 11, color: "rgba(0,0,0,0.70)" }}
-                        >
-                          {formatUsdCompact(ve.toxicExposureUsd)}
-                        </span>
-                        <span
-                          className="font-mono whitespace-nowrap"
-                          style={{ fontSize: 11, color: "rgba(0,0,0,0.35)" }}
+                          className="font-mono"
+                          style={{ fontSize: 12, color: "rgba(0,0,0,0.35)" }}
                         >
                           {(ve.exposurePct * 100).toFixed(1)}%
                         </span>
+                        <MiniRing pct={ve.exposurePct} size={16} />
                       </div>
                     )}
                   </td>
@@ -523,7 +720,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
             {sorted.length === 0 && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={6}
                   className="px-4 py-10 text-center text-sm"
                   style={{ color: "rgba(0,0,0,0.30)" }}
                 >

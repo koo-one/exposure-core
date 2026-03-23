@@ -8,10 +8,9 @@ export function middleware(request: NextRequest) {
   const match = host.match(/^([a-z0-9-]+)\.exposure\.forum$/);
   if (match) {
     const subdomain = match[1];
-    const slugMap: Record<string, string> = {
-      usr: "resolv-usr",
-    };
-    const resolvedSlug = slugMap[subdomain] ?? subdomain;
+    // subdomain maps directly to incident slug
+    // resolv.exposure.forum → /incident/resolv
+    const resolvedSlug = subdomain;
 
     // Rewrite to incident route (preserves the rest of the path)
     const url = request.nextUrl.clone();

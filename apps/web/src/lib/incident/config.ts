@@ -1,7 +1,7 @@
 import type { IncidentConfig } from "./types";
 
 const configs: Record<string, () => Promise<{ default: IncidentConfig }>> = {
-  "resolv-usr": () => import("@/data/incidents/resolv-usr"),
+  resolv: () => import("@/data/incidents/resolv-usr"),
 };
 
 export async function loadIncidentConfig(
