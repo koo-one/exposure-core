@@ -6,19 +6,19 @@
 
 ```bash
 git clone <YOUR_REPO_URL>
-cd exposure-core-shelter
+cd exposure-core
 pnpm install
 ```
 
-### 2) Create `env.local.sh`
+### 2) Create `.env.local`
 
-`env.local.sh` is ignored by git (it contains local secrets).
+`.env.local` is ignored by git (it contains local secrets).
 
 ```bash
-cp env.example env.local.sh
+cp .env.example .env.local
 ```
 
-Edit `env.local.sh` and set at least:
+Edit `.env.local` and set at least:
 
 - `DUNE_API_KEY` (required for the `resolv` adapter metrics)
 
@@ -28,7 +28,7 @@ This writes JSON snapshots under `server/fixtures/output/` and generates
 `server/fixtures/output/search-index.json`.
 
 ```bash
-pnpm graphs:all -- --env ./env.local.sh
+pnpm graphs:dev
 ```
 
 ### 4) Start Web Dev Server
