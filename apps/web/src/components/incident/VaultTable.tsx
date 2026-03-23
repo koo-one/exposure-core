@@ -633,7 +633,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
 
       {/* Table */}
       <div
-        className="overflow-x-auto rounded-lg"
+        className="rounded-lg overflow-visible"
         style={{ border: "1px solid var(--border)" }}
       >
         <table className="w-full text-sm" style={{ minWidth: 700 }}>
@@ -664,7 +664,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                     <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
                     <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
                   </svg>
-                  <span className="absolute left-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+                  <span className="absolute left-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
                     Amount of vault capital allocated to toxic Resolv assets (USR, wstUSR, RLP). This is the capital at risk of loss from the exploit.
                   </span>
                 </span>
@@ -682,7 +682,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                     <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
                     <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
                   </svg>
-                  <span className="absolute right-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+                  <span className="absolute right-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
                     Percentage of total vault deposits exposed to toxic Resolv assets. Higher % means greater relative risk for depositors.
                   </span>
                 </span>

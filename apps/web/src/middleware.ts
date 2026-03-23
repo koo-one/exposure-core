@@ -4,14 +4,12 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
 
-  // Root domain: redirect exposure.forum → /incident/resolv
+  // Root domain: redirect exposure.forum → resolv.exposure.forum
   if (
     (host === "exposure.forum" || host === "www.exposure.forum") &&
     request.nextUrl.pathname === "/"
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/incident/resolv";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect("https://resolv.exposure.forum");
   }
 
   // Match *.exposure.forum subdomains
