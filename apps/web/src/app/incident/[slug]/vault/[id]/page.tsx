@@ -11,7 +11,9 @@ import type {
 } from "@/lib/incident/types";
 import { slugifyVaultName } from "@/lib/incident/types";
 import type { GraphSnapshot } from "@/types";
-import { VaultHero } from "@/components/incident/VaultHero";
+import { StatusBadge } from "@/components/incident/StatusBadge";
+import { ExposureBar } from "@/components/incident/ExposureBar";
+import { getCuratorLogoKey } from "@/components/incident/ProtocolRow";
 
 export const revalidate = 600;
 
@@ -22,6 +24,17 @@ function formatUsd(value: number): string {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function exposureColor(pct: number): string {
+  if (pct === 0) return "#22c55e";
+  if (pct < 0.05) return "#f59e0b";
+  if (pct < 0.15) return "#f97316";
+  return "#E11D48";
 }
 
 async function loadVaultData(
@@ -144,8 +157,14 @@ export async function generateMetadata({
   );
   if (!matchedVault) return {};
 
-  const title = `${matchedVault.name} — ${config.title}`;
-  const description = `Vault exposure detail for ${matchedVault.name} in the ${config.title} incident.`;
+  // Compute exposure pct for OG
+  const result = await loadVaultData(slug, id);
+  const exposurePct = result
+    ? (result.vaultExposure.exposurePct * 100).toFixed(1)
+    : "?";
+
+  const title = `${matchedVault.name} — ${exposurePct}% Exposure`;
+  const description = `${matchedVault.name} has ${exposurePct}% toxic exposure in the ${config.title} incident.`;
 
   return {
     title,
@@ -172,6 +191,13 @@ export default async function VaultDetailPage({
 
   const { vaultExposure } = result;
   const vault = vaultExposure.vault;
+  const isPending = vaultExposure.status === "pending";
+  const pctDisplay = (vaultExposure.exposurePct * 100).toFixed(1);
+  const color = exposureColor(vaultExposure.exposurePct);
+
+  const assetColorBySymbol = Object.fromEntries(
+    config.toxicAssets.map((a) => [a.symbol, a.color]),
+  );
 
   // For the "View full allocation graph" link, get first nodeId from adapter vault
   const firstNodeId =
@@ -179,167 +205,375 @@ export default async function VaultDetailPage({
       ? Object.values((vault as AdapterVault).nodeIds)[0]
       : null;
 
-  return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      {/* Section 1: VaultHero */}
-      <VaultHero vault={vaultExposure} toxicAssets={config.toxicAssets} />
+  // Curator logo
+  const curatorLogoKey = vault.curator
+    ? getCuratorLogoKey(vault.curator)
+    : null;
 
-      {/* Section 2: Toxic Allocations Table */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold text-white mb-4">
-          Toxic Allocations
-        </h2>
-        {vaultExposure.toxicAllocations &&
-        vaultExposure.toxicAllocations.length > 0 ? (
-          <div
-            className="overflow-x-auto rounded-lg"
-            style={{ border: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            <table className="w-full text-sm">
-              <thead
-                className="text-xs uppercase"
+  // Panel header helper
+  const panelHeader = (title: string) => (
+    <div className="text-[8px] font-black text-black/30 tracking-[0.3em] uppercase mb-3 pb-2 border-b border-black/[0.04]">
+      {title}
+    </div>
+  );
+
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <div
+        className="flex flex-col"
+        style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+      >
+        {/* ── Section 1: Hero ── */}
+        <div className="bg-white px-5 py-6">
+          {/* Vault name */}
+          <h1 className="text-2xl font-bold text-black mb-3">{vault.name}</h1>
+
+          {/* Protocol + chain badges row */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {/* Protocol logo + name */}
+            <div className="flex items-center gap-1.5">
+              <img
+                src={`/logos/protocols/${vault.protocol}.svg`}
+                alt=""
+                width={28}
+                height={28}
+                className="w-7 h-7 rounded-md object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <span
+                className="font-black capitalize"
+                style={{ fontSize: 11, color: "rgba(0,0,0,0.65)" }}
+              >
+                {capitalize(vault.protocol)}
+              </span>
+            </div>
+
+            {/* Chain badges */}
+            {vault.chains.map((chain) => (
+              <span
+                key={chain}
+                className="rounded-full px-2 py-0.5 font-mono uppercase"
                 style={{
-                  backgroundColor: "#09090b",
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.35)",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  backgroundColor: "rgba(0,0,0,0.05)",
+                  color: "rgba(0,0,0,0.40)",
                 }}
               >
-                <tr>
-                  <th className="px-4 py-3 text-left whitespace-nowrap">
-                    Market Name
-                  </th>
-                  <th className="px-4 py-3 text-left whitespace-nowrap">
-                    Chain
-                  </th>
-                  <th className="px-4 py-3 text-left whitespace-nowrap">
-                    Toxic Asset
-                  </th>
-                  <th className="px-4 py-3 text-right whitespace-nowrap">
-                    At-Risk Allocation
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {vaultExposure.toxicAllocations.map((alloc, i) => (
-                  <tr
-                    key={i}
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-                  >
-                    <td className="px-4 py-3 text-white font-medium">
-                      {alloc.nodeName}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
-                        style={{
-                          backgroundColor: "rgba(255,255,255,0.06)",
-                          color: "rgba(255,255,255,0.50)",
-                        }}
-                      >
-                        {alloc.chain}
-                      </span>
-                    </td>
-                    <td
-                      className="px-4 py-3 font-mono text-xs"
-                      style={{ color: "rgba(255,255,255,0.70)" }}
-                    >
-                      {alloc.asset}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-right font-mono"
-                      style={{ color: "rgba(255,255,255,0.70)" }}
-                    >
-                      {formatUsd(alloc.allocationUsd)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                {chain}
+              </span>
+            ))}
           </div>
-        ) : (
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
-            No detailed allocation data available.
-          </p>
-        )}
-      </section>
 
-      {/* Section 3: Protocol Response */}
-      {vault.statusNote && (
-        <section className="mb-10">
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Protocol Response
-          </h2>
-          <div
-            className="rounded-lg p-6"
+          {/* Curator */}
+          {vault.curator && (
+            <div className="flex items-center gap-1.5 mb-3">
+              {curatorLogoKey && (
+                <img
+                  src={`/logos/curators/${curatorLogoKey}.svg`}
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 rounded object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display =
+                      "none";
+                  }}
+                />
+              )}
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "rgba(0,0,0,0.35)",
+                  fontWeight: 500,
+                }}
+              >
+                Curated by {vault.curator}
+              </span>
+            </div>
+          )}
+
+          {/* Status badge */}
+          <div className="mb-5">
+            <StatusBadge status={vault.status} />
+          </div>
+
+          {/* Exposure metrics or pending state */}
+          {isPending ? (
+            <div
+              className="rounded px-4 py-6 text-center"
+              style={{
+                backgroundColor: "rgba(0,0,0,0.02)",
+                border: "1px solid rgba(0,0,0,0.05)",
+              }}
+            >
+              <p
+                className="font-mono"
+                style={{ fontSize: 11, color: "rgba(0,0,0,0.25)" }}
+              >
+                Data pending
+              </p>
+            </div>
+          ) : (
+            <div>
+              {/* Large exposure % */}
+              <div
+                className="font-mono font-bold leading-none mb-1"
+                style={{ fontSize: 48, color }}
+              >
+                {pctDisplay}%
+              </div>
+              <p
+                className="uppercase font-semibold mb-4"
+                style={{
+                  fontSize: 9,
+                  color: "rgba(0,0,0,0.30)",
+                  letterSpacing: "0.12em",
+                }}
+              >
+                at-risk allocation
+              </p>
+
+              {/* Exposure bar */}
+              <ExposureBar
+                breakdown={vaultExposure.breakdown}
+                toxicAssets={config.toxicAssets}
+                className="mb-2"
+              />
+
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "rgba(0,0,0,0.40)",
+                  fontWeight: 500,
+                }}
+              >
+                of {formatUsd(vaultExposure.totalAllocationUsd)} total
+                allocation
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Section 2: Collateral Markets ── */}
+        <div className="bg-white px-5 py-4">
+          {panelHeader("Collateral Markets")}
+          {vaultExposure.toxicAllocations &&
+          vaultExposure.toxicAllocations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th
+                      className="text-left pb-2 whitespace-nowrap"
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 800,
+                        color: "rgba(0,0,0,0.25)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        borderBottom: "1px solid rgba(0,0,0,0.04)",
+                        paddingBottom: 6,
+                      }}
+                    >
+                      Market Name
+                    </th>
+                    <th
+                      className="text-left pl-4 pb-2 whitespace-nowrap"
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 800,
+                        color: "rgba(0,0,0,0.25)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        borderBottom: "1px solid rgba(0,0,0,0.04)",
+                        paddingBottom: 6,
+                      }}
+                    >
+                      Chain
+                    </th>
+                    <th
+                      className="text-left pl-4 pb-2 whitespace-nowrap"
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 800,
+                        color: "rgba(0,0,0,0.25)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        borderBottom: "1px solid rgba(0,0,0,0.04)",
+                        paddingBottom: 6,
+                      }}
+                    >
+                      Toxic Asset
+                    </th>
+                    <th
+                      className="text-right pl-4 pb-2 whitespace-nowrap"
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 800,
+                        color: "rgba(0,0,0,0.25)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        borderBottom: "1px solid rgba(0,0,0,0.04)",
+                        paddingBottom: 6,
+                      }}
+                    >
+                      At-Risk $
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vaultExposure.toxicAllocations.map((alloc, i) => (
+                    <tr
+                      key={i}
+                      style={{ borderBottom: "1px solid rgba(0,0,0,0.03)" }}
+                    >
+                      <td
+                        className="py-2.5 pr-4 font-medium text-black"
+                        style={{ fontSize: 11 }}
+                      >
+                        {alloc.nodeName}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span
+                          className="rounded px-1.5 py-0.5 font-mono uppercase"
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            backgroundColor: "rgba(0,0,0,0.04)",
+                            color: "rgba(0,0,0,0.40)",
+                          }}
+                        >
+                          {alloc.chain}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span
+                          className="font-mono font-bold uppercase"
+                          style={{
+                            fontSize: 10,
+                            color:
+                              assetColorBySymbol[alloc.asset] ??
+                              "rgba(0,0,0,0.50)",
+                          }}
+                        >
+                          {alloc.asset}
+                        </span>
+                      </td>
+                      <td
+                        className="py-2.5 pl-4 text-right font-mono font-bold"
+                        style={{ fontSize: 11, color: "rgba(0,0,0,0.65)" }}
+                      >
+                        {formatUsd(alloc.allocationUsd)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p
+              className="font-mono"
+              style={{ fontSize: 11, color: "rgba(0,0,0,0.25)" }}
+            >
+              No detailed allocation data available.
+            </p>
+          )}
+        </div>
+
+        {/* ── Section 3: Protocol Response ── */}
+        {vault.statusNote && (
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Protocol Response")}
+            <div
+              className="rounded p-5"
+              style={
+                vault.status === "covering"
+                  ? {
+                      backgroundColor: "rgba(0,163,92,0.03)",
+                      border: "1px solid rgba(0,163,92,0.10)",
+                    }
+                  : {
+                      backgroundColor: "rgba(0,0,0,0.02)",
+                      border: "1px solid rgba(0,0,0,0.05)",
+                    }
+              }
+            >
+              {vault.status === "covering" && (
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: "#00A35C" }}
+                  />
+                  <span
+                    className="font-black uppercase"
+                    style={{
+                      fontSize: 8,
+                      letterSpacing: "0.15em",
+                      color: "#00A35C",
+                    }}
+                  >
+                    Covering bad debt
+                  </span>
+                </div>
+              )}
+              <p
+                className="leading-relaxed"
+                style={{ fontSize: 12, color: "rgba(0,0,0,0.65)" }}
+              >
+                {vault.statusNote}
+              </p>
+              {vault.statusSource && (
+                <a
+                  href={vault.statusSource}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 transition-opacity hover:opacity-70"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color:
+                      vault.status === "covering"
+                        ? "#00A35C"
+                        : "rgba(0,0,0,0.40)",
+                  }}
+                >
+                  View announcement →
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Section 4: Navigation ── */}
+        <div className="bg-white px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <Link
+            href={`/incident/${slug}`}
+            className="transition-opacity hover:opacity-60"
             style={{
-              backgroundColor:
-                vault.status === "covering"
-                  ? "rgba(16,185,129,0.06)"
-                  : "rgba(255,255,255,0.02)",
-              border:
-                vault.status === "covering"
-                  ? "1px solid rgba(16,185,129,0.15)"
-                  : "1px solid rgba(255,255,255,0.06)",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "rgba(0,0,0,0.40)",
             }}
           >
-            {vault.status === "covering" && (
-              <div
-                className="flex items-center gap-2 mb-3"
-                style={{ color: "#10b981" }}
-              >
-                <div
-                  className="h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: "#10b981" }}
-                />
-                <span className="text-xs font-medium uppercase tracking-wider">
-                  Covering bad debt
-                </span>
-              </div>
-            )}
-            <p
-              className="text-sm leading-relaxed"
-              style={{ color: "rgba(255,255,255,0.70)" }}
-            >
-              {vault.statusNote}
-            </p>
-            {vault.statusSource && (
-              <a
-                href={vault.statusSource}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-3 text-sm transition-colors hover:opacity-80"
-                style={{
-                  color:
-                    vault.status === "covering"
-                      ? "#10b981"
-                      : "rgba(255,255,255,0.50)",
-                }}
-              >
-                View announcement →
-              </a>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Section 4: Navigation Links */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-white/[0.06]">
-        <Link
-          href={`/incident/${slug}/dashboard`}
-          className="text-sm transition-colors hover:text-white"
-          style={{ color: "rgba(255,255,255,0.50)" }}
-        >
-          ← Back to dashboard
-        </Link>
-        {firstNodeId && (
-          <Link
-            href={`/asset/${encodeURIComponent(firstNodeId)}`}
-            className="text-sm transition-colors hover:text-white"
-            style={{ color: "rgba(255,255,255,0.50)" }}
-          >
-            View full allocation graph →
+            ← Back to overview
           </Link>
-        )}
+          {firstNodeId && (
+            <Link
+              href={`/asset/${encodeURIComponent(firstNodeId)}`}
+              className="transition-opacity hover:opacity-60"
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "rgba(0,0,0,0.40)",
+              }}
+            >
+              View full allocation →
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -11,31 +11,22 @@ import type {
 } from "@/lib/incident/types";
 import type { GraphSnapshot } from "@/types";
 import { MetricCard } from "@/components/incident/MetricCard";
-import { ExposureChart } from "@/components/incident/ExposureChart";
+import { ProtocolRow } from "@/components/incident/ProtocolRow";
 import { VaultTable } from "@/components/incident/VaultTable";
 
 export const revalidate = 600;
 
-// Stable palette for protocols/chains not covered by toxicAsset colors
-const CHART_COLORS = [
-  "#6366f1",
-  "#8b5cf6",
-  "#ec4899",
-  "#14b8a6",
-  "#f59e0b",
-  "#10b981",
-  "#3b82f6",
-  "#ef4444",
-  "#a855f7",
-  "#84cc16",
-];
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
 
-function assignColors(keys: string[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  keys.forEach((k, i) => {
-    map[k] = CHART_COLORS[i % CHART_COLORS.length];
-  });
-  return map;
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function computeSummary(
@@ -89,6 +80,14 @@ function computeSummary(
     dataTimestamp: config.lastUpdated,
   };
 }
+
+// Protocol display config for logos + fallback
+const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
+  morpho: { color: "#2563eb", initials: "M" },
+  euler: { color: "#e04040", initials: "E" },
+  midas: { color: "#8b5cf6", initials: "Mi" },
+  inverse: { color: "#000000", initials: "IN" },
+};
 
 export default async function DashboardPage({
   params,
@@ -202,84 +201,262 @@ export default async function DashboardPage({
 
   const summary = computeSummary(vaults, config);
 
-  // Build chart data
-  const protocolKeys = Object.keys(summary.byProtocol);
-  const protocolColors = assignColors(protocolKeys);
-  const byProtocolData = protocolKeys
-    .map((k) => ({
-      name: k.charAt(0).toUpperCase() + k.slice(1),
-      value: summary.byProtocol[k].exposureUsd,
-      color: protocolColors[k],
-    }))
-    .sort((a, b) => b.value - a.value);
+  // Sorted data for charts
+  const sortedProtocols = Object.entries(summary.byProtocol).sort(
+    ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
+  );
 
-  // Use toxicAsset colors for byAsset
-  const assetColorMap = Object.fromEntries(
+  const assetColorBySymbol = Object.fromEntries(
     config.toxicAssets.map((a) => [a.symbol, a.color]),
   );
-  const chainKeys = Object.keys(summary.byChain);
-  const chainFallbackColors = assignColors(chainKeys);
-  const byAssetData = Object.entries(summary.byAsset)
-    .map(([symbol, { exposureUsd }]) => ({
-      name: symbol,
-      value: exposureUsd,
-      color: assetColorMap[symbol] ?? "#6366f1",
-    }))
-    .sort((a, b) => b.value - a.value);
 
-  const byChainData = chainKeys
-    .map((k) => ({
-      name: k.toUpperCase(),
-      value: summary.byChain[k].exposureUsd,
-      color: chainFallbackColors[k],
-    }))
-    .sort((a, b) => b.value - a.value);
+  const assetEntries = Object.entries(summary.byAsset).sort(
+    ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
+  );
+
+  const chainEntries = Object.entries(summary.byChain).sort(
+    ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
+  );
+  const maxChainExposure = chainEntries[0]?.[1].exposureUsd ?? 1;
+
+  // Donut chart conic-gradient
+  const totalAssetExposure = assetEntries.reduce(
+    (sum, [, v]) => sum + v.exposureUsd,
+    0,
+  );
+  let cumulativeDeg = 0;
+  const conicStops = assetEntries.map(([symbol, { exposureUsd }]) => {
+    const deg =
+      totalAssetExposure > 0 ? (exposureUsd / totalAssetExposure) * 360 : 0;
+    const color = assetColorBySymbol[symbol] ?? "#999";
+    const start = cumulativeDeg;
+    cumulativeDeg += deg;
+    return `${color} ${start.toFixed(1)}deg ${cumulativeDeg.toFixed(1)}deg`;
+  });
+  const conicGradient =
+    conicStops.length > 0
+      ? `conic-gradient(${conicStops.join(", ")})`
+      : "conic-gradient(#ddd 0deg 360deg)";
+
+  // Panel header helper
+  const panelHeader = (title: string) => (
+    <div className="text-[8px] font-black text-black/30 tracking-[0.3em] uppercase mb-3 pb-2 border-b border-black/[0.04]">
+      {title}
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      {/* Headline metrics strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <MetricCard
-          label="Total at-risk allocation"
-          value={summary.totalToxicExposureUsd}
-          format="usd"
-        />
-        <MetricCard
-          label="Affected vaults"
-          value={summary.vaultCount}
-          format="number"
-        />
-        <MetricCard
-          label="Protocols impacted"
-          value={summary.protocolCount}
-          format="number"
-        />
-        <MetricCard
-          label="Covering bad debt"
-          value={summary.coveringCount}
-          format="number"
-        />
-      </div>
-
-      {/* Charts section */}
+    <div className="bg-gray-50 min-h-screen">
       <div
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 rounded-xl p-5"
-        style={{
-          backgroundColor: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
+        className="flex flex-col"
+        style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
       >
-        <ExposureChart title="By Protocol" data={byProtocolData} />
-        <ExposureChart title="By Toxic Asset" data={byAssetData} />
-        <ExposureChart title="By Chain" data={byChainData} />
-      </div>
+        {/* ── Row 1: Metrics Strip (4-col) ── */}
+        <div
+          className="grid grid-cols-2 md:grid-cols-4"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          <MetricCard
+            label="Total At-Risk"
+            value={summary.totalToxicExposureUsd}
+            format="usd"
+          />
+          <MetricCard
+            label="Affected Vaults"
+            value={summary.vaultCount}
+            format="number"
+          />
+          <MetricCard
+            label="Protocols"
+            value={summary.protocolCount}
+            format="number"
+          />
+          <MetricCard
+            label="Covering"
+            value={summary.coveringCount}
+            format="number"
+          />
+        </div>
 
-      {/* Vault table */}
-      <VaultTable
-        vaults={vaults}
-        toxicAssets={config.toxicAssets}
-        slug={slug}
-      />
+        {/* ── Row 2: Charts (3-col) ── */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-3"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          {/* Exposure by Protocol */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Exposure by Protocol")}
+            <div className="space-y-0.5">
+              {sortedProtocols.map(([protocol, data]) => {
+                const display = PROTOCOL_DISPLAY[protocol] ?? {
+                  color: "#888",
+                  initials: protocol.slice(0, 2).toUpperCase(),
+                };
+                const protocolBreakdown = vaults
+                  .filter((ve) => ve.vault.protocol === protocol)
+                  .flatMap((ve) => ve.breakdown)
+                  .reduce<ToxicBreakdownEntry[]>((acc, b) => {
+                    const existing = acc.find((e) => e.asset === b.asset);
+                    if (existing) {
+                      existing.amountUsd += b.amountUsd;
+                      existing.pct += b.pct;
+                    } else {
+                      acc.push({ ...b });
+                    }
+                    return acc;
+                  }, []);
+
+                return (
+                  <ProtocolRow
+                    key={protocol}
+                    name={capitalize(protocol)}
+                    logoSrc={`/logos/protocols/${protocol}.svg`}
+                    fallbackInitials={display.initials}
+                    fallbackColor={display.color}
+                    meta={`${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`}
+                    amount={formatUsd(data.exposureUsd)}
+                    exposureBar={protocolBreakdown.map((b) => ({
+                      color: assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",
+                      width: `${Math.min(b.pct * 100, 100)}%`,
+                    }))}
+                  />
+                );
+              })}
+              {sortedProtocols.length === 0 && (
+                <span
+                  className="font-mono"
+                  style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
+                >
+                  No data
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Exposure by Toxic Asset — donut */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Exposure by Toxic Asset")}
+            <div className="flex items-center gap-5">
+              {/* Donut */}
+              <div
+                className="w-[100px] h-[100px] rounded-full relative flex-shrink-0"
+                style={{ background: conicGradient }}
+              >
+                <div className="absolute inset-[26px] rounded-full bg-white flex flex-col items-center justify-center">
+                  <span className="font-mono text-[12px] font-bold leading-tight">
+                    {formatUsd(totalAssetExposure)}
+                  </span>
+                  <span className="text-[7px] text-black/25 uppercase tracking-widest">
+                    Total
+                  </span>
+                </div>
+              </div>
+              {/* Legend */}
+              <div className="flex flex-col gap-2">
+                {assetEntries.map(([symbol, { exposureUsd }]) => (
+                  <div key={symbol} className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: assetColorBySymbol[symbol] ?? "#999",
+                      }}
+                    />
+                    <div>
+                      <span
+                        className="font-black uppercase"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
+                      >
+                        {symbol}
+                      </span>
+                      <span
+                        className="ml-1.5 font-mono"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.35)" }}
+                      >
+                        {formatUsd(exposureUsd)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {assetEntries.length === 0 && (
+                  <span
+                    className="font-mono"
+                    style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
+                  >
+                    No data
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Exposure by Chain — CSS bars */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Exposure by Chain")}
+            <div className="space-y-3">
+              {chainEntries.map(([chain, { exposureUsd }]) => {
+                const pct =
+                  maxChainExposure > 0
+                    ? (exposureUsd / maxChainExposure) * 100
+                    : 0;
+                return (
+                  <div key={chain}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        className="font-black uppercase"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
+                      >
+                        {chain}
+                      </span>
+                      <span
+                        className="font-mono"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.40)" }}
+                      >
+                        {formatUsd(exposureUsd)}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden"
+                      style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: "rgba(0,0,0,0.20)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {chainEntries.length === 0 && (
+                <span
+                  className="font-mono"
+                  style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
+                >
+                  No data
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Row 3: Vault Table (full-width) ── */}
+        <div className="bg-white px-5 py-4">
+          {panelHeader("All Affected Vaults")}
+          <VaultTable
+            vaults={vaults}
+            toxicAssets={config.toxicAssets}
+            slug={slug}
+          />
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="bg-white px-5 py-3 flex justify-between text-[8px] font-semibold text-black/15 uppercase tracking-wide">
+          <span>Exposure Core · Data refreshed every 10 min</span>
+          <span>Approximate data · Verify with each protocol</span>
+        </div>
+      </div>
     </div>
   );
 }
