@@ -632,19 +632,10 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
 
       {/* Table */}
       <div
-        className="rounded-lg"
+        className="overflow-x-auto rounded-lg"
         style={{ border: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: "7%" }} />
-            <col style={{ width: "7%" }} />
-            <col style={{ width: "26%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "16%" }} />
-            <col style={{ width: "16%" }} />
-          </colgroup>
+        <table className="w-full text-sm" style={{ minWidth: 700 }}>
           <thead
             className="sticky top-0 z-10 uppercase"
             style={{
