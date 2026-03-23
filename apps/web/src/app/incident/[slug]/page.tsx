@@ -574,6 +574,89 @@ export default async function IncidentPage({
       tag: "update" as const,
       text: "Exposure Core contagion dashboard launched with 29+ affected vaults tracked.",
     },
+    {
+      date: "Mar 23, 2026 · 08:42 UTC",
+      tag: "update" as const,
+      text: "Serenity Research publishes detailed loss assessment — ~$24.5M uncovered post-exploit USR, RLP facing ~63% haircut if first-loss.",
+      details: {
+        description:
+          "Analysis: 71M illicitly minted USR, 45M cashed out by hacker, ~13.5M transferred into Fluid post-exploit (Fluid to compensate), Gauntlet to compensate up to 7M. Remaining uncovered: ~$24.5M against $39M RLP assets.",
+        tweets: [
+          {
+            author: "The Serenity Research",
+            handle: "@SerenityFund",
+            text: "If RLP takes first loss, ~63% haircut. Alternatively Resolv could issue debt tokens, but hacker still holds 20m unsold USR.",
+            url: "https://x.com/SerenityFund/status/2036000705148764651",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 08:50 UTC",
+      tag: "update" as const,
+      text: "YAM urges depositors to withdraw from affected Morpho vaults before curators force-remove markets in ~2.5 days.",
+      details: {
+        description:
+          "Lists vaults with withdrawable liquidity vs. those with none. Notes many vaults with liquidity lent against wstUSR AFTER the incident, making Resolv coverage less likely.",
+        tweets: [
+          {
+            author: "YAM",
+            handle: "@yieldsandmore",
+            text: "most vaults will force-remove in ~2.5 days (timelocks), socializing bad debt. Gauntlet USDC Core Mainnet: $20M deposits, 25% exposure. Many vaults with liquidity lent against wstUSR AFTER the incident.",
+            url: "https://x.com/yieldsandmore/status/2036002710894305351",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 10:02 UTC",
+      tag: "curator" as const,
+      text: "Clearstar Labs publishes incident update — $1.39M total exposure across 4 vaults, deposits blocked.",
+      details: {
+        description:
+          "Clearstar Yield USDC (Ethereum): $1M direct RLP. Clearstar USDC Reactor (Ethereum): ~$294K indirect wstUSR via mAPOLLO. Clearstar USDC Reactor (Base): ~$92K indirect RLP via yoUSD. Clearstar High Yield USDC (Arbitrum): $4.3K direct RLP.",
+        tweets: [
+          {
+            author: "Clearstar Labs",
+            handle: "@ClearstarLabs",
+            text: "We minimised direct exposure to RLP on our Morpho Vaults. Confident RLP markets will not see bad debt but awaiting Resolv's official communication.",
+            url: "https://x.com/ClearstarLabs/status/2036020661911503182",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 13:03 UTC",
+      tag: "curator" as const,
+      text: "Steakhouse Financial reconfirms zero exposure and zero losses across all vaults on all platforms.",
+      details: {
+        tweets: [
+          {
+            author: "Steakhouse Financial",
+            handle: "@SteakhouseFi",
+            text: "Zero exposure and zero losses across all Steakhouse vaults on all platforms. Our full company treasury is allocated to our own products.",
+            url: "https://x.com/SteakhouseFi/status/2036066224598114435",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 15:20 UTC",
+      tag: "response" as const,
+      text: "Euler Labs confirms ~$500K USDC loans collateralized by RLP on Arbitrum; Resolv-related Frontier markets paused.",
+      details: {
+        description:
+          "Euler Yield market on Arbitrum paused with ~$500K USDC loans against RLP collateral. Resolv-related Frontier markets on Plasma paused with ~$50K in loans against USR. Pre-hack USR expected to settle 1:1.",
+        tweets: [
+          {
+            author: "Euler Labs",
+            handle: "@eulerfinance",
+            text: "Based on Resolv's communication that pre-hack USR redemptions will be honored 1:1, this market is expected to settle gracefully. Monitoring and will share updates.",
+            url: "https://x.com/eulerfinance/status/2036100865312907419",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
