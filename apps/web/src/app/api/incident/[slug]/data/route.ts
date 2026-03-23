@@ -54,12 +54,13 @@ export async function GET(
 
   for (const vault of config.affectedVaults) {
     if (vault.source === "manual") {
+      const totalTvl = vault.totalTvlUsd ?? vault.exposureUsd;
       vaults.push({
         vault,
         status: vault.exposureUsd > 0 ? "loaded" : "pending",
-        totalAllocationUsd: vault.exposureUsd,
+        totalAllocationUsd: totalTvl,
         toxicExposureUsd: vault.exposureUsd,
-        exposurePct: vault.exposureUsd > 0 ? 1 : 0,
+        exposurePct: totalTvl > 0 ? vault.exposureUsd / totalTvl : 0,
         breakdown: vault.toxicAssetBreakdown,
       });
       continue;

@@ -353,6 +353,7 @@ const config: IncidentConfig = {
       protocol: "yo",
       chains: ["base"],
       status: "affected",
+      totalTvlUsd: 42_300_000, // ~$42.3M total vault TVL
       exposureUsd: 1_214_131, // $1,214,131 USDC in Resolv RLP pool (2.87% of vault)
       toxicAssetBreakdown: [
         { asset: "RLP", amountUsd: 1_214_131, pct: 0.0287 },

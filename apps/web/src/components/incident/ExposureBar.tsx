@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { ToxicBreakdownEntry, ToxicAssetDef } from "@/lib/incident/types";
+import { formatUsdCompact } from "@/lib/incident/format";
 
 interface ExposureBarProps {
   breakdown: ToxicBreakdownEntry[];
@@ -13,6 +15,8 @@ export function ExposureBar({
   toxicAssets,
   className,
 }: ExposureBarProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   const colorBySymbol = Object.fromEntries(
     toxicAssets.map((a) => [a.symbol, a.color]),
   );
@@ -30,28 +34,87 @@ export function ExposureBar({
 
   return (
     <div
-      className={`flex h-1.5 overflow-hidden rounded-full ${className ?? ""}`}
-      style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
-      {normalized.map((entry) => (
+      <div
+        className={`flex h-1.5 overflow-hidden rounded-full cursor-pointer ${className ?? ""}`}
+        style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+      >
+        {normalized.map((entry) => (
+          <div
+            key={entry.asset}
+            style={{
+              width: `${entry.pct}%`,
+              backgroundColor: colorBySymbol[entry.asset] ?? "rgba(0,0,0,0.15)",
+              flexShrink: 0,
+            }}
+          />
+        ))}
+        {remainingPct > 0 && normalized.length > 0 && (
+          <div
+            style={{
+              width: `${remainingPct}%`,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              flexShrink: 0,
+            }}
+          />
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {showTooltip && normalized.length > 0 && (
         <div
-          key={entry.asset}
+          className="absolute z-50 left-0 bottom-full mb-2 bg-white border rounded-lg shadow-lg px-3 py-2 min-w-[160px]"
           style={{
-            width: `${entry.pct}%`,
-            backgroundColor: colorBySymbol[entry.asset] ?? "rgba(0,0,0,0.15)",
-            flexShrink: 0,
+            borderColor: "rgba(0,0,0,0.08)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
           }}
-          title={`${entry.asset}: ${entry.pct.toFixed(1)}%`}
-        />
-      ))}
-      {remainingPct > 0 && normalized.length > 0 && (
-        <div
-          style={{
-            width: `${remainingPct}%`,
-            backgroundColor: "rgba(0,0,0,0.04)",
-            flexShrink: 0,
-          }}
-        />
+        >
+          {normalized.map((entry) => (
+            <div
+              key={entry.asset}
+              className="flex items-center justify-between gap-4 py-0.5"
+              style={{ fontSize: 11 }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor:
+                      colorBySymbol[entry.asset] ?? "rgba(0,0,0,0.15)",
+                  }}
+                />
+                <span style={{ color: "rgba(0,0,0,0.5)", fontWeight: 500 }}>
+                  {entry.asset}
+                </span>
+              </span>
+              <span className="font-mono" style={{ color: "rgba(0,0,0,0.7)" }}>
+                {entry.pct.toFixed(1)}% · {formatUsdCompact(entry.amountUsd)}
+              </span>
+            </div>
+          ))}
+          {remainingPct > 0 && (
+            <div
+              className="flex items-center justify-between gap-4 py-0.5"
+              style={{ fontSize: 11 }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
+                />
+                <span style={{ color: "rgba(0,0,0,0.3)", fontWeight: 500 }}>
+                  Safe
+                </span>
+              </span>
+              <span className="font-mono" style={{ color: "rgba(0,0,0,0.3)" }}>
+                {remainingPct.toFixed(1)}%
+              </span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

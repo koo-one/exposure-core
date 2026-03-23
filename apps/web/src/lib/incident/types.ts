@@ -40,6 +40,7 @@ export interface AdapterVault extends VaultBase {
 
 export interface ManualVault extends VaultBase {
   source: "manual";
+  totalTvlUsd?: number; // Total vault TVL — if set, exposurePct = exposureUsd / totalTvlUsd
   exposureUsd: number;
   toxicAssetBreakdown: ToxicBreakdownEntry[];
 }

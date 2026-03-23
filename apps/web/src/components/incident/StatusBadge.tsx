@@ -4,49 +4,60 @@ interface StatusBadgeProps {
   status: "affected" | "covering" | "pending" | "unknown";
 }
 
-const STATUS_STYLES: Record<
+const STATUS_CONFIG: Record<
   StatusBadgeProps["status"],
-  { bg: string; color: string; label: string }
+  { dotColor: string; bg: string; textColor: string; label: string }
 > = {
   affected: {
-    bg: "rgba(0,0,0,0.04)",
-    color: "rgba(0,0,0,0.50)",
+    dotColor: "#E11D48",
+    bg: "rgba(225,29,72,0.06)",
+    textColor: "rgba(0,0,0,0.55)",
     label: "Affected",
   },
   covering: {
-    bg: "rgba(0,163,92,0.08)",
-    color: "rgba(0,163,92,0.70)",
+    dotColor: "#2563eb",
+    bg: "rgba(37,99,235,0.06)",
+    textColor: "rgba(0,0,0,0.55)",
     label: "Covering",
   },
   pending: {
+    dotColor: "rgba(0,0,0,0.2)",
     bg: "rgba(0,0,0,0.03)",
-    color: "rgba(0,0,0,0.25)",
-    label: "Pending",
+    textColor: "rgba(0,0,0,0.3)",
+    label: "Unknown",
   },
   unknown: {
+    dotColor: "rgba(0,0,0,0.2)",
     bg: "rgba(0,0,0,0.03)",
-    color: "rgba(0,0,0,0.25)",
+    textColor: "rgba(0,0,0,0.3)",
     label: "Unknown",
   },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const { bg, color, label } = STATUS_STYLES[status] ?? STATUS_STYLES.unknown;
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.unknown;
 
   return (
     <span
-      className="inline-flex items-center rounded-full"
+      className="inline-flex items-center gap-1.5 rounded-full"
       style={{
-        backgroundColor: bg,
-        color,
-        fontSize: 8,
-        fontWeight: 800,
-        textTransform: "uppercase",
-        letterSpacing: "0.1em",
-        padding: "2px 8px",
+        backgroundColor: config.bg,
+        color: config.textColor,
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        padding: "3px 10px 3px 8px",
       }}
     >
-      {label}
+      <span
+        className="inline-block rounded-full flex-shrink-0"
+        style={{
+          width: 6,
+          height: 6,
+          backgroundColor: config.dotColor,
+        }}
+      />
+      {config.label}
     </span>
   );
 }

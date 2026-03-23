@@ -66,7 +66,7 @@ function DetailModal({
   entry: TimelineEntry;
   onClose: () => void;
 }) {
-  const details = entry.details ?? { title: "", content: "" };
+  const details: TimelineDetails = entry.details ?? {};
   const tagColor = TAG_COLORS[entry.tag];
 
   return (

@@ -521,7 +521,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   </td>
                   <td className="px-4 py-3">
                     {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)" }}>pending</span>
+                      <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
+                        unknown
+                      </span>
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className="w-16 flex-shrink-0">
