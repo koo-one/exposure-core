@@ -60,7 +60,7 @@ function renderCustomTick({
             textAnchor="middle"
             fontSize={9}
             fontWeight={800}
-            fill="rgba(0,0,0,0.35)"
+            fill="var(--text-tertiary)"
             style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
           >
             {payload.value}
@@ -73,7 +73,7 @@ function renderCustomTick({
           textAnchor="middle"
           fontSize={9}
           fontWeight={800}
-          fill="rgba(0,0,0,0.35)"
+          fill="var(--text-tertiary)"
           style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
         >
           {payload.value}
@@ -89,7 +89,7 @@ export function DistributionRadar({ entries }: DistributionRadarProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <RadarChart data={entries} outerRadius="70%">
-        <PolarGrid gridType="polygon" stroke="rgba(0,0,0,0.08)" />
+        <PolarGrid gridType="polygon" stroke="var(--text-tertiary)" />
         <PolarAngleAxis
           dataKey="name"
           tick={(props: Record<string, unknown>) =>
@@ -113,8 +113,8 @@ export function DistributionRadar({ entries }: DistributionRadarProps) {
             return (
               <div
                 style={{
-                  backgroundColor: "var(--surface, #fff)",
-                  border: "1px solid rgba(0,0,0,0.08)",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--text-tertiary)",
                   borderRadius: 8,
                   padding: "8px 12px",
                   fontSize: 12,
@@ -129,9 +129,21 @@ export function DistributionRadar({ entries }: DistributionRadarProps) {
                       className="w-4 h-4 rounded-full"
                     />
                   )}
-                  <span style={{ fontWeight: 700 }}>{d.name}</span>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {d.name}
+                  </span>
                 </div>
-                <div style={{ color: "rgba(0,0,0,0.5)", marginTop: 2 }}>
+                <div
+                  style={{
+                    color: "var(--text-secondary)",
+                    marginTop: 2,
+                  }}
+                >
                   {d.value.toFixed(1)}%
                 </div>
               </div>

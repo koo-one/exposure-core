@@ -261,51 +261,35 @@ export default async function IncidentPage({
     }),
   );
 
-  // ── Radar chart data ──
-  const RADAR_THRESHOLD = 0.02; // 2% minimum to get own axis
-
+  // ── Radar chart data (vault count distribution) ──
   const toRadarEntries = (
-    byKey: Record<string, { exposureUsd: number }>,
-    totalUsd: number,
+    byKey: Record<string, { exposureUsd: number; vaultCount: number }>,
     getIcon: (key: string) => string,
     getLabel: (key: string) => string,
   ): RadarEntry[] => {
-    const entries: RadarEntry[] = [];
-    let othersUsd = 0;
+    const totalVaults = Object.values(byKey).reduce(
+      (sum, v) => sum + v.vaultCount,
+      0,
+    );
+    if (totalVaults === 0) return [];
 
-    for (const [key, { exposureUsd }] of Object.entries(byKey)) {
-      const share = totalUsd > 0 ? exposureUsd / totalUsd : 0;
-      if (share < RADAR_THRESHOLD) {
-        othersUsd += exposureUsd;
-      } else {
-        entries.push({
-          name: getLabel(key),
-          value: totalUsd > 0 ? (exposureUsd / totalUsd) * 100 : 0,
-          iconSrc: getIcon(key),
-        });
-      }
-    }
-
-    if (othersUsd > 0) {
-      entries.push({
-        name: "Others",
-        value: totalUsd > 0 ? (othersUsd / totalUsd) * 100 : 0,
-      });
-    }
-
-    return entries.sort((a, b) => b.value - a.value);
+    return Object.entries(byKey)
+      .map(([key, { vaultCount }]) => ({
+        name: getLabel(key),
+        value: (vaultCount / totalVaults) * 100,
+        iconSrc: getIcon(key),
+      }))
+      .sort((a, b) => b.value - a.value);
   };
 
   const protocolRadarEntries = toRadarEntries(
     summary.byProtocol,
-    summary.totalToxicExposureUsd,
     getProtocolIcon,
     (key) => getProtocolDisplay(key).name,
   );
 
   const chainRadarEntries = toRadarEntries(
     summary.byChain,
-    summary.totalToxicExposureUsd,
     getChainIcon,
     getChainDisplayName,
   );
