@@ -4,7 +4,13 @@ import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
 import { inferProtocolFolderFromNodeId } from "@/lib/blobPaths";
 import { formatUsdCompact } from "@/lib/incident/format";
-import { getAssetIcon, getProtocolIcon } from "@/lib/incident/logos";
+import {
+  getAssetIcon,
+  getProtocolIcon,
+  getChainIcon,
+  getChainDisplayName,
+  getProtocolDisplay,
+} from "@/lib/incident/logos";
 import type {
   AdapterVault,
   IncidentSummary,
@@ -25,6 +31,10 @@ import {
   ToxicAssetDonut,
   type DonutEntry,
 } from "@/components/incident/ToxicAssetDonut";
+import {
+  DistributionRadar,
+  type RadarEntry,
+} from "@/components/incident/DistributionRadar";
 
 export const revalidate = 600;
 
@@ -249,6 +259,55 @@ export default async function IncidentPage({
       color: assetColorBySymbol[symbol] ?? "#999",
       iconPath: getAssetIcon(symbol),
     }),
+  );
+
+  // ── Radar chart data ──
+  const RADAR_THRESHOLD = 0.02; // 2% minimum to get own axis
+
+  const toRadarEntries = (
+    byKey: Record<string, { exposureUsd: number }>,
+    totalUsd: number,
+    getIcon: (key: string) => string,
+    getLabel: (key: string) => string,
+  ): RadarEntry[] => {
+    const entries: RadarEntry[] = [];
+    let othersUsd = 0;
+
+    for (const [key, { exposureUsd }] of Object.entries(byKey)) {
+      const share = totalUsd > 0 ? exposureUsd / totalUsd : 0;
+      if (share < RADAR_THRESHOLD) {
+        othersUsd += exposureUsd;
+      } else {
+        entries.push({
+          name: getLabel(key),
+          value: totalUsd > 0 ? (exposureUsd / totalUsd) * 100 : 0,
+          iconSrc: getIcon(key),
+        });
+      }
+    }
+
+    if (othersUsd > 0) {
+      entries.push({
+        name: "Others",
+        value: totalUsd > 0 ? (othersUsd / totalUsd) * 100 : 0,
+      });
+    }
+
+    return entries.sort((a, b) => b.value - a.value);
+  };
+
+  const protocolRadarEntries = toRadarEntries(
+    summary.byProtocol,
+    summary.totalToxicExposureUsd,
+    getProtocolIcon,
+    (key) => getProtocolDisplay(key).name,
+  );
+
+  const chainRadarEntries = toRadarEntries(
+    summary.byChain,
+    summary.totalToxicExposureUsd,
+    getChainIcon,
+    getChainDisplayName,
   );
 
   // Timeline entries — chronological, sourced from tweets
@@ -934,6 +993,27 @@ export default async function IncidentPage({
               value={highestPctVault ? highestPctVault.exposurePct * 100 : 0}
               format="percent"
             />
+          </div>
+
+          {/* ── Row 3.5: Distribution Radars ── */}
+          <div
+            className="grid grid-cols-1 md:grid-cols-2"
+            style={{ gap: 1, backgroundColor: "var(--border)" }}
+          >
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              {panelHeader("Protocols Distribution")}
+              <DistributionRadar entries={protocolRadarEntries} />
+            </div>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              {panelHeader("Chains Distribution")}
+              <DistributionRadar entries={chainRadarEntries} />
+            </div>
           </div>
 
           {/* ── Row 4: Exposure by Protocol | Timeline ── */}
