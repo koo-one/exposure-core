@@ -1,45 +1,57 @@
 "use client";
 
 interface StatusBadgeProps {
-  status: "affected" | "covering" | "unknown";
+  status: "affected" | "covering" | "pending" | "unknown";
   note?: string;
 }
 
 const STATUS_STYLES: Record<
   StatusBadgeProps["status"],
-  { bg: string; text: string; label: string }
+  { color: string; label: string }
 > = {
   affected: {
-    bg: "rgba(239,68,68,0.15)",
-    text: "#ef4444",
+    color: "#E11D48",
     label: "Affected",
   },
   covering: {
-    bg: "rgba(16,185,129,0.15)",
-    text: "#10b981",
+    color: "#00A35C",
     label: "Covering",
   },
+  pending: {
+    color: "rgba(0,0,0,0.2)",
+    label: "Pending",
+  },
   unknown: {
-    bg: "rgba(245,158,11,0.15)",
-    text: "#f59e0b",
+    color: "rgba(0,0,0,0.2)",
     label: "Unknown",
   },
 };
 
 export function StatusBadge({ status, note }: StatusBadgeProps) {
-  const { bg, text, label } = STATUS_STYLES[status];
+  const { color, label } = STATUS_STYLES[status] ?? STATUS_STYLES.unknown;
 
   return (
     <span className="inline-flex items-center gap-1.5">
       <span
-        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-        style={{ backgroundColor: bg, color: text }}
+        style={{
+          color,
+          fontSize: 8,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: "0.15em",
+        }}
         title={note}
       >
         {label}
       </span>
       {note && (
-        <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <span
+          style={{
+            color: "rgba(0,0,0,0.3)",
+            fontSize: 8,
+            fontWeight: 600,
+          }}
+        >
           {note}
         </span>
       )}

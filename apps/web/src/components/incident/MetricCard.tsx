@@ -27,20 +27,21 @@ export function MetricCard({
   format = "number",
 }: MetricCardProps) {
   return (
-    <div
-      className="rounded-lg p-4"
-      style={{
-        backgroundColor: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
-      }}
-    >
+    <div className="bg-white p-4">
       <p
-        className="text-xs uppercase tracking-wider mb-1"
-        style={{ color: "rgba(255,255,255,0.35)" }}
+        className="uppercase font-black mb-1"
+        style={{
+          fontSize: 8,
+          letterSpacing: "0.2em",
+          color: "rgba(0,0,0,0.25)",
+        }}
       >
         {label}
       </p>
-      <p className="font-mono text-2xl md:text-3xl font-bold text-white">
+      <p
+        className="font-mono font-bold text-black tracking-tight"
+        style={{ fontSize: 22 }}
+      >
         {formatValue(value, format)}
       </p>
     </div>

@@ -32,7 +32,7 @@ export default async function IncidentLayout({
   if (!config) notFound();
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
+    <div className="min-h-screen bg-gray-50 text-black">
       <IncidentNav title={config.title} slug={config.slug} />
       <main>{children}</main>
     </div>

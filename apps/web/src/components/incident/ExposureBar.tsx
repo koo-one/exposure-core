@@ -22,16 +22,15 @@ export function ExposureBar({
 
   return (
     <div
-      className={`flex h-2 w-full overflow-hidden rounded-full ${className ?? ""}`}
-      style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+      className={`flex h-1 w-full overflow-hidden rounded-full ${className ?? ""}`}
+      style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
     >
       {breakdown.map((entry) => (
         <div
           key={entry.asset}
           style={{
             width: `${entry.pct}%`,
-            backgroundColor:
-              colorBySymbol[entry.asset] ?? "rgba(255,255,255,0.2)",
+            backgroundColor: colorBySymbol[entry.asset] ?? "rgba(0,0,0,0.15)",
             flexShrink: 0,
           }}
           title={`${entry.asset}: ${entry.pct.toFixed(1)}%`}
@@ -41,7 +40,7 @@ export function ExposureBar({
         <div
           style={{
             width: `${remainingPct}%`,
-            backgroundColor: "rgba(255,255,255,0.06)",
+            backgroundColor: "rgba(0,0,0,0.04)",
             flexShrink: 0,
           }}
         />
