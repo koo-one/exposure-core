@@ -414,7 +414,8 @@ function FilterDropdown({
         style={{
           border: "1px solid var(--border)",
           color: count > 0 ? "var(--text-primary)" : "var(--text-secondary)",
-          backgroundColor: count > 0 ? "var(--surface-secondary)" : "transparent",
+          backgroundColor:
+            count > 0 ? "var(--surface-secondary)" : "transparent",
         }}
       >
         <span>{label}</span>
@@ -456,7 +457,9 @@ function FilterDropdown({
                 <span
                   className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0"
                   style={{
-                    borderColor: isActive ? "var(--text-primary)" : "var(--border)",
+                    borderColor: isActive
+                      ? "var(--text-primary)"
+                      : "var(--border)",
                     backgroundColor: isActive ? "#000" : "transparent",
                   }}
                 >
@@ -633,7 +636,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
 
       {/* Table */}
       <div
-        className="rounded-lg overflow-visible"
+        className="rounded-lg overflow-x-auto"
         style={{ border: "1px solid var(--border)" }}
       >
         <table className="w-full text-sm" style={{ minWidth: 700 }}>
@@ -660,12 +663,38 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
               >
                 <span className="relative group/th inline-flex items-center gap-1">
                   At-Risk{renderSortIndicator("exposureUsd")}
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
-                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                    <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="opacity-30"
+                  >
+                    <circle
+                      cx="8"
+                      cy="8"
+                      r="7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <text
+                      x="8"
+                      y="12"
+                      textAnchor="middle"
+                      fontSize="10"
+                      fontWeight="700"
+                    >
+                      ?
+                    </text>
                   </svg>
-                  <span className="absolute left-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
-                    Amount of vault capital allocated to toxic Resolv assets (USR, wstUSR, RLP). This is the capital at risk of loss from the exploit.
+                  <span
+                    className="absolute left-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none"
+                    style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                  >
+                    Amount of vault capital allocated to toxic Resolv assets
+                    (USR, wstUSR, RLP). This is the capital at risk of loss from
+                    the exploit.
                   </span>
                 </span>
               </th>
@@ -678,12 +707,37 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
               >
                 <span className="relative group/th inline-flex items-center gap-1 justify-end">
                   %{renderSortIndicator("exposurePct")}
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
-                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                    <text x="8" y="12" textAnchor="middle" fontSize="10" fontWeight="700">?</text>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="opacity-30"
+                  >
+                    <circle
+                      cx="8"
+                      cy="8"
+                      r="7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <text
+                      x="8"
+                      y="12"
+                      textAnchor="middle"
+                      fontSize="10"
+                      fontWeight="700"
+                    >
+                      ?
+                    </text>
                   </svg>
-                  <span className="absolute right-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
-                    Percentage of total vault deposits exposed to toxic Resolv assets. Higher % means greater relative risk for depositors.
+                  <span
+                    className="absolute right-0 top-full mt-1 z-50 px-3 py-2 rounded-lg text-[11px] font-normal normal-case tracking-normal leading-snug whitespace-normal w-[220px] text-left opacity-0 group-hover/th:opacity-100 transition-opacity pointer-events-none"
+                    style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                  >
+                    Percentage of total vault deposits exposed to toxic Resolv
+                    assets. Higher % means greater relative risk for depositors.
                   </span>
                 </span>
               </th>
@@ -734,7 +788,10 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         protocol={ve.vault.protocol}
                         curator={ve.vault.curator}
                       />
-                      <span className="font-medium truncate min-w-0" style={{ color: "var(--text-primary)" }}>
+                      <span
+                        className="font-medium truncate min-w-0"
+                        style={{ color: "var(--text-primary)" }}
+                      >
                         {ve.vault.name}
                       </span>
                     </div>
@@ -742,7 +799,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* At-Risk */}
                   <td className="px-4 py-3 text-left font-mono whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
+                      <span
+                        style={{ color: "var(--text-tertiary)", fontSize: 11 }}
+                      >
                         unknown
                       </span>
                     ) : (
@@ -781,7 +840,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* Exposure — token icons */}
                   <td className="px-4 py-3">
                     {isPending ? (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
+                      <span
+                        style={{ color: "var(--text-tertiary)", fontSize: 11 }}
+                      >
                         —
                       </span>
                     ) : ve.breakdown.length > 0 ? (
@@ -790,7 +851,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         toxicAssets={toxicAssets}
                       />
                     ) : (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
+                      <span
+                        style={{ color: "var(--text-tertiary)", fontSize: 11 }}
+                      >
                         —
                       </span>
                     )}
@@ -798,14 +861,19 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   {/* % with mini ring */}
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
+                      <span
+                        style={{ color: "var(--text-tertiary)", fontSize: 11 }}
+                      >
                         —
                       </span>
                     ) : (
                       <div className="flex items-center justify-end gap-2">
                         <span
                           className="font-mono"
-                          style={{ fontSize: 12, color: "var(--text-secondary)" }}
+                          style={{
+                            fontSize: 12,
+                            color: "var(--text-secondary)",
+                          }}
                         >
                           {(ve.exposurePct * 100).toFixed(1)}%
                         </span>
