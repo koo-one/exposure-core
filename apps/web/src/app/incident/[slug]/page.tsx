@@ -737,6 +737,21 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 23, 2026 · 18:41 UTC",
+      tag: "response" as const,
+      text: "Resolv Labs enables redemptions for pre-incident USR for allowlisted users.",
+      details: {
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "Resolv Digital Assets Ltd. is in contact with all allowlisted users with USR holdings at the time of the incident. Redemptions for pre-incident USR are now enabled for this group. Updates for other users will follow.",
+            url: "https://x.com/ResolvLabs/status/2036151331950604534",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
@@ -750,7 +765,13 @@ export default async function IncidentPage({
 
   // Panel header shared style helper
   const panelHeader = (title: string) => (
-    <div className="text-[8px] font-black tracking-[0.3em] uppercase mb-3 pb-2" style={{ color: "var(--text-tertiary)", borderBottom: "1px solid var(--border)" }}>
+    <div
+      className="text-[8px] font-black tracking-[0.3em] uppercase mb-3 pb-2"
+      style={{
+        color: "var(--text-tertiary)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       {title}
     </div>
   );
@@ -770,7 +791,10 @@ export default async function IncidentPage({
     .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-secondary)" }}>
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--surface-secondary)" }}
+    >
       {/* Centered content container */}
       <div className="max-w-[1280px] mx-auto px-6 py-6">
         {/* Outer wrapper with gap-px grid-line effect */}
@@ -779,7 +803,10 @@ export default async function IncidentPage({
           style={{ gap: 1, backgroundColor: "var(--border)" }}
         >
           {/* ── Incident Banner ── */}
-          <div className="px-5 py-3" style={{ backgroundColor: "var(--surface)" }}>
+          <div
+            className="px-5 py-3"
+            style={{ backgroundColor: "var(--surface)" }}
+          >
             <IncidentBanner
               title={config.title}
               description={config.description}
@@ -794,7 +821,10 @@ export default async function IncidentPage({
             style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
             {/* Total At-Risk */}
-            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
               {panelHeader("Total At-Risk Allocation")}
               <div className="flex flex-col gap-1">
                 <div
@@ -833,7 +863,10 @@ export default async function IncidentPage({
             style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
             {/* Bad Debt */}
-            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
               {panelHeader("Bad Debt Status")}
               <BadDebtPanel
                 realizedDebt={summary.totalToxicExposureUsd}
@@ -849,7 +882,10 @@ export default async function IncidentPage({
             </div>
 
             {/* Donut by Toxic Asset */}
-            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
               {panelHeader("By Toxic Asset")}
               <ToxicAssetDonut
                 entries={donutEntries}
@@ -894,7 +930,10 @@ export default async function IncidentPage({
             }}
           >
             {/* Exposure by Protocol */}
-            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
               {panelHeader("Exposure by Protocol")}
               <div className="space-y-1">
                 {sortedProtocols.map(([protocol, data]) => {
@@ -943,20 +982,32 @@ export default async function IncidentPage({
             </div>
 
             {/* Timeline */}
-            <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+            <div
+              className="px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
               {panelHeader("Timeline")}
               <TimelinePanel entries={timelineEntries} />
             </div>
           </div>
 
           {/* ── Row 5: Vault Table (full-width) ── */}
-          <div className="px-5 py-4" style={{ backgroundColor: "var(--surface)" }}>
+          <div
+            className="px-5 py-4"
+            style={{ backgroundColor: "var(--surface)" }}
+          >
             {panelHeader("All Affected Vaults")}
             <VaultTable vaults={vaults} toxicAssets={config.toxicAssets} />
           </div>
 
           {/* ── Footer ── */}
-          <div className="mt-px px-5 py-3 flex justify-between text-[8px] font-semibold uppercase tracking-wide" style={{ backgroundColor: "var(--surface)", color: "var(--text-tertiary)" }}>
+          <div
+            className="mt-px px-5 py-3 flex justify-between text-[8px] font-semibold uppercase tracking-wide"
+            style={{
+              backgroundColor: "var(--surface)",
+              color: "var(--text-tertiary)",
+            }}
+          >
             <span>
               Exposure Core · Data refreshed every 10 min · Last update:{" "}
               {timestamp}
