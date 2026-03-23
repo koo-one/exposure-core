@@ -216,9 +216,12 @@ export function detectToxicExposure(
   // (already covered above — if matched is true we skip, otherwise whitelist
   //  check runs regardless of whether name has "/" or not).
 
-  const toxicExposureUsd = [...byAsset.values()].reduce((s, v) => s + v, 0);
+  const toxicExposureUsd = Array.from(byAsset.values()).reduce(
+    (s, v) => s + v,
+    0,
+  );
 
-  const breakdown: ToxicBreakdownEntry[] = [...byAsset.entries()].map(
+  const breakdown: ToxicBreakdownEntry[] = Array.from(byAsset.entries()).map(
     ([asset, amountUsd]) => ({
       asset,
       amountUsd,
