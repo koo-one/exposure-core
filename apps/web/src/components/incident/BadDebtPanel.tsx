@@ -73,14 +73,11 @@ export function BadDebtPanel({
 }: BadDebtPanelProps) {
   return (
     <div
-      className="grid grid-cols-2 max-w-md"
+      className="grid grid-cols-2"
       style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.05)" }}
     >
       {/* Realized debt — neutral */}
-      <div
-        className="bg-white p-4"
-        style={{ borderTop: "2px solid rgba(0,0,0,0.08)" }}
-      >
+      <div className="bg-white p-4">
         <p
           className="uppercase font-black mb-1"
           style={{
@@ -100,10 +97,7 @@ export function BadDebtPanel({
       </div>
 
       {/* Covered debt — neutral with protocol logos */}
-      <div
-        className="bg-white p-4"
-        style={{ borderTop: "2px solid rgba(0,0,0,0.08)" }}
-      >
+      <div className="bg-white p-4">
         <p
           className="uppercase font-black mb-1"
           style={{
