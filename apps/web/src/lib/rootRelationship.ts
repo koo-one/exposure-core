@@ -6,18 +6,18 @@ export interface RootRelationshipSemantics {
 }
 
 const MORPHO_MARKET_RELATIONSHIP: RootRelationshipSemantics = {
-  rootBadge: "Lent to markets",
-  childBadge: "Against collateral",
+  rootBadge: "Lent to Markets",
+  childBadge: "Collateral Exposure",
 };
 
 const MORPHO_V1_VAULT_RELATIONSHIP: RootRelationshipSemantics = {
-  rootBadge: "Allocated to V1 vaults",
-  childBadge: "V1 vault",
+  rootBadge: "Allocated to V1 Vaults",
+  childBadge: "Morpho Vault V1",
 };
 
 const EULER_EARN_RELATIONSHIP: RootRelationshipSemantics = {
-  rootBadge: "Allocated to EVK vaults",
-  childBadge: "EVK vault",
+  rootBadge: "Allocated to Euler Markets",
+  childBadge: "Euler Market",
 };
 
 const EULER_EVK_RELATIONSHIP: RootRelationshipSemantics = {
@@ -31,8 +31,8 @@ const YIELD_RELATIONSHIP: RootRelationshipSemantics = {
 };
 
 const BACKING_RELATIONSHIP: RootRelationshipSemantics = {
-  rootBadge: "Backed by reserves",
-  childBadge: "Backing position",
+  rootBadge: "Backed by Reserves",
+  childBadge: "Backings",
 };
 
 const normalizeText = (value: string | null | undefined): string => {
