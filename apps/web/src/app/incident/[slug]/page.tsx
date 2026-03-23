@@ -388,24 +388,26 @@ export default async function IncidentPage({
             {/* Donut by Toxic Asset */}
             <div className="bg-white px-5 py-4">
               {panelHeader("By Toxic Asset")}
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-6">
                 {/* Donut */}
                 <div
                   className="w-[100px] h-[100px] rounded-full relative flex-shrink-0"
                   style={{ background: conicGradient }}
                 >
-                  <div className="absolute inset-[26px] rounded-full bg-white flex flex-col items-center justify-center">
-                    <span className="font-mono text-[12px] font-bold leading-tight">
-                      {formatUsdCompact(totalAssetExposure)}
-                    </span>
-                    <span className="text-[7px] text-black/25 uppercase tracking-widest">
-                      Total
-                    </span>
+                  <div className="absolute inset-[28px] rounded-full bg-white flex items-center justify-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="font-mono text-[11px] font-bold leading-tight">
+                        {formatUsdCompact(totalAssetExposure)}
+                      </span>
+                      <span className="text-[7px] text-black/25 uppercase tracking-widest">
+                        Total
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Legend */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col justify-center gap-2">
                   {assetEntries.map(([symbol, { exposureUsd }]) => {
                     const iconPath = tokenIconPath(symbol);
                     return (

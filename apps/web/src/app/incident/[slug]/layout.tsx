@@ -33,7 +33,11 @@ export default async function IncidentLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
-      <IncidentNav title={config.title} slug={config.slug} />
+      <IncidentNav
+        title={config.title}
+        slug={config.slug}
+        lastUpdated={config.lastUpdated}
+      />
       <main>{children}</main>
     </div>
   );

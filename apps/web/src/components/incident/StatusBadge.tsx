@@ -2,7 +2,6 @@
 
 interface StatusBadgeProps {
   status: "affected" | "covering" | "pending" | "unknown";
-  note?: string;
 }
 
 const STATUS_STYLES: Record<
@@ -27,7 +26,7 @@ const STATUS_STYLES: Record<
   },
 };
 
-export function StatusBadge({ status, note }: StatusBadgeProps) {
+export function StatusBadge({ status }: StatusBadgeProps) {
   const { color, label } = STATUS_STYLES[status] ?? STATUS_STYLES.unknown;
 
   return (
@@ -40,21 +39,9 @@ export function StatusBadge({ status, note }: StatusBadgeProps) {
           textTransform: "uppercase",
           letterSpacing: "0.15em",
         }}
-        title={note}
       >
         {label}
       </span>
-      {note && (
-        <span
-          style={{
-            color: "rgba(0,0,0,0.3)",
-            fontSize: 8,
-            fontWeight: 600,
-          }}
-        >
-          {note}
-        </span>
-      )}
     </span>
   );
 }

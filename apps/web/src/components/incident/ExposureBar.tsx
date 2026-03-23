@@ -17,7 +17,15 @@ export function ExposureBar({
     toxicAssets.map((a) => [a.symbol, a.color]),
   );
 
-  const totalPct = breakdown.reduce((sum, entry) => sum + entry.pct, 0);
+  // Normalize pct: if all values are <= 1, treat as ratio (0-1) and multiply by 100
+  const maxPct = breakdown.reduce((m, e) => Math.max(m, e.pct), 0);
+  const isRatio = breakdown.length > 0 && maxPct <= 1;
+  const normalized = breakdown.map((entry) => ({
+    ...entry,
+    pct: isRatio ? entry.pct * 100 : entry.pct,
+  }));
+
+  const totalPct = normalized.reduce((sum, entry) => sum + entry.pct, 0);
   const remainingPct = Math.max(0, 100 - totalPct);
 
   return (
@@ -25,7 +33,7 @@ export function ExposureBar({
       className={`flex h-1 w-full overflow-hidden rounded-full ${className ?? ""}`}
       style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
     >
-      {breakdown.map((entry) => (
+      {normalized.map((entry) => (
         <div
           key={entry.asset}
           style={{
@@ -36,7 +44,7 @@ export function ExposureBar({
           title={`${entry.asset}: ${entry.pct.toFixed(1)}%`}
         />
       ))}
-      {remainingPct > 0 && breakdown.length > 0 && (
+      {remainingPct > 0 && normalized.length > 0 && (
         <div
           style={{
             width: `${remainingPct}%`,
