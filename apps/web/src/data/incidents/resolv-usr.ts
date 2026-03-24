@@ -266,6 +266,54 @@ const config: IncidentConfig = {
           "hyperevm:morpho-v1:0xd3a9cb7312b9c29113290758f5adfe12304cd16a",
       },
     },
+    // ─── Unlisted Morpho vaults with RLP exposure ───
+    // These are unlisted (non-whitelisted) vaults not scraped by our Morpho adapter.
+    // Source: Morpho Blue API — queried 2026-03-25
+    // Flagged by @deepcryptodive: https://x.com/deepcryptodive/status/2035987772364800056
+    {
+      source: "manual",
+      name: "Everstone",
+      protocol: "morpho",
+      chains: ["eth"],
+      status: "affected",
+      statusNote:
+        "Unlisted vault. Flagged as susceptible to flashloan attack via RLP exposure.",
+      totalTvlUsd: 392_027,
+      exposureUsd: 391_955,
+      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 391_955, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Etherealm USDC",
+      protocol: "morpho",
+      chains: ["eth"],
+      status: "affected",
+      statusNote:
+        "Unlisted vault. Flagged as susceptible to flashloan attack via RLP exposure.",
+      totalTvlUsd: 217_334,
+      exposureUsd: 217_334,
+      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 217_334, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Hackarrot USDC Prime",
+      protocol: "morpho",
+      chains: ["eth"],
+      status: "affected",
+      totalTvlUsd: 69_356,
+      exposureUsd: 69_356,
+      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 69_356, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Duplicated Key",
+      protocol: "morpho",
+      chains: ["eth"],
+      status: "affected",
+      totalTvlUsd: 49_652,
+      exposureUsd: 49_649,
+      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 49_649, pct: 1 }],
+    },
     {
       source: "adapter",
       name: "Euler Arbitrum Yield USDC",

@@ -941,6 +941,57 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 22, 2026 · 14:45 UTC",
+      tag: "curator" as const,
+      text: "Block Analitica confirms zero Resolv exposure — Sky Ecosystem, SummerFi vaults unaffected; ~$5K USR on HyperEVM frozen.",
+      details: {
+        description:
+          "Block Analitica reports no meaningful exposure across all managed platforms. Sky Ecosystem and SummerFi BA-managed vaults have zero Resolv exposure. HyperLend has ~$5K of USR supplied on HyperEVM, with the market frozen 7 hours prior.",
+        tweets: [
+          {
+            author: "Block Analitica",
+            handle: "@BlockAnalitica",
+            text: "Block Analitica has no exposure to Resolv assets. From our current data: - Sky Ecosystem has zero Resolv exposure. - SummerFi BA-managed vaults have zero Resolv exposure. - HyperLend has ~$5k of USR supplied on HyperEVM, with the market frozen 7 hours ago.",
+            url: "https://x.com/BlockAnalitica/status/2035713928039473421",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 24, 2026 · 10:30 UTC",
+      tag: "curator" as const,
+      text: "Midas confirms mAPOLLO fully redeemed USR position; mBASIS and msyrupUSDp withdrew Fluid allocations on Plasma as precaution.",
+      details: {
+        description:
+          "ApolloCryptoFM's mAPOLLO redeemed its USR position in full — zero remaining exposure. UltraYield's mBASIS and msyrupUSDp had no direct USR exposure but withdrew their Fluid allocations on Plasma as a precautionary measure.",
+        tweets: [
+          {
+            author: "Midas",
+            handle: "@MidasRWA",
+            text: "Update: @ApolloCryptoFM's mAPOLLO redeemed its USR position in full and no longer has any exposure. @ultrayieldapp's mBASIS and msyrupUSDp had no direct USR exposure, but have withdrawn their Fluid allocations on Plasma as a precaution.",
+            url: "https://x.com/MidasRWA/status/2036405415068446729",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 24, 2026 · 09:15 UTC",
+      tag: "curator" as const,
+      text: "Clearstar Labs resumes normal operations — all vaults clear except Clearstar Yield USDC on Mainnet (RLP exposure remains).",
+      details: {
+        description:
+          "All Clearstar vaults are back to normal operations with no Resolv exposure, except for Clearstar Yield USDC on Mainnet which still has RLP exposure. Clearstar is in active conversations with Resolv Labs about resolution.",
+        tweets: [
+          {
+            author: "Clearstar Labs",
+            handle: "@ClearstarLabs",
+            text: "All vaults are resuming normal operations with no exposures to Resolv except for Clearstar Yield USDC on Mainnet which still has RLP exposure. We have been focusing all our efforts in having conversations and meetings with @ResolvLabs and other affected parties.",
+            url: "https://x.com/ClearstarLabs/status/2036348707470205244",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
