@@ -81,9 +81,12 @@ function CuratorLogo({
   );
 }
 
+const DEFAULT_VISIBLE = 5;
+
 export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
   const [marketPrices, setMarketPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,69 +219,88 @@ export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
 
       {/* By curator */}
       <div className="space-y-1">
-        {curatorDebts.map((d) => {
-          const pct =
-            totalBadDebt > 0 ? (d.badDebtUsd / totalBadDebt) * 100 : 0;
-          return (
-            <div
-              key={d.curator}
-              className="flex items-center gap-3 rounded-lg px-3 py-2"
-              style={{
-                backgroundColor: "var(--surface-secondary)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <CuratorLogo curator={d.curator} protocol={d.protocol} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span
-                    className="font-bold truncate"
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {d.curator}
-                  </span>
-                  <span
-                    className="font-mono"
-                    style={{
-                      fontSize: 10,
-                      color: "var(--text-tertiary)",
-                    }}
-                  >
-                    {d.vaultCount} vault{d.vaultCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                {/* Bar */}
-                <div
-                  className="mt-1 rounded-full overflow-hidden"
-                  style={{
-                    height: 4,
-                    backgroundColor: "var(--border)",
-                  }}
-                >
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: "#E11D48",
-                    }}
-                  />
-                </div>
-              </div>
-              <span
-                className="font-mono font-bold flex-shrink-0"
+        {(expanded ? curatorDebts : curatorDebts.slice(0, DEFAULT_VISIBLE)).map(
+          (d) => {
+            const pct =
+              totalBadDebt > 0 ? (d.badDebtUsd / totalBadDebt) * 100 : 0;
+            return (
+              <div
+                key={d.curator}
+                className="flex items-center gap-3 rounded-lg px-3 py-2"
                 style={{
-                  fontSize: 13,
-                  color: "#E11D48",
+                  backgroundColor: "var(--surface-secondary)",
+                  border: "1px solid var(--border)",
                 }}
               >
-                {formatUsdCompact(d.badDebtUsd)}
-              </span>
-            </div>
-          );
-        })}
+                <CuratorLogo curator={d.curator} protocol={d.protocol} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="font-bold truncate"
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {d.curator}
+                    </span>
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-tertiary)",
+                      }}
+                    >
+                      {d.vaultCount} vault{d.vaultCount !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  {/* Bar */}
+                  <div
+                    className="mt-1 rounded-full overflow-hidden"
+                    style={{
+                      height: 4,
+                      backgroundColor: "var(--border)",
+                    }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: "#E11D48",
+                      }}
+                    />
+                  </div>
+                </div>
+                <span
+                  className="font-mono font-bold flex-shrink-0"
+                  style={{
+                    fontSize: 13,
+                    color: "#E11D48",
+                  }}
+                >
+                  {formatUsdCompact(d.badDebtUsd)}
+                </span>
+              </div>
+            );
+          },
+        )}
+        {curatorDebts.length > DEFAULT_VISIBLE && (
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="w-full text-center py-2 rounded-lg transition-colors cursor-pointer"
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              backgroundColor: "var(--surface-secondary)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {expanded
+              ? "Show less"
+              : `Show ${curatorDebts.length - DEFAULT_VISIBLE} more`}
+          </button>
+        )}
       </div>
     </div>
   );
