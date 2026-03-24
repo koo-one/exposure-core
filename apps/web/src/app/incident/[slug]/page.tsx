@@ -780,6 +780,23 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 22, 2026 · 09:21 UTC",
+      tag: "curator" as const,
+      text: "kpk (formerly karpatkey) confirms limited RLP exposure in some Morpho Yield vaults; DAO treasuries unaffected.",
+      details: {
+        description:
+          "Most kpk vaults had no exposure. All exposed positions in impacted protocols were closed and withdrawn immediately.",
+        tweets: [
+          {
+            author: "kpk",
+            handle: "@kpk_io",
+            text: "We're aware of the Resolv USR exploit. kpk had limited RLP exposure in some of our Morpho Yield vaults. Most kpk vaults had no exposure. DAO treasuries were unaffected. All exposed positions in impacted protocols were closed and withdrawn immediately.",
+            url: "https://x.com/kpk_io/status/2035648055492358369",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 23, 2026 · 12:44 UTC",
       tag: "response" as const,
       text: "Lito confirms no bad debt on Venus Flux or Fluid Plasma — wstUSR positions pre-hack, will be fully restored by Resolv.",
@@ -805,6 +822,89 @@ export default async function IncidentPage({
             handle: "@ResolvLabs",
             text: "Resolv Digital Assets Ltd. is in contact with all allowlisted users with USR holdings at the time of the incident. Redemptions for pre-incident USR are now enabled for this group. Updates for other users will follow.",
             url: "https://x.com/ResolvLabs/status/2036151331950604534",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 19:27 UTC",
+      tag: "curator" as const,
+      text: "Gauntlet meets with Resolv — confident a positive outcome will be achieved; compensation plan in progress.",
+      details: {
+        description:
+          "USDC Core on mainnet has $11.52M in liquidity. USDC Frontier has ~$350K in liquidity. Prime, Gauntlet USD Alpha and other strategies on their vault platform are not impacted.",
+        tweets: [
+          {
+            author: "Gauntlet",
+            handle: "@gauntlet_xyz",
+            text: "Gauntlet and Resolv met today to discuss next steps. We are confident a positive outcome will be achieved for suppliers of affected Morpho vaults via remediation from Resolv. Gauntlet is also working on a compensation plan, if required. Liquidity update: USDC Core on mainnet has $11.52M in liquidity. USDC Frontier on mainnet has ~$350k in liquidity. Prime, Gauntlet USD Alpha and other Gauntlet strategies on our vault platform are not impacted.",
+            url: "https://x.com/gauntlet_xyz/status/2036162856518099115",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 19:58 UTC",
+      tag: "curator" as const,
+      text: "kpk publishes full update — all Ethereum funds fully recovered, zero loss to depositors. Vault withdrawal queue handled exit automatically.",
+      details: {
+        description:
+          "Concentration limits had capped maximum exposure. The vault's withdrawal queue recovered the full amount same-block with no manual intervention. Deposits into Ethereum Yield vault re-enabled. Arbitrum vault still paused with ~$1k remaining exposure.",
+        tweets: [
+          {
+            author: "kpk",
+            handle: "@kpk_io",
+            text: "Update on the Resolv situation. TLDR: kpk's vault architecture worked as designed under real stress. We detected the risk, paused new allocations, and the vault exited automatically the moment liquidity became available. All Ethereum funds fully recovered. Zero loss to depositors.",
+            url: "https://x.com/kpk_io/status/2036170798646349902",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 20:13 UTC",
+      tag: "response" as const,
+      text: "Resolv Foundation pauses protocol and app — Season 4 airdrop claims and RESOLV staking temporarily unavailable.",
+      details: {
+        tweets: [
+          {
+            author: "Resolv Foundation",
+            handle: "@ResolvCore",
+            text: "In light of the recent incident, the Resolv protocol has been temporarily paused (including the app) to contain the impact of the exploit. As a result: Season 4 airdrop claims are temporarily unavailable; Staking and unstaking of RESOLV tokens are temporarily inaccessible.",
+            url: "https://x.com/ResolvCore/status/2036174437129789607",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 20:37 UTC",
+      tag: "response" as const,
+      text: "Fluid begins debt repayments — starting with Venus Flux & Fluid Plasma. 100% of user assets remain fully secured.",
+      details: {
+        description:
+          "LPs have been engaged directly through Fluid & Resolv teams. Remaining debt will be repaid over coming days. All markets continue to operate as intended. No user action required.",
+        tweets: [
+          {
+            author: "Fluid",
+            handle: "@0xfluid",
+            text: "Important update on the Resolv incident. Debt repayments have begun on Fluid. LPs have been engaged directly through Fluid & Resolv teams. Starting with Venus Flux & Fluid Plasma. The remaining debt will be repaid over the coming days. 100% of user assets on Fluid remain fully secured.",
+            url: "https://x.com/0xfluid/status/2036180670590947633",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 22:47 UTC",
+      tag: "response" as const,
+      text: "3Jane confirms ~$800K indirect Resolv exposure across $107M+ — would have incurred $0 bad debt even without Fluid subsidy.",
+      details: {
+        description:
+          "3Jane extends cross-margined, recourse credit lines underwritten against the full balance sheet rather than isolated collateral, avoiding concentrated single-asset tail risk.",
+        tweets: [
+          {
+            author: "3Jane",
+            handle: "@3janexyz",
+            text: "Despite ~$800k in indirect Resolv exposure across $107M+ in value verified, 3Jane would have incurred $0 bad debt even without a Fluid subsidy. 3Jane extends cross-margined, recourse credit lines underwritten against the full balance sheet rather than isolated collateral.",
+            url: "https://x.com/3janexyz/status/2036213233024114737",
           },
         ],
       },
