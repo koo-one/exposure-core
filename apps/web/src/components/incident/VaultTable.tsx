@@ -811,7 +811,10 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
               const { ve, chain } = row;
               const isPending =
                 ve.status === "pending" ||
-                (row.toxicExposureUsd === 0 && row.breakdown.length === 0);
+                (row.toxicExposureUsd === 0 &&
+                  row.breakdown.length === 0 &&
+                  ve.vault.status !== "recovered" &&
+                  ve.vault.status !== "covering");
               return (
                 <tr
                   key={`${ve.vault.protocol}-${ve.vault.name}-${chain}-${rowIdx}`}
