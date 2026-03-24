@@ -554,12 +554,68 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
     });
   }, [vaults, search, activeProtocols, activeChains, activeStatuses]);
 
+  // Flatten multi-chain vaults into per-chain rows
+  interface FlatRow {
+    ve: VaultExposure;
+    chain: string;
+    totalAllocationUsd: number;
+    toxicExposureUsd: number;
+    exposurePct: number;
+    breakdown: VaultExposure["breakdown"];
+  }
+
+  const flattened = useMemo(() => {
+    const rows: FlatRow[] = [];
+    for (const ve of filtered) {
+      if (ve.chainBreakdown && Object.keys(ve.chainBreakdown).length > 1) {
+        // Split into per-chain rows
+        for (const chain of ve.vault.chains) {
+          const cb = ve.chainBreakdown[chain];
+          if (cb) {
+            rows.push({
+              ve,
+              chain,
+              totalAllocationUsd: cb.totalAllocationUsd,
+              toxicExposureUsd: cb.toxicExposureUsd,
+              exposurePct:
+                cb.totalAllocationUsd > 0
+                  ? cb.toxicExposureUsd / cb.totalAllocationUsd
+                  : 0,
+              breakdown: cb.breakdown,
+            });
+          } else {
+            // Chain has no data yet
+            rows.push({
+              ve,
+              chain,
+              totalAllocationUsd: 0,
+              toxicExposureUsd: 0,
+              exposurePct: 0,
+              breakdown: [],
+            });
+          }
+        }
+      } else {
+        // Single chain or no chain breakdown — show as one row
+        rows.push({
+          ve,
+          chain: ve.vault.chains[0] ?? "",
+          totalAllocationUsd: ve.totalAllocationUsd,
+          toxicExposureUsd: ve.toxicExposureUsd,
+          exposurePct: ve.exposurePct,
+          breakdown: ve.breakdown,
+        });
+      }
+    }
+    return rows;
+  }, [filtered]);
+
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
+    return [...flattened].sort((a, b) => {
       let cmp = 0;
       switch (sortColumn) {
         case "name":
-          cmp = a.vault.name.localeCompare(b.vault.name);
+          cmp = a.ve.vault.name.localeCompare(b.ve.vault.name);
           break;
         case "exposurePct":
           cmp = a.exposurePct - b.exposurePct;
@@ -569,13 +625,13 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           break;
         case "status":
           cmp =
-            (STATUS_ORDER[a.vault.status] ?? 9) -
-            (STATUS_ORDER[b.vault.status] ?? 9);
+            (STATUS_ORDER[a.ve.vault.status] ?? 9) -
+            (STATUS_ORDER[b.ve.vault.status] ?? 9);
           break;
       }
       return sortDirection === "asc" ? cmp : -cmp;
     });
-  }, [filtered, sortColumn, sortDirection]);
+  }, [flattened, sortColumn, sortDirection]);
 
   const renderSortIndicator = (col: SortColumn) => {
     if (sortColumn !== col)
@@ -751,26 +807,23 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((ve) => {
-              const isPending = ve.status === "pending";
+            {sorted.map((row, rowIdx) => {
+              const { ve, chain } = row;
+              const isPending =
+                ve.status === "pending" ||
+                (row.toxicExposureUsd === 0 && row.breakdown.length === 0);
               return (
                 <tr
-                  key={`${ve.vault.protocol}-${ve.vault.name}`}
+                  key={`${ve.vault.protocol}-${ve.vault.name}-${chain}-${rowIdx}`}
                   className="transition-colors hover:bg-black/[0.02]"
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  {/* Network */}
+                  {/* Network — single chain per row */}
                   <td
                     className="px-3 py-3"
-                    title={ve.vault.chains
-                      .map((c) => CHAIN_NAMES[c] ?? c.toUpperCase())
-                      .join(", ")}
+                    title={CHAIN_NAMES[chain] ?? chain.toUpperCase()}
                   >
-                    <div className="flex flex-wrap gap-1">
-                      {ve.vault.chains.map((c) => (
-                        <ChainLogo key={c} chain={c} />
-                      ))}
-                    </div>
+                    <ChainLogo chain={chain} />
                   </td>
                   {/* Protocol */}
                   <td
@@ -809,7 +862,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         <span
                           style={{ fontSize: 12, color: "var(--text-primary)" }}
                         >
-                          {formatNumberCompact(ve.toxicExposureUsd)}{" "}
+                          {formatNumberCompact(row.toxicExposureUsd)}{" "}
                           <span
                             style={{
                               fontWeight: 400,
@@ -831,7 +884,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                               padding: "1px 5px",
                             }}
                           >
-                            {formatUsdCompact(ve.toxicExposureUsd)}
+                            {formatUsdCompact(row.toxicExposureUsd)}
                           </span>
                         </div>
                       </div>
@@ -845,9 +898,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                       >
                         —
                       </span>
-                    ) : ve.breakdown.length > 0 ? (
+                    ) : row.breakdown.length > 0 ? (
                       <ExposureTokenIcons
-                        breakdown={ve.breakdown}
+                        breakdown={row.breakdown}
                         toxicAssets={toxicAssets}
                       />
                     ) : (
@@ -875,9 +928,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                             color: "var(--text-secondary)",
                           }}
                         >
-                          {(ve.exposurePct * 100).toFixed(1)}%
+                          {(row.exposurePct * 100).toFixed(1)}%
                         </span>
-                        <MiniRing pct={ve.exposurePct} size={16} />
+                        <MiniRing pct={row.exposurePct} size={16} />
                       </div>
                     )}
                   </td>
