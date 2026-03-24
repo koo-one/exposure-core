@@ -274,6 +274,48 @@ To track a different exploit in the future:
 3. Visit `/incident/new-slug`
 4. Add subdomain in middleware if needed
 
+## Using AI (Claude Code) for Common Tasks
+
+This dashboard was built and maintained using Claude Code. Here are prompts you can use to do common tasks without reading the code:
+
+**Add a vault:**
+
+> "Add [Protocol] [Vault Name] on [chain] to the incident config. It's an adapter/manual vault with nodeId [0x...]."
+
+**Update status after a curator announcement:**
+
+> "kpk announced full recovery on ETH. Update their vault status to recovered with this tweet link: [url]"
+
+**Fetch latest exposure data:**
+
+> "Run the upshift data collection script and update the config with the latest numbers"
+
+**Add a timeline entry:**
+
+> "Add a timeline entry: [Date] — [Protocol] announced [what happened]. Source: [tweet url]"
+
+**Find missing vaults:**
+
+> "Scan the fixture data for any Euler/Morpho vaults with USR exposure that aren't in the config yet"
+
+**Add a new protocol:**
+
+> "Add [Protocol Name] to the dashboard. They have [N] vaults affected. Here's the data: [details]"
+
+**Deploy:**
+
+> "redeploy" (deploys to production via `vercel --prod`)
+
+**Check data sources:**
+
+> "What's the current exposure for Inverse Finance? Check their API."
+
+**Design changes:**
+
+> "Generate HTML prototypes for [design change]. Open them in the browser so I can compare."
+
+The AI has full context of the codebase through `CLAUDE.md` and this guide. It knows the file structure, types, and patterns. Just describe what you want in plain English.
+
 ## Open TODOs
 
 See `TODOS.md` for pending work:
