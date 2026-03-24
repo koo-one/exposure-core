@@ -86,11 +86,15 @@ const VAULT_V2S_BASE_QUERY: TypedDocumentNode<
 
 const VAULT_V2S_ADAPTERS_QUERY: TypedDocumentNode<
   { vaultV2s?: { items?: MorphoVaultV2Adapters[] } },
-  { addresses: string[]; adaptersFirst: number }
+  { addresses: string[]; first: number; adaptersFirst: number }
 > = parse(gql`
-  query VaultV2sAdapters($addresses: [String!]!, $adaptersFirst: Int = 20) {
+  query VaultV2sAdapters(
+    $addresses: [String!]!
+    $first: Int!
+    $adaptersFirst: Int = 20
+  ) {
     vaultV2s(
-      first: 100
+      first: $first
       skip: 0
       where: { whitelisted: true, address_in: $addresses }
     ) {
@@ -154,8 +158,9 @@ export const fetchVaultV2s = async (): Promise<MorphoVaultV2[]> => {
   // `Query is too complex` errors (see GraphQL response `extensions.complexity`).
   //
   // We also split v2 fetching into two requests per page: a lighter base vault query and a follow-up
-  // adapters query keyed to that page's vault addresses. This reduces the chance that one large nested
-  // selection (`adapters -> positions`) causes the entire page request to time out.
+  // adapters query keyed to that page's vault addresses. The follow-up query keeps `first` aligned to
+  // the current page size so the endpoint does not charge us for a much larger top-level fan-out than
+  // the address filter can actually return.
   const pageSize = 20;
   const adaptersFirst = 20;
   const curatorsFirst = 1;
@@ -180,6 +185,7 @@ export const fetchVaultV2s = async (): Promise<MorphoVaultV2[]> => {
       document: VAULT_V2S_ADAPTERS_QUERY,
       variables: {
         addresses: baseItems.map((item) => item.address),
+        first: baseItems.length,
         adaptersFirst,
       },
     });
