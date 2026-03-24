@@ -81,7 +81,7 @@ function CuratorLogo({
   );
 }
 
-const DEFAULT_VISIBLE = 6;
+const DEFAULT_VISIBLE = 5;
 
 export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
   const [marketPrices, setMarketPrices] = useState<Record<string, number>>({});
@@ -266,7 +266,7 @@ export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
                       className="h-full rounded-full"
                       style={{
                         width: `${pct}%`,
-                        backgroundColor: "#E11D48",
+                        backgroundColor: "var(--text-secondary)",
                       }}
                     />
                   </div>
@@ -275,7 +275,7 @@ export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
                   className="font-mono font-bold flex-shrink-0"
                   style={{
                     fontSize: 13,
-                    color: "#E11D48",
+                    color: "var(--text-primary)",
                   }}
                 >
                   {formatUsdCompact(d.badDebtUsd)}
