@@ -86,6 +86,44 @@ Edit `apps/web/src/data/incidents/resolv-usr.ts`:
 },
 ```
 
+### Add a timeline entry
+
+Timeline entries are in the overview page (`apps/web/src/app/incident/[slug]/page.tsx`) in the `timelineEntries` array. Add a new entry:
+
+```typescript
+{
+  date: "Mar 24, 2026 · 14:00 UTC",
+  tag: "response",    // exploit | response | curator | update
+  text: "Protocol X announces full coverage of bad debt.",
+  details: {          // optional — shown on click/expand
+    description: "Additional context about the announcement.",
+    tweets: [
+      {
+        author: "Protocol X",
+        handle: "@protocolx",
+        text: "We are covering all bad debt...",
+        url: "https://x.com/protocolx/status/123456",
+      },
+    ],
+    links: [
+      {
+        label: "Governance Proposal",
+        url: "https://governance.protocolx.com/proposal/42",
+      },
+    ],
+  },
+},
+```
+
+**Tags** (all render the same ghost style, tags are for data categorization):
+
+- `exploit` — the attack itself
+- `response` — protocol response/coverage announcement
+- `curator` — vault curator action (pause, reallocation, recovery)
+- `update` — general updates (dashboard launch, analysis posts)
+
+Entries are displayed in the order they appear in the array. Put newest first.
+
 ### Update vault status
 
 Change the `status` field:
