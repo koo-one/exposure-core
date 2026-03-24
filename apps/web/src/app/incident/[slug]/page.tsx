@@ -21,6 +21,7 @@ import type { GraphSnapshot } from "@/types";
 import { IncidentBanner } from "@/components/incident/IncidentBanner";
 import { PriceChart } from "@/components/incident/PriceChart";
 import { BadDebtPanel } from "@/components/incident/BadDebtPanel";
+import { BadDebtByCurator } from "@/components/incident/BadDebtByCurator";
 import { MetricCard } from "@/components/incident/MetricCard";
 import { ProtocolRow } from "@/components/incident/ProtocolRow";
 import { TimelinePanel } from "@/components/incident/TimelinePanel";
@@ -1067,6 +1068,15 @@ export default async function IncidentPage({
                 total={totalAssetExposure}
               />
             </div>
+          </div>
+
+          {/* ── Row 2.5: Bad Debt by Curator ── */}
+          <div
+            className="px-5 py-4"
+            style={{ backgroundColor: "var(--surface)" }}
+          >
+            {panelHeader("Estimated Bad Debt by Curator")}
+            <BadDebtByCurator vaults={vaults} />
           </div>
 
           {/* ── Row 3: Metrics Strip (4-col) ── */}
