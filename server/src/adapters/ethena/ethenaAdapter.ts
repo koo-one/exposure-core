@@ -1,5 +1,6 @@
 import type { Edge, Node } from "../../types.js";
-import { roundToTwoDecimals, scaleByDecimals, toSlug } from "../../utils.js";
+import { roundToTwoDecimals, scaleByDecimals } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 import { fetchEthenaCatalog, type EthenaCatalog } from "./metrics.js";
 
@@ -12,19 +13,6 @@ export interface EthenaAllocation {
   type: "overview";
   data: EthenaCatalog;
 }
-
-const buildBackingNodeId = (
-  chain: string,
-  exchange: string,
-  asset: string,
-): string => {
-  const exchangeSlug = toSlug(exchange);
-  const assetSlug = toSlug(asset);
-
-  // Keep IDs stable and unique across the whole graph while reflecting the
-  // requested shape: "<exchange>:<asset>".
-  return `${chain}:${ETHENA_PROTOCOL}:${exchangeSlug}:${assetSlug}`;
-};
 
 export const createEthenaAdapter = (): Adapter<
   EthenaCatalog,
@@ -61,7 +49,11 @@ export const createEthenaAdapter = (): Adapter<
         })();
 
         return {
-          id: "eth:ethena:0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          id: buildCanonicalIdentity({
+            chain: "eth",
+            protocol: ETHENA_PROTOCOL,
+            address: "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          }).id,
           chain: "eth",
           name: ASSET_USDE,
           protocol: ETHENA_PROTOCOL,
@@ -79,7 +71,11 @@ export const createEthenaAdapter = (): Adapter<
         })();
 
         return {
-          id: "eth:ethena:0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          id: buildCanonicalIdentity({
+            chain: "eth",
+            protocol: ETHENA_PROTOCOL,
+            address: "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          }).id,
           chain: "eth",
           name: ASSET_SUSDE,
           protocol: ETHENA_PROTOCOL,
@@ -125,8 +121,16 @@ export const createEthenaAdapter = (): Adapter<
         .filter((e) => e.usd > 0);
 
       for (const entry of entries) {
+        const nodeId = buildCanonicalIdentity({
+          chain: rootChain,
+          protocol: ETHENA_PROTOCOL,
+          forcedSource: "fallback-name",
+          fallbackName: `${entry.exchange}:${entry.asset}`,
+          resourceParts: [entry.exchange, entry.asset],
+        }).id;
+
         const allocationNode: Node = {
-          id: buildBackingNodeId(rootChain, entry.exchange, entry.asset),
+          id: nodeId,
           chain: rootChain,
           name: `${entry.exchange}: ${entry.asset}`,
           details: { kind: "Investment" },
@@ -136,7 +140,7 @@ export const createEthenaAdapter = (): Adapter<
 
         edges.push({
           from: root.id,
-          to: allocationNode.id,
+          to: nodeId,
           allocationUsd: roundToTwoDecimals(entry.usd),
         });
       }

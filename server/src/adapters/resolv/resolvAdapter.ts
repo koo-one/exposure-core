@@ -6,10 +6,12 @@ import {
 } from "../../resolvers/debank/debankResolver.js";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 import { fetchResolvMetrics, type ResolvMetrics } from "./metrics.js";
 
 const RESOLV_BUNDLE_ID = "220554";
+const RESOLV_PROTOCOL = "resolv" as const;
 
 const ASSET_USR = "USR" as const;
 const ASSET_WSTUSR = "wstUSR" as const;
@@ -29,7 +31,7 @@ export const createResolvAdapter = (): Adapter<
   ResolvAllocation
 > => {
   return {
-    id: "resolv",
+    id: RESOLV_PROTOCOL,
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
         hasDebankAccessKey()
@@ -61,10 +63,14 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_USR) {
         return {
-          id: `eth:resolv:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110`,
+          id: buildCanonicalIdentity({
+            chain: "eth",
+            protocol: RESOLV_PROTOCOL,
+            address: "0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110",
+          }).id,
           chain: "eth",
           name: "USR",
-          protocol: "resolv",
+          protocol: RESOLV_PROTOCOL,
           details: {
             kind: "Deposit",
           },
@@ -74,10 +80,14 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_WSTUSR) {
         return {
-          id: `eth:resolv:0x1202f5c7b4b9e47a1a484e8b270be34dbbc75055`,
+          id: buildCanonicalIdentity({
+            chain: "eth",
+            protocol: RESOLV_PROTOCOL,
+            address: "0x1202f5c7b4b9e47a1a484e8b270be34dbbc75055",
+          }).id,
           chain: "eth",
           name: "wstUSR",
-          protocol: "resolv",
+          protocol: RESOLV_PROTOCOL,
           details: {
             kind: "Staked",
           },
@@ -88,10 +98,14 @@ export const createResolvAdapter = (): Adapter<
 
       if (asset === ASSET_RLP) {
         return {
-          id: `eth:resolv:0x4956b52ae2ff65d74ca2d61207523288e4528f96`,
+          id: buildCanonicalIdentity({
+            chain: "eth",
+            protocol: RESOLV_PROTOCOL,
+            address: "0x4956b52ae2ff65d74ca2d61207523288e4528f96",
+          }).id,
           chain: "eth",
           name: "RLP",
-          protocol: "resolv",
+          protocol: RESOLV_PROTOCOL,
           details: { kind: "Protection", curator: "resolv" },
           apy: metrics.apy.rlp,
           tvlUsd: metrics.tvl.rlp,

@@ -1,9 +1,14 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { getSkyDeploymentNodeIds } from "../../../src/adapters/sky/deployments.js";
 import { adapterFactories } from "../../../src/adapters/registry.js";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator.js";
-import { resolveFixtureOutputPath, writeJsonFile } from "../core/io.js";
+import {
+  cloneSnapshotWithRootId,
+  resolveFixtureOutputPath,
+  writeJsonFile,
+} from "../core/io.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
@@ -28,6 +33,20 @@ export const run = async (argv: string[]): Promise<void> => {
     );
 
     await writeJsonFile(outPath, snapshot);
+
+    const extraDeploymentNodeIds = getSkyDeploymentNodeIds(rootNodeId);
+
+    for (const nextRootId of extraDeploymentNodeIds) {
+      const nextSnapshot = cloneSnapshotWithRootId(snapshot, nextRootId);
+      const nextOutPath = resolveFixtureOutputPath(
+        root,
+        "sky",
+        `${nextRootId}.json`,
+        argv,
+      );
+
+      await writeJsonFile(nextOutPath, nextSnapshot);
+    }
   }
 };
 

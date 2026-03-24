@@ -16,6 +16,8 @@ import { fetchVaultV2s } from "./vaultV2Query.js";
 // as `{ vaultV1 } | { vaultV2 }` gives us a reliable discriminant (`"vaultV1" in entry`) and
 // keeps v1/v2 branching explicit and type-safe.
 type MorphoCatalog = { vaultV1: MorphoVaultV1 } | { vaultV2: MorphoVaultV2 };
+const MORPHO_PROTOCOL = "morpho" as const;
+const MORPHO_V1_PROTOCOL = "morpho-v1" as const;
 
 export interface MorphoAllocationEntryV1 {
   vaultV1: MorphoVaultV1;
@@ -32,7 +34,7 @@ export const createMorphoAdapter = (): Adapter<
   MorphoAllocationEntryV1 | MorphoAllocationEntryV2
 > => {
   return {
-    id: "morpho",
+    id: MORPHO_PROTOCOL,
     async fetchCatalog() {
       const [v1, v2] = await Promise.all([fetchVaultV1s(), fetchVaultV2s()]);
 
@@ -248,24 +250,27 @@ export const createMorphoAdapter = (): Adapter<
 
           const market = entry.allocation.market;
           const chain = market.morphoBlue.chain.network;
-          const nodeId = buildMorphoMarketId(chain, "v1", market.uniqueKey);
-
           const loanSymbol = market.loanAsset.symbol;
           const collateralSymbol = market.collateralAsset?.symbol ?? null;
           const name = collateralSymbol
             ? `${loanSymbol}/${collateralSymbol}`
             : loanSymbol;
+          const nodeId = buildMorphoMarketId(chain, "v1", market.uniqueKey);
 
           const allocationNode: Node = {
             id: nodeId,
             chain,
             name,
-            protocol: "morpho-v1",
+            protocol: MORPHO_V1_PROTOCOL,
             details: { kind: "Lending Market" },
           };
 
           nodes.push(allocationNode);
-          edges.push(this.buildEdge(root, allocationNode, entry));
+          edges.push({
+            from: root.id,
+            to: nodeId,
+            allocationUsd,
+          });
 
           continue;
         }
@@ -294,19 +299,18 @@ export const createMorphoAdapter = (): Adapter<
 
             const market = pos.market;
             const chain = market.morphoBlue.chain.network;
-            const nodeId = buildMorphoMarketId(chain, "v1", market.uniqueKey);
-
             const loanSymbol = market.loanAsset.symbol;
             const collateralSymbol = market.collateralAsset?.symbol ?? null;
             const name = collateralSymbol
               ? `${loanSymbol}/${collateralSymbol}`
               : loanSymbol;
+            const nodeId = buildMorphoMarketId(chain, "v1", market.uniqueKey);
 
             const allocationNode: Node = {
               id: nodeId,
               chain,
               name,
-              protocol: "morpho-v1",
+              protocol: MORPHO_V1_PROTOCOL,
               details: { kind: "Lending Market" },
             };
 
@@ -334,7 +338,7 @@ export const createMorphoAdapter = (): Adapter<
             id: nodeId,
             chain,
             name: target.name.trim(),
-            protocol: "morpho-v1",
+            protocol: MORPHO_V1_PROTOCOL,
             details: {
               kind: "Yield",
               subtype: "MetaMorpho Vault",

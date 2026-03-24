@@ -1,4 +1,5 @@
 import { normalizeChain } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 
 const GAUNTLET_PROTOCOL = "gauntlet" as const;
 
@@ -13,7 +14,11 @@ const GTUSDA_DEPLOYMENTS = {
 export const getGauntletDeploymentNodeIds = (): string[] => {
   return Object.entries(GTUSDA_DEPLOYMENTS).map(
     ([chain, address]) =>
-      `${normalizeChain(chain)}:${GAUNTLET_PROTOCOL}:${address}`,
+      buildCanonicalIdentity({
+        chain,
+        protocol: GAUNTLET_PROTOCOL,
+        address,
+      }).id,
   );
 };
 

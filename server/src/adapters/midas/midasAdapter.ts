@@ -4,6 +4,7 @@ import {
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver.js";
 import { hasDebankAccessKey, toSlug } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import {
   buildVaultBaseUrl,
   buildVaultLocationTokensUrl,
@@ -21,6 +22,8 @@ import {
 import { getCuratorForAsset } from "./curators.js";
 import { getMidasPrimaryDeployment } from "./deployments.js";
 import type { Adapter } from "../types.js";
+
+const MIDAS_PROTOCOL = "midas" as const;
 
 export interface MidasAllocation {
   createdAt: string;
@@ -69,14 +72,26 @@ const mapWithConcurrency = async <T, R>(
   return results;
 };
 
-const buildStandaloneAllocationNode = (allocation: MidasAllocation): Node => {
+const buildStandaloneAllocationNode = (
+  allocation: MidasAllocation,
+  chain: string,
+): Node => {
   const name =
     allocation.secondLevelAllocation?.trim() || "Unspecified Allocation";
 
   return {
-    id:
-      allocation.secondLevelAllocation?.trim() ||
-      `midas-unlinked-alloc-${allocation.id}`,
+    id: buildCanonicalIdentity({
+      chain,
+      protocol: MIDAS_PROTOCOL,
+      forcedSource: allocation.secondLevelAllocation?.trim()
+        ? "fallback-name"
+        : "fallback-unknown",
+      fallbackName: allocation.secondLevelAllocation?.trim() || null,
+      resourceId: allocation.secondLevelAllocation?.trim() || null,
+      resourceParts: allocation.secondLevelAllocation?.trim()
+        ? []
+        : [`midas-unlinked-alloc-${allocation.id}`],
+    }).id,
     name,
     details: { kind: "Investment" },
   };
@@ -242,7 +257,7 @@ export const createMidasAdapter = (): Adapter<
   MidasAllocation
 > => {
   return {
-    id: "midas",
+    id: MIDAS_PROTOCOL,
     async fetchCatalog() {
       const fetchedAt = new Date().toISOString();
       const catalog = await fetchJson<DeltaYVaultsResponse>(MIDAS_VAULTS_URL);
@@ -317,10 +332,14 @@ export const createMidasAdapter = (): Adapter<
       const address = primaryDeployment?.address ?? toSlug(asset);
 
       const node: Node = {
-        id: `${chain}:midas:${address}`,
+        id: buildCanonicalIdentity({
+          chain,
+          protocol: MIDAS_PROTOCOL,
+          address,
+        }).id,
         chain,
         name: asset,
-        protocol: "midas",
+        protocol: MIDAS_PROTOCOL,
         details: {
           kind: "Yield",
           curator: getCuratorForAsset(asset),
@@ -363,7 +382,10 @@ export const createMidasAdapter = (): Adapter<
           allocation.firstLevelAllocation === "Exchanges" ||
           allocation.firstLevelAllocation === "Offchain Collateral"
         ) {
-          const allocationNode = buildStandaloneAllocationNode(allocation);
+          const allocationNode = buildStandaloneAllocationNode(
+            allocation,
+            root.chain ?? "eth",
+          );
 
           nodes.push(allocationNode);
           edges.push(this.buildEdge(root, allocationNode, allocation));
@@ -389,7 +411,10 @@ export const createMidasAdapter = (): Adapter<
             edges.push(...result.edges);
           }
         } else {
-          const allocationNode = buildStandaloneAllocationNode(allocation);
+          const allocationNode = buildStandaloneAllocationNode(
+            allocation,
+            root.chain ?? "eth",
+          );
 
           nodes.push(allocationNode);
           edges.push(this.buildEdge(root, allocationNode, allocation));

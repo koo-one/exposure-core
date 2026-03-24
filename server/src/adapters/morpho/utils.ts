@@ -1,4 +1,5 @@
-import { normalizeChain, roundToTwoDecimals, toSlug } from "../../utils.js";
+import { roundToTwoDecimals } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { MorphoAllocation } from "./types.js";
 
 export const MORPHO_API_URL = "https://api.morpho.org/graphql";
@@ -7,14 +8,23 @@ export const buildMorphoVaultId = (
   chain: string,
   version: "v1" | "v2",
   address: string,
-): string => `${normalizeChain(chain)}:morpho-${version}:${toSlug(address)}`;
+): string =>
+  buildCanonicalIdentity({
+    chain,
+    protocol: `morpho-${version}`,
+    vaultAddress: address,
+  }).id;
 
 export const buildMorphoMarketId = (
   chain: string,
   version: "v1" | "v2",
   uniqueKey: string,
 ): string => {
-  return `${normalizeChain(chain)}:morpho-${version}:${toSlug(uniqueKey)}`;
+  return buildCanonicalIdentity({
+    chain,
+    protocol: `morpho-${version}`,
+    marketId: uniqueKey,
+  }).id;
 };
 
 export const resolveAllocationUsd = (allocation: MorphoAllocation): number => {

@@ -1,6 +1,8 @@
 import type { Edge, Node } from "../../types.js";
 import { roundToTwoDecimals, toSlug } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
+import { getSkyPrimaryDeployment } from "./deployments.js";
 import {
   fetchSkyAllocations,
   fetchSkyMetrics,
@@ -52,10 +54,13 @@ export const createSkyAdapter = (): Adapter<SkyCatalog, SkyAllocation> => {
 
       const metrics = metricsAlloc.data;
       const slug = toSlug(asset);
+      const primaryDeployment = getSkyPrimaryDeployment(asset);
 
       if (slug !== "stusds" && slug !== "susds" && slug !== "usds") {
         return null;
       }
+
+      if (!primaryDeployment) return null;
 
       const details =
         asset === ASSET_USDS
@@ -65,8 +70,12 @@ export const createSkyAdapter = (): Adapter<SkyCatalog, SkyAllocation> => {
             : { kind: "Yield" as const, curator: SKY_PROTOCOL };
 
       return {
-        id: `eth:${SKY_PROTOCOL}:${slug}`,
-        chain: "eth",
+        id: buildCanonicalIdentity({
+          chain: primaryDeployment.chain,
+          protocol: SKY_PROTOCOL,
+          address: primaryDeployment.address,
+        }).id,
+        chain: primaryDeployment.chain,
         name: asset,
         protocol: SKY_PROTOCOL,
         details,
@@ -93,7 +102,13 @@ export const createSkyAdapter = (): Adapter<SkyCatalog, SkyAllocation> => {
       const edges: Edge[] = [];
 
       for (const ilk of ilks) {
-        const nodeId = `eth:${SKY_PROTOCOL}:${toSlug(ilk.ilk)}`;
+        const nodeId = buildCanonicalIdentity({
+          chain: "eth",
+          protocol: SKY_PROTOCOL,
+          forcedSource: "fallback-name",
+          resourceId: toSlug(ilk.ilk),
+          fallbackName: ilk.ilk,
+        }).id;
 
         nodes.push({
           id: nodeId,

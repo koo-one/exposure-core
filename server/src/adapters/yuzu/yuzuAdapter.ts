@@ -6,6 +6,7 @@ import {
 } from "../../resolvers/debank/debankResolver.js";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics.js";
 
@@ -16,6 +17,7 @@ const ASSET_SYZUSD = "sYzuUSD" as const;
 const ASSET_YZPP = "yzPP" as const;
 
 const PLASMA_CHAIN = "plasma" as const;
+const YUZU_PROTOCOL = "yuzu" as const;
 
 const YUZU_YZUSD_PLASMA = "0x6695c0f8706c5ace3bdf8995073179cca47926dc" as const;
 const YUZU_SYZUSD_PLASMA =
@@ -33,7 +35,7 @@ export type YuzuAllocation =
 
 export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
   return {
-    id: "yuzu",
+    id: YUZU_PROTOCOL,
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
         hasDebankAccessKey()
@@ -65,10 +67,14 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_YZUSD) {
         return {
-          id: `${PLASMA_CHAIN}:yuzu:${YUZU_YZUSD_PLASMA}`,
+          id: buildCanonicalIdentity({
+            chain: PLASMA_CHAIN,
+            protocol: YUZU_PROTOCOL,
+            address: YUZU_YZUSD_PLASMA,
+          }).id,
           chain: PLASMA_CHAIN,
           name: "yzUSD",
-          protocol: "yuzu",
+          protocol: YUZU_PROTOCOL,
           details: { kind: "Deposit" },
           tvlUsd: metrics.tvl.yzusd,
         } satisfies Node;
@@ -76,10 +82,14 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_SYZUSD) {
         return {
-          id: `${PLASMA_CHAIN}:yuzu:${YUZU_SYZUSD_PLASMA}`,
+          id: buildCanonicalIdentity({
+            chain: PLASMA_CHAIN,
+            protocol: YUZU_PROTOCOL,
+            address: YUZU_SYZUSD_PLASMA,
+          }).id,
           chain: PLASMA_CHAIN,
           name: "syzUSD",
-          protocol: "yuzu",
+          protocol: YUZU_PROTOCOL,
           details: { kind: "Yield", curator: "yuzu" },
           apy: metrics.apy.syzusd,
           tvlUsd: metrics.tvl.syzusd,
@@ -88,10 +98,14 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
 
       if (asset === ASSET_YZPP) {
         return {
-          id: `${PLASMA_CHAIN}:yuzu:${YUZU_YZPP_PLASMA}`,
+          id: buildCanonicalIdentity({
+            chain: PLASMA_CHAIN,
+            protocol: YUZU_PROTOCOL,
+            address: YUZU_YZPP_PLASMA,
+          }).id,
           chain: PLASMA_CHAIN,
           name: "yzPP",
-          protocol: "yuzu",
+          protocol: YUZU_PROTOCOL,
           details: { kind: "Protection", curator: "yuzu" },
           apy: metrics.apy.yzpp,
           tvlUsd: metrics.tvl.yzpp,

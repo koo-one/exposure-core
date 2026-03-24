@@ -37,8 +37,8 @@ const processProtocolCommonItem = (params: {
   const { project_id, chain, id } = item.pool;
   const chainSlug = normalizeChain(chain);
   const protocolSlug = normalizeProtocol(project_id);
-  const nodeId = buildProtocolListItemId(chain, project_id, id);
   const name = (description || supplyTokens[0]?.name) ?? "";
+  const nodeId = buildProtocolListItemId(chain, project_id, id);
 
   nodes.push({
     id: nodeId,
@@ -164,6 +164,7 @@ const processLendingItem = (params: {
       chain,
       token.protocol_id,
       token.id ?? "",
+      undefined,
     );
 
     // create placeholder for token node
@@ -191,6 +192,7 @@ const processLendingItem = (params: {
       chain,
       token.protocol_id,
       token.id ?? "",
+      undefined,
     );
 
     nodes.push({
@@ -431,6 +433,7 @@ export const processTokenBalance = async (
       token.chain,
       token.protocol_id ?? "",
       token.id,
+      undefined,
     );
 
     nodes.push({

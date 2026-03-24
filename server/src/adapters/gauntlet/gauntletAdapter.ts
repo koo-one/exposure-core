@@ -1,7 +1,7 @@
 import type { Edge, Node } from "../../types.js";
 import type { Adapter } from "../types.js";
 import { isAllocationUsdEligible } from "../../resolvers/debank/utils.js";
-import { buildProtocolListItemId } from "../../resolvers/debank/utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import {
   normalizeChain,
   normalizeProtocol,
@@ -164,7 +164,11 @@ export const createGauntletAdapter = (): Adapter<
       const primaryDeployment = getGauntletPrimaryDeployment();
 
       const node: Node = {
-        id: `${primaryDeployment.chain}:${GAUNTLET_PROTOCOL}:${primaryDeployment.address}`,
+        id: buildCanonicalIdentity({
+          chain: primaryDeployment.chain,
+          protocol: GAUNTLET_PROTOCOL,
+          address: primaryDeployment.address,
+        }).id,
         chain: primaryDeployment.chain,
         name: "Gauntlet USD Alpha",
         protocol: GAUNTLET_PROTOCOL,
@@ -229,11 +233,11 @@ export const createGauntletAdapter = (): Adapter<
             asset.assetAddress,
           );
 
-          const nodeId = buildProtocolListItemId(
+          const nodeId = buildCanonicalIdentity({
             chain,
-            resolvedProtocol,
-            toSlug(asset.assetAddress),
-          );
+            protocol: resolvedProtocol,
+            resourceId: asset.assetAddress,
+          }).id;
 
           const name =
             asset.displayName ??

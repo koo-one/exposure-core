@@ -5,6 +5,7 @@ import {
 } from "../../resolvers/debank/debankResolver.js";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey, roundToTwoDecimals } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 
 const INFINIFI_BUNDLE_ID = "220816";
@@ -57,8 +58,13 @@ export interface InfinifiCatalog {
   wallets: string[];
 }
 
-const buildInfinifiNodeId = (identifier: string): string =>
-  `${INFINIFI_CHAIN}:${INFINIFI_PROTOCOL}:${identifier}`;
+const buildInfinifiNodeId = (identifier: string): string => {
+  return buildCanonicalIdentity({
+    chain: INFINIFI_CHAIN,
+    protocol: INFINIFI_PROTOCOL,
+    resourceId: identifier,
+  }).id;
+};
 
 const normalizeiUSDLeaves = (
   root: Node,
@@ -86,7 +92,7 @@ const normalizeiUSDLeaves = (
 
   edges.push({
     from: root.id,
-    to: siUsdNode.id,
+    to: buildInfinifiNodeId("siusd"),
     allocationUsd: totalStakedInUsd,
   });
 
@@ -110,7 +116,7 @@ const normalizeiUSDLeaves = (
 
     edges.push({
       from: root.id,
-      to: liUsdNode.id,
+      to: buildInfinifiNodeId(address.toLowerCase()),
       allocationUsd: totalLockedInUsd,
     });
   }
@@ -129,7 +135,7 @@ const normalizeiUSDLeaves = (
 
     edges.push({
       from: root.id,
-      to: unwindingNode.id,
+      to: buildInfinifiNodeId("unwinding"),
       allocationUsd: stats.receipt.totalUnwindingNormalized,
     });
   }
@@ -152,7 +158,11 @@ const normalizeiUSDLeaves = (
 
     nodes.push(idleNode);
 
-    edges.push({ from: root.id, to: idleNode.id, allocationUsd: idleAmount });
+    edges.push({
+      from: root.id,
+      to: buildInfinifiNodeId("idle"),
+      allocationUsd: idleAmount,
+    });
   }
 
   return { nodes, edges };
@@ -189,7 +199,7 @@ export const createInfinifiAdapter = (): Adapter<
   InfinifiAllocation
 > => {
   return {
-    id: "infinifi",
+    id: INFINIFI_PROTOCOL,
     async fetchCatalog() {
       const [apiResponse, wallets] = await Promise.all([
         fetch(INFINIFI_API_URL),

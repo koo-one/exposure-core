@@ -1,4 +1,5 @@
 import { normalizeChain, toSlug } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 
 const MIDAS_PROTOCOL = "midas" as const;
 
@@ -87,7 +88,11 @@ export const getMidasDeploymentNodeIds = (asset: string): string[] => {
 
   return Object.entries(chainToAddress).map(
     ([chain, address]) =>
-      `${normalizeChain(chain)}:${MIDAS_PROTOCOL}:${address}`,
+      buildCanonicalIdentity({
+        chain,
+        protocol: MIDAS_PROTOCOL,
+        address,
+      }).id,
   );
 };
 

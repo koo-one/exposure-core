@@ -1,5 +1,6 @@
 import type { Edge, Node } from "../../types.js";
 import { roundToTwoDecimals } from "../../utils.js";
+import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import { formatUnits, type Address } from "viem";
 import type { Adapter } from "../types.js";
 import {
@@ -80,9 +81,6 @@ const getVaultLabelName = (
 
   return vault.name;
 };
-
-const eulerNodeId = (chainKey: string, address: Address): string =>
-  `${chainKey}:${EULER_PROTOCOL}:${address.toLowerCase()}`;
 
 export interface EulerChainCatalog {
   chainId: number;
@@ -314,7 +312,11 @@ export const createEulerAdapter = (): Adapter<
         for (const earnVault of chainCatalog.earnVaults) {
           if (earnVault.strategies.length === 0) continue;
 
-          const assetKey = eulerNodeId(chainKey, earnVault.id);
+          const assetKey = buildCanonicalIdentity({
+            chain: chainKey,
+            protocol: EULER_PROTOCOL,
+            address: earnVault.id,
+          }).id;
 
           result[assetKey] = [
             {
@@ -338,7 +340,11 @@ export const createEulerAdapter = (): Adapter<
           const evkVault = chainCatalog.evkVaultMap.get(liabilityAddr);
           if (!evkVault) continue;
 
-          const assetKey = eulerNodeId(chainKey, evkVault.id);
+          const assetKey = buildCanonicalIdentity({
+            chain: chainKey,
+            protocol: EULER_PROTOCOL,
+            address: evkVault.id,
+          }).id;
 
           result[assetKey] = [
             {
@@ -388,7 +394,11 @@ export const createEulerAdapter = (): Adapter<
         });
 
         return {
-          id: eulerNodeId(chainKey, vault.id),
+          id: buildCanonicalIdentity({
+            chain: chainKey,
+            protocol: EULER_PROTOCOL,
+            address: vault.id,
+          }).id,
           chain: chainKey,
           name,
           ...(underlying
@@ -430,7 +440,11 @@ export const createEulerAdapter = (): Adapter<
       });
 
       return {
-        id: eulerNodeId(chainKey, vault.id),
+        id: buildCanonicalIdentity({
+          chain: chainKey,
+          protocol: EULER_PROTOCOL,
+          address: vault.id,
+        }).id,
         chain: chainKey,
         name,
         ...(underlying
@@ -488,10 +502,12 @@ export const createEulerAdapter = (): Adapter<
             evkVault.id ?? strategy.strategy,
           );
 
-          const nodeId = eulerNodeId(
-            chainKey,
-            evkVault?.id ?? strategy.strategy,
-          );
+          const targetAddress = evkVault?.id ?? strategy.strategy;
+          const nodeId = buildCanonicalIdentity({
+            chain: chainKey,
+            protocol: EULER_PROTOCOL,
+            address: targetAddress,
+          }).id;
           const allocated = Number(
             formatUnits(BigInt(strategy.allocatedAssets), underlyingDecimals),
           );
@@ -555,7 +571,11 @@ export const createEulerAdapter = (): Adapter<
           collateralVault,
         );
 
-        const nodeId = eulerNodeId(chainKey, collateralVault);
+        const nodeId = buildCanonicalIdentity({
+          chain: chainKey,
+          protocol: EULER_PROTOCOL,
+          address: collateralVault,
+        }).id;
 
         nodes.push({
           id: nodeId,
