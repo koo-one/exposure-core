@@ -780,6 +780,21 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 23, 2026 · 07:51 UTC",
+      tag: "update" as const,
+      text: "Deepcryptodive warns unlisted Morpho vaults (Everstone, Etherealm) are susceptible to flashloan-assisted attack via RLP exposure.",
+      details: {
+        tweets: [
+          {
+            author: "Deepcryptodive",
+            handle: "@deepcryptodive",
+            text: "Anyone got a contact at Everstone or Etherealm? They have unlisted Morpho vaults that are susceptible to a specific flashloan-assisted attack. They might want to reconfigure before they take on more RLP exposure. My DMs are open",
+            url: "https://x.com/deepcryptodive/status/2035987772364800056",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 22, 2026 · 09:21 UTC",
       tag: "curator" as const,
       text: "kpk (formerly karpatkey) confirms limited RLP exposure in some Morpho Yield vaults; DAO treasuries unaffected.",
