@@ -81,7 +81,7 @@ function CuratorLogo({
   );
 }
 
-const DEFAULT_VISIBLE = 5;
+const DEFAULT_VISIBLE = 6;
 
 export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
   const [marketPrices, setMarketPrices] = useState<Record<string, number>>({});
@@ -218,7 +218,7 @@ export function BadDebtByCurator({ vaults }: BadDebtByCuratorProps) {
       </div>
 
       {/* By curator */}
-      <div className="space-y-1">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
         {(expanded ? curatorDebts : curatorDebts.slice(0, DEFAULT_VISIBLE)).map(
           (d) => {
             const pct =
