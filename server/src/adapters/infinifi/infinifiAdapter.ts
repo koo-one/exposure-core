@@ -3,13 +3,25 @@ import {
   processComplexAppItem,
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver.js";
-import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey, roundToTwoDecimals } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 
-const INFINIFI_BUNDLE_ID = "220816";
 const INFINIFI_API_URL = "https://eth-api.infinifi.xyz/api/protocol/data";
+// We cannot rely on Debank's non-official bundle endpoint here.
+// Source bundle URL: https://debank.com/bundles/220816/portfolio
+// These wallet addresses were taken from the full bundle Debank URL, and any
+// future wallet additions or removals should be maintained manually in this list.
+const INFINIFI_WALLETS = [
+  "0xd880d7c5cafdbe2aec281250995abf612235e563",
+  "0x76d2e84009dae457f8667d823c7c96e9a7c35b78",
+  "0x817d93dbdfd8190bbef0a73fcf5dd9da5a87e032",
+  "0x7e9aa426abc2d9006e8c9881754baa00a392158d",
+  "0xbfd5fc8deca3c6128bfce0fe46c25616811c3580",
+  "0xe945de0d08e2f39b0740fe2d6e50fe2bb9751ea4",
+  "0x92c3a5f226a47a44ad73f04663b305372cc665bf",
+  "0xbe2b5838eb9eedb637ede5df8ac43b73b4482ae8",
+] as const;
 
 const INFINIFI_CHAIN = "eth" as const;
 const INFINIFI_PROTOCOL = "infinifi" as const;
@@ -204,7 +216,7 @@ export const createInfinifiAdapter = (): Adapter<
       const [apiResponse, wallets] = await Promise.all([
         fetch(INFINIFI_API_URL),
         hasDebankAccessKey()
-          ? fetchBundleWallets(INFINIFI_BUNDLE_ID)
+          ? Promise.resolve([...INFINIFI_WALLETS])
           : Promise.resolve<string[]>([]),
       ]);
 

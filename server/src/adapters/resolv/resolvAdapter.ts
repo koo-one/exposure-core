@@ -4,14 +4,26 @@ import {
   processComplexProtocolItem,
   processTokenBalance,
 } from "../../resolvers/debank/debankResolver.js";
-import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 import { fetchResolvMetrics, type ResolvMetrics } from "./metrics.js";
 
-const RESOLV_BUNDLE_ID = "220554";
 const RESOLV_PROTOCOL = "resolv" as const;
+// We cannot rely on Debank's non-official bundle endpoint here.
+// Source bundle URL: https://debank.com/bundles/220554/portfolio
+// These wallet addresses were taken from the full bundle Debank URL, and any
+// future wallet additions or removals should be maintained manually in this list.
+const RESOLV_WALLETS = [
+  "0xd58c41211b00bc4f34bbe546ff2fa909250a1477",
+  "0x58e70d8bed174643fb5f177e3f0ab2cfe689487d",
+  "0x91eda28735ce089a8b5133476263c3fb8303c8ca",
+  "0x40e7f70d8c5dbf7b27dab33ed826484b3c657e56",
+  "0x033c208a1626b78e8258ad3e8ee0e6d923cbe709",
+  "0xacb7027f271b03b502d65feba617a0d817d62b8e",
+  "0x22062b644aadd7e7bb11e58c37bc1b022f4ec3ac",
+  "0x2a144e059cd8a8200298976ce55e8938f33b1d3b",
+] as const;
 
 const ASSET_USR = "USR" as const;
 const ASSET_WSTUSR = "wstUSR" as const;
@@ -35,7 +47,7 @@ export const createResolvAdapter = (): Adapter<
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
         hasDebankAccessKey()
-          ? fetchBundleWallets(RESOLV_BUNDLE_ID)
+          ? Promise.resolve([...RESOLV_WALLETS])
           : Promise.resolve<string[]>([]),
         fetchResolvMetrics(),
       ]);
