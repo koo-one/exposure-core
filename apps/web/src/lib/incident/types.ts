@@ -31,6 +31,10 @@ export interface VaultBase {
   status: "affected" | "covering" | "recovered";
   statusNote?: string;
   statusSource?: string;
+  /** Explicit covered/recovered amount — used for Promised/Recovered calculation
+   *  when current toxic exposure no longer reflects what was originally at risk
+   *  (e.g. adapter vaults that have exited, or manual vaults with $0 exposureUsd). */
+  coveredUsd?: number;
 }
 
 export interface AdapterVault extends VaultBase {

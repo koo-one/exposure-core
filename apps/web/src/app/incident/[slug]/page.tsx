@@ -1147,7 +1147,7 @@ export default async function IncidentPage({
     .filter(
       (ve) => ve.vault.status === "covering" || ve.vault.status === "recovered",
     )
-    .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
+    .reduce((sum, ve) => sum + (ve.vault.coveredUsd ?? ve.toxicExposureUsd), 0);
 
   return (
     <div

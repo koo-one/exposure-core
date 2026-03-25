@@ -186,6 +186,7 @@ const config: IncidentConfig = {
       statusNote:
         "All RLP exposure removed. Zero user funds lost. Deposits re-enabled.",
       statusSource: "https://x.com/deepcryptodive/status/2036802509210001876",
+      coveredUsd: 1_070,
       nodeIds: {
         arb: "arb:morpho-v1:0x2c609d9cfc9dda2db5c128b2a665d921ec53579d",
       },
@@ -738,6 +739,7 @@ const config: IncidentConfig = {
       statusNote:
         "$31.6M in USR-related debt cleared. Remaining balance expected repaid within days. Interest rates normalized, withdrawals resumed.",
       statusSource: "https://x.com/VenusProtocol/status/2036649791556616581",
+      coveredUsd: 31_600_000,
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
