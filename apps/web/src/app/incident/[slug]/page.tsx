@@ -1008,6 +1008,23 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 24, 2026 · 10:56 UTC",
+      tag: "curator" as const,
+      text: "UltraYield confirms all curated vaults fully closed remaining indirect Resolv exposure through Fluid on Plasma — no negative effect on depositors.",
+      details: {
+        description:
+          "UltraYield reports all curated vaults have fully closed remaining indirect exposure to Resolv through Fluid on Plasma chain. The exploit had no negative effect on depositors.",
+        tweets: [
+          {
+            author: "UltraYield",
+            handle: "@ultrayieldapp",
+            text: "All UltraYield-curated vaults now fully closed all remaining indirect exposure to Resolv that we had on Plasma chain through Fluid, so the exploit didn't have any negative effect on our depositors!",
+            url: "https://x.com/ultrayieldapp/status/2036396752496898302",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 24, 2026 · 20:02 UTC",
       tag: "curator" as const,
       text: "Gauntlet CBO announces partial post-mortem forthcoming — primary focus on swift resolution with Resolv.",
@@ -1054,6 +1071,23 @@ export default async function IncidentPage({
             handle: "@VenusProtocol",
             text: "Update for Flux users: Repayments related to the USR/Resolv event are now underway. $31.6M in USR-related debt on Flux has been cleared, with the remaining balance expected to be repaid within days. Interest rates have returned to normal. Users can withdraw, borrow, and supply as usual.",
             url: "https://x.com/VenusProtocol/status/2036649791556616581",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 25, 2026 · 10:18 UTC",
+      tag: "response" as const,
+      text: "Resolv reports $77M+ redeemed for allowlisted wallets with pre-exploit USR — 90%+ of phase one recovery complete.",
+      details: {
+        description:
+          "Over the past 2 days, $77M+ has been redeemed for allowlisted wallets with pre-exploit USR, representing 90%+ of this group. Phase one of recovery is nearing completion, with updates for remaining user groups forthcoming.",
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "Over the past 2 days, $77M+ has been redeemed for allowlisted wallets with pre-exploit USR, representing 90%+ of this group and marking strong progress in phase one of recovery.",
+            url: "https://x.com/ResolvLabs/status/2036749564485775762",
           },
         ],
       },
