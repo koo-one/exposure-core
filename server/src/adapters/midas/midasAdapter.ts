@@ -2,6 +2,7 @@ import type { Edge, Node } from "../../types.js";
 import {
   processComplexAppItem,
   processComplexProtocolItem,
+  processTokenBalance,
 } from "../../resolvers/debank/debankResolver.js";
 import { hasDebankAccessKey, toSlug } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
@@ -26,6 +27,7 @@ const MIDAS_PROTOCOL = "midas" as const;
 
 export interface MidasAllocation {
   asset: string;
+  kind: "unclassified" | "wallet-total" | "wallet";
   category: string;
   label: string | null;
   navUsd: number;
@@ -106,6 +108,7 @@ const buildUnclassifiedAllocations = (params: {
   return [
     {
       asset,
+      kind: "unclassified",
       category: UNCLASSIFIED_LOCATION_NAME,
       label: UNCLASSIFIED_LOCATION_NAME,
       navUsd: unclassifiedNavUsd,
@@ -121,10 +124,7 @@ const buildWalletAllocations = (params: {
   walletMetadata: DeltaYWalletMetadataResponse;
 }): MidasAllocation[] => {
   const { asset, sankey, walletMetadata } = params;
-  const metadataByCategory = new Map<
-    string,
-    { address: string; description: string | null }[]
-  >();
+  const metadataByCategory = new Map<string, { address: string }[]>();
 
   for (const wallet of walletMetadata.wallets) {
     const address = wallet.address?.trim();
@@ -135,7 +135,6 @@ const buildWalletAllocations = (params: {
     const existing = metadataByCategory.get(category) ?? [];
     existing.push({
       address,
-      description: wallet.description?.trim() ?? null,
     });
     metadataByCategory.set(category, existing);
   }
@@ -145,9 +144,20 @@ const buildWalletAllocations = (params: {
 
   for (const category of metadataByCategory.keys()) {
     const navUsd = categoryTotals.get(category) ?? 0;
+
     if (navUsd <= 0) continue;
 
     const wallets = metadataByCategory.get(category) ?? [];
+    allocations.push({
+      asset,
+      kind: "wallet-total",
+      category,
+      label: category,
+      navUsd,
+      linkTitle: null,
+      link: null,
+    });
+
     if (wallets.length === 1) {
       const wallet = wallets[0];
       if (!wallet) continue;
@@ -157,23 +167,31 @@ const buildWalletAllocations = (params: {
 
       allocations.push({
         asset,
+        kind: "wallet",
         category,
-        label: wallet.description ?? wallet.address,
-        navUsd,
+        label: wallet.address,
+        navUsd: 0,
         linkTitle: evmAddress ? "Debank" : null,
         link: evmAddress ? `https://debank.com/profile/${evmAddress}` : null,
       });
       continue;
     }
 
-    allocations.push({
-      asset,
-      category,
-      label: category,
-      navUsd,
-      linkTitle: null,
-      link: null,
-    });
+    for (const wallet of wallets) {
+      const evmAddress = isEvmAddress(wallet.address)
+        ? wallet.address.toLowerCase()
+        : null;
+
+      allocations.push({
+        asset,
+        kind: "wallet",
+        category,
+        label: wallet.address,
+        navUsd: 0,
+        linkTitle: evmAddress ? "Debank" : null,
+        link: evmAddress ? `https://debank.com/profile/${evmAddress}` : null,
+      });
+    }
   }
 
   return allocations;
@@ -277,6 +295,10 @@ export const createMidasAdapter = (): Adapter<
       const edges: Edge[] = [];
 
       for (const allocation of allocations) {
+        if (allocation.kind === "wallet-total") {
+          continue;
+        }
+
         if (allocation.category === UNCLASSIFIED_LOCATION_NAME) {
           const allocationNode = buildStandaloneAllocationNode(
             allocation,
@@ -300,6 +322,7 @@ export const createMidasAdapter = (): Adapter<
           const results = await Promise.all([
             processComplexProtocolItem(walletAddress, root.id),
             processComplexAppItem(walletAddress, root.id),
+            processTokenBalance(walletAddress, root.id),
           ]);
 
           for (const result of results) {

@@ -140,6 +140,51 @@ const ALL_TOKEN_LIST_PATH = `${DEFAULT_BASE_URL}/user/all_token_list`;
 const BUNDLE_API_BASE_URL = "https://api.debank.com";
 const BUNDLE_PATH = `${BUNDLE_API_BASE_URL}/bundle`;
 
+// Keep Debank under a conservative global cap. We allow up to 50 requests in a
+// shared one-second window across the whole process, then wait for the next
+// window before starting more requests.
+const DEBANK_MAX_REQUESTS_PER_WINDOW = 50;
+const DEBANK_WINDOW_MS = 5000;
+
+let debankWindowStartedAt = 0;
+let debankRequestsInWindow = 0;
+let debankLimiterChain: Promise<void> = Promise.resolve();
+
+const sleep = async (ms: number): Promise<void> => {
+  if (ms <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const waitForDebankRequestWindow = async (): Promise<void> => {
+  const previous = debankLimiterChain;
+
+  let release!: () => void;
+  debankLimiterChain = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+
+  const now = Date.now();
+
+  if (
+    debankWindowStartedAt === 0 ||
+    now - debankWindowStartedAt >= DEBANK_WINDOW_MS
+  ) {
+    debankWindowStartedAt = now;
+    debankRequestsInWindow = 0;
+  }
+
+  if (debankRequestsInWindow >= DEBANK_MAX_REQUESTS_PER_WINDOW) {
+    await sleep(debankWindowStartedAt + DEBANK_WINDOW_MS - now);
+    debankWindowStartedAt = Date.now();
+    debankRequestsInWindow = 0;
+  }
+
+  debankRequestsInWindow += 1;
+  release();
+};
+
 const buildDebankUrl = (path: string, walletAddress: string): URL => {
   const url = new URL(path);
 
@@ -159,6 +204,8 @@ const fetchDebankData = async <T>(url: URL): Promise<T> => {
   if (accessKey) {
     headers.AccessKey = accessKey;
   }
+
+  await waitForDebankRequestWindow();
 
   const response = await fetch(url.href, { headers });
 

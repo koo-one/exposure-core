@@ -23,7 +23,6 @@ export interface DeltaYWalletMetadataResponse {
   wallets: {
     address?: string;
     category?: string | null;
-    description?: string | null;
   }[];
 }
 
