@@ -1213,8 +1213,12 @@ export default async function IncidentPage({
               <BadDebtPanel
                 realizedDebt={0}
                 coveredDebt={coveredTotal}
-                uncoveredGap={0}
-                recoveryRate={0}
+                uncoveredGap={summary.totalToxicExposureUsd - coveredTotal}
+                recoveryRate={
+                  summary.totalToxicExposureUsd > 0
+                    ? coveredTotal / summary.totalToxicExposureUsd
+                    : 0
+                }
                 coveringProtocols={coveringProtocolsList}
               />
             </div>
