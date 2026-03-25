@@ -18,7 +18,7 @@ const config: IncidentConfig = {
     "eth:resolv:0x1202f5c7b4b9e47a1a484e8b270be34dbbc75055",
     "eth:resolv:0x4956b52ae2ff65d74ca2d61207523288e4528f96",
   ],
-  lastUpdated: "2026-03-23T08:00:00Z",
+  lastUpdated: "2026-03-25T04:00:00Z",
   timeline: [
     {
       date: "2026-03-22",
@@ -27,6 +27,18 @@ const config: IncidentConfig = {
     {
       date: "2026-03-23",
       text: "Contagion dashboard launched with 29+ affected vaults",
+    },
+    {
+      date: "2026-03-24",
+      text: "Fluid reports ~$70M USR-related debt on BNB/Plasma chains repaid; governance proposal for remaining debt settlement with Resolv",
+    },
+    {
+      date: "2026-03-24",
+      text: "Gauntlet CBO announces partial post-mortem forthcoming; primary focus on swift resolution with Resolv",
+    },
+    {
+      date: "2026-03-25",
+      text: "Venus reports $31.6M USR-related debt on Flux cleared; interest rates normalized, withdrawals resumed",
     },
   ],
   affectedVaults: [
@@ -38,7 +50,8 @@ const config: IncidentConfig = {
       curator: "Gauntlet",
       status: "affected",
       statusNote:
-        "Deposits paused, caps zeroed. Compensation plan in progress with Resolv.",
+        "Deposits paused, caps zeroed. Post-mortem forthcoming. Primary focus on swift resolution with Resolv.",
+      statusSource: "https://x.com/inkymaze/status/2036534725817295225",
       nodeIds: {
         eth: "eth:morpho-v1:0x8eb67a509616cd6a7c1b3c8c21d48ff57df3d458",
       },
@@ -51,7 +64,8 @@ const config: IncidentConfig = {
       curator: "Gauntlet",
       status: "affected",
       statusNote:
-        "Deposits paused, caps zeroed. Compensation plan in progress with Resolv.",
+        "Deposits paused, caps zeroed. Post-mortem forthcoming. Primary focus on swift resolution with Resolv.",
+      statusSource: "https://x.com/inkymaze/status/2036534725817295225",
       nodeIds: {
         eth: "eth:morpho-v1:0xc582f04d8a82795aa2ff9c8bb4c1c889fe7b754e",
         base: "base:morpho-v1:0x236919f11ff9ea9550a4287696c2fc9e18e6e890",
@@ -267,52 +281,43 @@ const config: IncidentConfig = {
       },
     },
     // ─── Unlisted Morpho vaults with RLP exposure ───
-    // These are unlisted (non-whitelisted) vaults not scraped by our Morpho adapter.
-    // Source: Morpho Blue API — queried 2026-03-25
+    // Unlisted vaults — added to EXTRA_VAULT_ADDRESSES in server adapter so
+    // the pipeline generates snapshots and exposure is detected dynamically.
     // Flagged by @deepcryptodive: https://x.com/deepcryptodive/status/2035987772364800056
     {
-      source: "manual",
+      source: "adapter",
       name: "Everstone",
       protocol: "morpho",
       chains: ["eth"],
       status: "affected",
       statusNote:
         "Unlisted vault. Flagged as susceptible to flashloan attack via RLP exposure.",
-      totalTvlUsd: 392_027,
-      exposureUsd: 391_955,
-      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 391_955, pct: 1 }],
+      nodeIds: {
+        eth: "eth:morpho-v1:0x09c4c7b1d2e9aa7506db8b76f1dbbd61c08c114b",
+      },
     },
     {
-      source: "manual",
+      source: "adapter",
       name: "Etherealm USDC",
       protocol: "morpho",
       chains: ["eth"],
+      curator: "Etherealm",
       status: "affected",
       statusNote:
-        "Unlisted vault. Flagged as susceptible to flashloan attack via RLP exposure.",
-      totalTvlUsd: 217_334,
-      exposureUsd: 217_334,
-      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 217_334, pct: 1 }],
+        "Unlisted vault by Etherealm Research. Flagged as susceptible to flashloan attack via RLP exposure.",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x7193794ec82f527efb618ac50c078d348ecba4b6",
+      },
     },
     {
-      source: "manual",
+      source: "adapter",
       name: "Hackarrot USDC Prime",
       protocol: "morpho",
       chains: ["eth"],
       status: "affected",
-      totalTvlUsd: 69_356,
-      exposureUsd: 69_356,
-      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 69_356, pct: 1 }],
-    },
-    {
-      source: "manual",
-      name: "Duplicated Key",
-      protocol: "morpho",
-      chains: ["eth"],
-      status: "affected",
-      totalTvlUsd: 49_652,
-      exposureUsd: 49_649,
-      toxicAssetBreakdown: [{ asset: "RLP", amountUsd: 49_649, pct: 1 }],
+      nodeIds: {
+        eth: "eth:morpho-v1:0xb5a4d705bb345d8c5753878aafc6969547afc061",
+      },
     },
     {
       source: "adapter",
@@ -483,7 +488,8 @@ const config: IncidentConfig = {
     },
     // ─── Fluid wstUSR vaults (Ethereum) ───
     // Source: fluid.io/stats/1/vaults — scraped 2026-03-23
-    // Total Supplied = wstUSR collateral deposited
+    // Status update: https://x.com/0xfluid/status/2036564938429460817 (2026-03-24)
+    // ~$70M USR debt on BNB/Plasma repaid; governance proposal for remaining
     // To update: check fluid.io/stats/{chainId}/vaults for each chain
     {
       source: "manual",
@@ -491,7 +497,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 671_622, // Total Supplied: $671,621.91
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 671_622, pct: 1 }],
     },
@@ -501,7 +509,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 229_271, // Total Supplied: $229,270.64
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 229_271, pct: 1 }],
     },
@@ -511,7 +521,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 150_127, // Total Supplied: $150,127.28
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 150_127, pct: 1 }],
     },
@@ -521,7 +533,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 13_313, // Total Supplied: $13,313.30
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 13_313, pct: 1 }],
     },
@@ -531,7 +545,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 11_691, // Total Supplied: $11,690.81
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 11_691, pct: 1 }],
     },
@@ -541,7 +557,9 @@ const config: IncidentConfig = {
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
-      statusNote: "Fluid has announced coverage of bad debt accrued",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Governance proposal for remaining debt settlement with Resolv.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
       exposureUsd: 47_152, // Total Supplied: $47,152.05
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 47_152, pct: 1 }],
     },
@@ -587,7 +605,10 @@ const config: IncidentConfig = {
       name: "Flux",
       protocol: "venus",
       chains: ["eth"],
-      status: "affected",
+      status: "covering",
+      statusNote:
+        "$31.6M in USR-related debt cleared. Remaining balance expected repaid within days. Interest rates normalized, withdrawals resumed.",
+      statusSource: "https://x.com/VenusProtocol/status/2036649791556616581",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },

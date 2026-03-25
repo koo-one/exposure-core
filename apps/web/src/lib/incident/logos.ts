@@ -51,6 +51,7 @@ const CURATOR_ICN: Record<string, string> = {
   keyrock: ICN("keyrock"),
   seamless: ICN("seamless"),
   steakhouse: ICN("steakhouse"),
+  etherealm: ICN("etherealm"),
 };
 
 const PROTOCOL_DISPLAY: Record<

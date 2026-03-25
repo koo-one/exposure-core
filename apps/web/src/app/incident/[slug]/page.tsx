@@ -942,6 +942,21 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 24, 2026 · 13:00 UTC",
+      tag: "curator" as const,
+      text: "YO provides update — working with Resolv Labs to restore RLP redemptions as quickly as possible.",
+      details: {
+        tweets: [
+          {
+            author: "YO",
+            handle: "@yield",
+            text: "Work is actively underway with @ResolvLabs and relevant stakeholders to restore RLP redemptions as quickly as possible. We appreciate the community's patience and will continue to share updates as more information becomes available.",
+            url: "https://x.com/yield/status/2036450220616102054",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 22, 2026 · 14:45 UTC",
       tag: "curator" as const,
       text: "Block Analitica confirms zero Resolv exposure — Sky Ecosystem, SummerFi vaults unaffected; ~$5K USR on HyperEVM frozen.",
