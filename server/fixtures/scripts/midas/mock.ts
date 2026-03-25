@@ -5,6 +5,7 @@ import {
   MIDAS_PROVIDER_NAME,
   normalizeWalletCategory,
   toLocationSlug,
+  UNCLASSIFIED_LOCATION_NAME,
   WALLET_LOCATION_NAMES,
 } from "../../../src/adapters/midas/deltaY.js";
 
@@ -70,16 +71,12 @@ const createSankeyPayload = (
     const firstLevel = normalizeWalletCategory(
       row.firstLevelAllocation?.trim() ?? "",
     );
-    const secondLevel = row.secondLevelAllocation?.trim() ?? "";
 
     let locationName = "";
     if (isWalletLocationName(firstLevel)) {
       locationName = firstLevel;
-    } else if (
-      firstLevel === "Exchanges" ||
-      firstLevel === "Offchain Collateral"
-    ) {
-      locationName = secondLevel || firstLevel;
+    } else if (firstLevel === UNCLASSIFIED_LOCATION_NAME) {
+      locationName = UNCLASSIFIED_LOCATION_NAME;
     }
 
     if (!locationName) continue;
@@ -192,7 +189,9 @@ export const createMidasAllocationsHandler = (config: {
     }
 
     if (parts.length >= 2 && parts[0] === "vaults") {
-      const asset = decodeURIComponent(parts[1]);
+      const assetPart = parts[1];
+      if (!assetPart) return null;
+      const asset = decodeURIComponent(assetPart);
 
       if (parts.length === 3 && parts[2] === "sankey") {
         return jsonResponse(createSankeyPayload(allocations, asset));

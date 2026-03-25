@@ -5,6 +5,8 @@
 // We choose positive typing for the expected stable shape and localize robustness
 // to the fetch/normalize boundary (runtime checks + normalization of used fields).
 
+import { fetchJsonOrThrow } from "../../utils.js";
+
 export interface GauntletMetrics {
   summary: {
     balance_usd: { value: number };
@@ -43,17 +45,13 @@ const GAUNTLET_USD_ALPHA_METRICS_URL =
 // So this Gauntlet adapter intentionally focuses on fetching + normalizing the
 // gtUSDa vault's metrics/allocations from this endpoint.
 export const fetchGauntletMetrics = async (): Promise<GauntletMetrics> => {
-  const response = await fetch(GAUNTLET_USD_ALPHA_METRICS_URL);
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error(
-      `Gauntlet API error: ${response.status} ${response.statusText}:${text}`,
-    );
-  }
-
-  const json = (await response.json()) as unknown;
+  const json = (await fetchJsonOrThrow<unknown>(
+    GAUNTLET_USD_ALPHA_METRICS_URL,
+    {
+      errorContext: "Gauntlet API",
+      includeErrorBody: true,
+    },
+  )) as unknown;
 
   if (!json || typeof json !== "object") {
     throw new Error("Gauntlet API returned invalid JSON");

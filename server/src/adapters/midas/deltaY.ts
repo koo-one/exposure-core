@@ -1,3 +1,5 @@
+import { fetchJsonOrThrow } from "../../utils.js";
+
 export interface DeltaYVaultsResponse {
   vaults: {
     vaultMetadata?: {
@@ -12,6 +14,7 @@ export interface DeltaYSankeyResponse {
     navUsd?: number;
     dimensions?: {
       locationName?: string;
+      chainId?: string;
     };
   }[];
 }
@@ -21,16 +24,6 @@ export interface DeltaYWalletMetadataResponse {
     address?: string;
     category?: string | null;
     description?: string | null;
-  }[];
-}
-
-export interface DeltaYLocationTokensResponse {
-  tokenSnapshots: {
-    assetsUsd?: number;
-    allocator?: {
-      address?: string;
-      description?: string | null;
-    };
   }[];
 }
 
@@ -44,11 +37,7 @@ export const WALLET_LOCATION_NAMES = [
   "Assets To be Deployed",
 ] as const;
 
-export const OFFCHAIN_LOCATION_NAMES = new Set([
-  "MIDAS",
-  "Settlement Funds In Process",
-  "Unclassified",
-]);
+export const UNCLASSIFIED_LOCATION_NAME = "Unclassified";
 
 export const normalizeWalletCategory = (value: string): string => {
   if (value === "Available Liquidity Buffer") return "Liquidity Buffer";
@@ -77,9 +66,50 @@ export const buildVaultBaseUrl = (asset: string): string => {
   return `${MIDAS_API_BASE_URL}/vaults/${encodeURIComponent(asset)}`;
 };
 
-export const buildVaultLocationTokensUrl = (
+export const fetchMidasVaultCatalog =
+  async (): Promise<DeltaYVaultsResponse> => {
+    return fetchJsonOrThrow<DeltaYVaultsResponse>(MIDAS_VAULTS_URL, {
+      errorContext: "Midas API",
+    });
+  };
+
+export const fetchVaultSankey = async (
   asset: string,
-  locationName: string,
-): string => {
-  return `${buildVaultBaseUrl(asset)}/locations/${toLocationSlug(locationName)}/tokens`;
+): Promise<DeltaYSankeyResponse> => {
+  return fetchJsonOrThrow<DeltaYSankeyResponse>(
+    `${buildVaultBaseUrl(asset)}/sankey`,
+    {
+      errorContext: "Midas API",
+    },
+  );
+};
+
+export const fetchVaultWalletMetadata = async (
+  asset: string,
+): Promise<DeltaYWalletMetadataResponse> => {
+  return fetchJsonOrThrow<DeltaYWalletMetadataResponse>(
+    `${buildVaultBaseUrl(asset)}/wallets-metadata`,
+    {
+      errorContext: "Midas API",
+    },
+  );
+};
+
+export const getWalletCategoryTotalsFromSankey = (
+  sankey: DeltaYSankeyResponse,
+): Map<string, number> => {
+  const totals = new Map<string, number>();
+
+  for (const row of sankey.data) {
+    const locationName = normalizeWalletCategory(
+      row.dimensions?.locationName?.trim() ?? "",
+    );
+    const navUsd = row.navUsd ?? 0;
+
+    if (!isWalletLocationName(locationName) || navUsd <= 0) continue;
+
+    totals.set(locationName, (totals.get(locationName) ?? 0) + navUsd);
+  }
+
+  return totals;
 };

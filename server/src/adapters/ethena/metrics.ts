@@ -1,3 +1,5 @@
+import { fetchJsonOrThrow } from "../../utils.js";
+
 const ETHENA_BACKING_URL =
   "https://api.llamarisk.com/protocols/ethena/overview/all/";
 // NOTE:
@@ -43,17 +45,13 @@ interface EthenaBackingResponse {
 }
 
 const fetchEthenaBacking = async (): Promise<EthenaBackingResponse> => {
-  const response = await fetch(ETHENA_BACKING_URL);
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error(
-      `Ethena API error: ${response.status} ${response.statusText}:${text}`,
-    );
-  }
-
-  const json: EthenaBackingResponse = await response.json();
+  const json = await fetchJsonOrThrow<EthenaBackingResponse>(
+    ETHENA_BACKING_URL,
+    {
+      errorContext: "Ethena API",
+      includeErrorBody: true,
+    },
+  );
   const collateral = json?.collateral_metrics?.latest?.data?.collateral;
 
   if (!Array.isArray(collateral)) {
@@ -68,19 +66,12 @@ const fetchEthenaBacking = async (): Promise<EthenaBackingResponse> => {
 };
 
 const fetchEthenaSusdeApy = async (): Promise<number | null> => {
-  const response = await fetch(ETHENA_YIELDS_URL);
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error(
-      `Ethena yields error: ${response.status} ${response.statusText}:${text}`,
-    );
-  }
-
-  const json = (await response.json()) as {
+  const json = await fetchJsonOrThrow<{
     stakingYield?: { value?: number };
-  };
+  }>(ETHENA_YIELDS_URL, {
+    errorContext: "Ethena yields",
+    includeErrorBody: true,
+  });
 
   const value = json?.stakingYield?.value;
 
