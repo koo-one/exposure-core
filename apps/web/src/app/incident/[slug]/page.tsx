@@ -1139,6 +1139,23 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 26, 2026 · 10:10 UTC",
+      tag: "response" as const,
+      text: "Resolv reports ~46M of 80M illicitly minted USR (57%) permanently removed from circulation via burns and blacklisting.",
+      details: {
+        description:
+          "Of the 80M USR illicitly minted during the exploit, ~9M USR burned across two transactions and ~36M USR blacklisted through a wstUSR contract upgrade. No illicitly minted assets remain on exploiter-associated addresses.",
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "Update on illicitly minted USR supply reduction. Of the total 80M USR illicitly minted during the exploit on March 22, 2026, approx. 46M (~57%) has been permanently removed from circulation through a combination of burns and blacklisting.",
+            url: "https://x.com/ResolvLabs/status/2037110361711870214",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
