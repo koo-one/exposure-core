@@ -7,6 +7,7 @@ import { createEthenaAdapter } from "./ethena/ethenaAdapter.js";
 import { createGauntletAdapter } from "./gauntlet/gauntletAdapter.js";
 import { createSkyAdapter } from "./sky/skyAdapter.js";
 import { createEulerAdapter } from "./euler/eulerAdapter.js";
+import { createFluidAdapter } from "./fluid/fluidAdapter.js";
 
 export const adapterFactories = {
   midas: createMidasAdapter,
@@ -18,6 +19,7 @@ export const adapterFactories = {
   gauntlet: createGauntletAdapter,
   sky: createSkyAdapter,
   euler: createEulerAdapter,
+  fluid: createFluidAdapter,
 } as const;
 
 export type AdapterFactory =
