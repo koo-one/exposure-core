@@ -1093,6 +1093,23 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 25, 2026 · 17:19 UTC",
+      tag: "curator" as const,
+      text: "9Summits fully settles 100% of stUSR in the Usual Money vault for USDC with Resolv. Depositors can redeem in coming days.",
+      details: {
+        description:
+          "9Summits confirms full settlement of all stUSR in the Usual Money vault, exchanged for USDC with Resolv. Vault depositors will be able to redeem their funds in the coming days.",
+        tweets: [
+          {
+            author: "9Summits",
+            handle: "@nine_summits",
+            text: "Update: We have fully settled 100% of the stUSR in the @usualmoney vault for USDC with @ResolvLabs. Vault depositors will be able to redeem their funds in the coming days. Thank you for your patience.",
+            url: "https://x.com/nine_summits/status/2036855553679360273",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 25, 2026 · 13:49 UTC",
       tag: "curator" as const,
       text: "KPK removes all exposure to affected RLP market on Arbitrum — zero user funds lost. Re-enabling deposits.",
