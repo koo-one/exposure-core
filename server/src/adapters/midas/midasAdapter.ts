@@ -2,22 +2,22 @@ import type { Edge, Node } from "../../types.js";
 import {
   processComplexAppItem,
   processComplexProtocolItem,
+  processTokenBalance,
 } from "../../resolvers/debank/debankResolver.js";
 import { hasDebankAccessKey, toSlug } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import {
-  buildVaultBaseUrl,
-  buildVaultLocationTokensUrl,
-  type DeltaYLocationTokensResponse,
   type DeltaYSankeyResponse,
-  type DeltaYVaultsResponse,
   type DeltaYWalletMetadataResponse,
+  fetchMidasVaultCatalog,
+  fetchVaultSankey,
+  fetchVaultWalletMetadata,
+  getWalletCategoryTotalsFromSankey,
   isEvmAddress,
   isWalletLocationName,
   MIDAS_PROVIDER_NAME,
-  MIDAS_VAULTS_URL,
   normalizeWalletCategory,
-  OFFCHAIN_LOCATION_NAMES,
+  UNCLASSIFIED_LOCATION_NAME,
 } from "./deltaY.js";
 import { getCuratorForAsset } from "./curators.js";
 import { getMidasPrimaryDeployment } from "./deployments.js";
@@ -26,22 +26,19 @@ import type { Adapter } from "../types.js";
 const MIDAS_PROTOCOL = "midas" as const;
 
 export interface MidasAllocation {
-  createdAt: string;
-  updatedAt: string;
-  id: number;
-  product: string;
-  firstLevelAllocation: string;
-  secondLevelAllocation: string | null;
-  thirdLevelAllocation: string | null;
-  amount: string;
+  asset: string;
+  kind: "unclassified" | "wallet";
+  category: string;
+  label: string | null;
+  navUsd: number;
   linkTitle: string | null;
   link: string | null;
-  asOfDate: string | null;
 }
 
-const toAmountString = (navUsd: number): string => {
-  return String(navUsd / 1000);
-};
+interface MidasVaultMetrics {
+  apy: number | null;
+  navUsd: number | null;
+}
 
 const MIDAS_VAULT_CONCURRENCY = 4;
 
@@ -76,116 +73,63 @@ const buildStandaloneAllocationNode = (
   allocation: MidasAllocation,
   chain: string,
 ): Node => {
-  const name =
-    allocation.secondLevelAllocation?.trim() || "Unspecified Allocation";
+  const name = allocation.label?.trim() || "Unspecified Allocation";
 
   return {
     id: buildCanonicalIdentity({
       chain,
       protocol: MIDAS_PROTOCOL,
-      forcedSource: allocation.secondLevelAllocation?.trim()
+      forcedSource: allocation.label?.trim()
         ? "fallback-name"
         : "fallback-unknown",
-      fallbackName: allocation.secondLevelAllocation?.trim() || null,
-      resourceId: allocation.secondLevelAllocation?.trim() || null,
-      resourceParts: allocation.secondLevelAllocation?.trim()
-        ? []
-        : [`midas-unlinked-alloc-${allocation.id}`],
+      fallbackName: allocation.label?.trim() || null,
+      resourceId: allocation.label?.trim() || null,
+      resourceParts: allocation.label?.trim() ? [] : [allocation.category],
     }).id,
     name,
     details: { kind: "Investment" },
   };
 };
 
-const fetchJson = async <T>(url: string): Promise<T> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(
-      `Midas API error: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return response.json() as Promise<T>;
-};
-
-const fetchOptionalJson = async <T>(url: string): Promise<T | null> => {
-  const response = await fetch(url);
-
-  if (response.status === 404) return null;
-
-  if (!response.ok) {
-    throw new Error(
-      `Midas API error: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return response.json() as Promise<T>;
-};
-
-const buildDirectAllocations = (params: {
+const buildUnclassifiedAllocations = (params: {
   asset: string;
   sankey: DeltaYSankeyResponse;
-  fetchedAt: string;
-  nextId: () => number;
 }): MidasAllocation[] => {
-  const { asset, sankey, fetchedAt, nextId } = params;
-  const totalsByLocation = new Map<string, number>();
+  const { asset, sankey } = params;
+  let unclassifiedNavUsd = 0;
 
   for (const row of sankey.data) {
     const locationName = row.dimensions?.locationName?.trim();
     const navUsd = row.navUsd ?? 0;
 
     if (!locationName || navUsd <= 0) continue;
-    if (isWalletLocationName(locationName)) continue;
+    if (locationName !== UNCLASSIFIED_LOCATION_NAME) continue;
 
-    totalsByLocation.set(
-      locationName,
-      (totalsByLocation.get(locationName) ?? 0) + navUsd,
-    );
+    unclassifiedNavUsd += navUsd;
   }
 
-  return Array.from(totalsByLocation.entries()).map(
-    ([locationName, navUsd]) => ({
-      createdAt: fetchedAt,
-      updatedAt: fetchedAt,
-      id: nextId(),
-      product: asset,
-      firstLevelAllocation: OFFCHAIN_LOCATION_NAMES.has(locationName)
-        ? "Offchain Collateral"
-        : "Exchanges",
-      secondLevelAllocation: locationName,
-      thirdLevelAllocation: null,
-      amount: toAmountString(navUsd),
+  if (unclassifiedNavUsd <= 0) return [];
+
+  return [
+    {
+      asset,
+      kind: "unclassified",
+      category: UNCLASSIFIED_LOCATION_NAME,
+      label: UNCLASSIFIED_LOCATION_NAME,
+      navUsd: unclassifiedNavUsd,
       linkTitle: null,
       link: null,
-      asOfDate: fetchedAt.slice(0, 10),
-    }),
-  );
+    },
+  ];
 };
 
 const buildWalletAllocations = (params: {
   asset: string;
+  sankey: DeltaYSankeyResponse;
   walletMetadata: DeltaYWalletMetadataResponse;
-  walletTokenSnapshotsByCategory: Map<
-    string,
-    DeltaYLocationTokensResponse | null
-  >;
-  fetchedAt: string;
-  nextId: () => number;
 }): MidasAllocation[] => {
-  const {
-    asset,
-    walletMetadata,
-    walletTokenSnapshotsByCategory,
-    fetchedAt,
-    nextId,
-  } = params;
-
-  const metadataByAddress = new Map<
-    string,
-    { description: string | null; category: string }
-  >();
+  const { asset, sankey, walletMetadata } = params;
+  const metadataByCategory = new Map<string, { address: string }[]>();
 
   for (const wallet of walletMetadata.wallets) {
     const address = wallet.address?.trim();
@@ -193,58 +137,55 @@ const buildWalletAllocations = (params: {
 
     if (!address || !isWalletLocationName(category)) continue;
 
-    metadataByAddress.set(address.toLowerCase(), {
-      description: wallet.description?.trim() ?? null,
-      category,
+    const existing = metadataByCategory.get(category) ?? [];
+    existing.push({
+      address,
     });
+    metadataByCategory.set(category, existing);
   }
 
   const allocations: MidasAllocation[] = [];
+  const categoryTotals = getWalletCategoryTotalsFromSankey(sankey);
 
-  for (const [category, payload] of walletTokenSnapshotsByCategory.entries()) {
-    if (!payload) continue;
+  for (const category of metadataByCategory.keys()) {
+    const navUsd = categoryTotals.get(category) ?? 0;
 
-    const totalsByWallet = new Map<
-      string,
-      { address: string; description: string | null; navUsd: number }
-    >();
+    if (navUsd <= 0) continue;
 
-    for (const snapshot of payload.tokenSnapshots) {
-      const address = snapshot.allocator?.address?.trim();
-      const navUsd = snapshot.assetsUsd ?? 0;
+    const wallets = metadataByCategory.get(category) ?? [];
 
-      if (!address || navUsd <= 0) continue;
-
-      const key = address.toLowerCase();
-      const metadata = metadataByAddress.get(key);
-      const description =
-        metadata?.description ??
-        snapshot.allocator?.description?.trim() ??
-        address;
-      const current = totalsByWallet.get(key);
-
-      if (current) {
-        current.navUsd += navUsd;
-      } else {
-        totalsByWallet.set(key, { address, description, navUsd });
-      }
-    }
-
-    for (const { address, description, navUsd } of totalsByWallet.values()) {
-      const evmAddress = isEvmAddress(address) ? address.toLowerCase() : null;
+    if (wallets.length === 1) {
+      const wallet = wallets[0];
+      if (!wallet) continue;
+      const evmAddress = isEvmAddress(wallet.address)
+        ? wallet.address.toLowerCase()
+        : null;
 
       allocations.push({
-        createdAt: fetchedAt,
-        updatedAt: fetchedAt,
-        id: nextId(),
-        product: asset,
-        firstLevelAllocation: category,
-        secondLevelAllocation: description,
-        thirdLevelAllocation: null,
-        amount: toAmountString(navUsd),
+        asset,
+        kind: "wallet",
+        category,
+        label: wallet.address,
+        navUsd: 0,
         linkTitle: evmAddress ? "Debank" : null,
         link: evmAddress ? `https://debank.com/profile/${evmAddress}` : null,
-        asOfDate: fetchedAt.slice(0, 10),
+      });
+      continue;
+    }
+
+    for (const wallet of wallets) {
+      const evmAddress = isEvmAddress(wallet.address)
+        ? wallet.address.toLowerCase()
+        : null;
+
+      allocations.push({
+        asset,
+        kind: "wallet",
+        category,
+        label: wallet.address,
+        navUsd: 0,
+        linkTitle: evmAddress ? "Debank" : null,
+        link: evmAddress ? `https://debank.com/profile/${evmAddress}` : null,
       });
     }
   }
@@ -256,18 +197,17 @@ export const createMidasAdapter = (): Adapter<
   MidasAllocation[],
   MidasAllocation
 > => {
+  const vaultMetricsByAsset = new Map<string, MidasVaultMetrics>();
+
   return {
     id: MIDAS_PROTOCOL,
     async fetchCatalog() {
-      const fetchedAt = new Date().toISOString();
-      const catalog = await fetchJson<DeltaYVaultsResponse>(MIDAS_VAULTS_URL);
+      const catalog = await fetchMidasVaultCatalog();
+      vaultMetricsByAsset.clear();
 
       if (!Array.isArray(catalog.vaults)) {
         throw new Error("Midas API returned invalid vault catalog payload");
       }
-
-      let nextIdValue = 1;
-      const nextId = () => nextIdValue++;
 
       const allocationsByVault = await mapWithConcurrency(
         catalog.vaults,
@@ -279,41 +219,23 @@ export const createMidasAdapter = (): Adapter<
           if (!asset) return [];
           if (provider !== MIDAS_PROVIDER_NAME) return [];
 
-          const baseUrl = buildVaultBaseUrl(asset);
-          const [
-            sankey,
-            walletMetadata,
-            onchainWallets,
-            liquidityBuffer,
-            assetsToBeDeployed,
-          ] = await Promise.all([
-            fetchJson<DeltaYSankeyResponse>(`${baseUrl}/sankey`),
-            fetchJson<DeltaYWalletMetadataResponse>(
-              `${baseUrl}/wallets-metadata`,
-            ),
-            fetchOptionalJson<DeltaYLocationTokensResponse>(
-              buildVaultLocationTokensUrl(asset, "Onchain Wallets"),
-            ),
-            fetchOptionalJson<DeltaYLocationTokensResponse>(
-              buildVaultLocationTokensUrl(asset, "Liquidity Buffer"),
-            ),
-            fetchOptionalJson<DeltaYLocationTokensResponse>(
-              buildVaultLocationTokensUrl(asset, "Assets To be Deployed"),
-            ),
+          const vaultMetrics: MidasVaultMetrics = {
+            apy: vault.apy ?? null,
+            navUsd: vault.navUsd ?? null,
+          };
+          vaultMetricsByAsset.set(asset, vaultMetrics);
+
+          const [sankey, walletMetadata] = await Promise.all([
+            fetchVaultSankey(asset),
+            fetchVaultWalletMetadata(asset),
           ]);
 
           return [
-            ...buildDirectAllocations({ asset, sankey, fetchedAt, nextId }),
+            ...buildUnclassifiedAllocations({ asset, sankey }),
             ...buildWalletAllocations({
               asset,
+              sankey,
               walletMetadata,
-              walletTokenSnapshotsByCategory: new Map([
-                ["Onchain Wallets", onchainWallets],
-                ["Liquidity Buffer", liquidityBuffer],
-                ["Assets To be Deployed", assetsToBeDeployed],
-              ]),
-              fetchedAt,
-              nextId,
             }),
           ];
         },
@@ -322,10 +244,13 @@ export const createMidasAdapter = (): Adapter<
       return allocationsByVault.flat();
     },
     buildRootNode(asset, allocations) {
-      const tvlUsd = allocations.reduce(
-        (sum, allocation) => sum + Number(allocation.amount) * 1000,
+      const vaultMetrics = vaultMetricsByAsset.get(asset);
+      const fallbackTvlUsd = allocations.reduce(
+        (sum, allocation) => sum + allocation.navUsd,
         0,
       );
+      const tvlUsd = vaultMetrics?.navUsd ?? fallbackTvlUsd;
+      const apy = vaultMetrics?.apy ?? null;
 
       const primaryDeployment = getMidasPrimaryDeployment(asset);
       const chain = primaryDeployment?.chain ?? "eth";
@@ -344,7 +269,7 @@ export const createMidasAdapter = (): Adapter<
           kind: "Yield",
           curator: getCuratorForAsset(asset),
         },
-        apy: null,
+        apy,
         tvlUsd,
       };
 
@@ -354,7 +279,7 @@ export const createMidasAdapter = (): Adapter<
       const assetByAllocations: Record<string, MidasAllocation[]> = {};
 
       for (const allocation of catalog) {
-        const product = allocation.product;
+        const product = allocation.asset;
         if (!assetByAllocations[product]) {
           assetByAllocations[product] = [allocation];
         } else {
@@ -368,7 +293,7 @@ export const createMidasAdapter = (): Adapter<
       const edge = {
         from: root.id,
         to: allocationNode.id,
-        allocationUsd: Number(allocation.amount) * 1000,
+        allocationUsd: allocation.navUsd,
       };
 
       return edge;
@@ -378,10 +303,7 @@ export const createMidasAdapter = (): Adapter<
       const edges: Edge[] = [];
 
       for (const allocation of allocations) {
-        if (
-          allocation.firstLevelAllocation === "Exchanges" ||
-          allocation.firstLevelAllocation === "Offchain Collateral"
-        ) {
+        if (allocation.category === UNCLASSIFIED_LOCATION_NAME) {
           const allocationNode = buildStandaloneAllocationNode(
             allocation,
             root.chain ?? "eth",
@@ -404,6 +326,7 @@ export const createMidasAdapter = (): Adapter<
           const results = await Promise.all([
             processComplexProtocolItem(walletAddress, root.id),
             processComplexAppItem(walletAddress, root.id),
+            processTokenBalance(walletAddress, root.id),
           ]);
 
           for (const result of results) {

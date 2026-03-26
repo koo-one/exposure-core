@@ -4,13 +4,22 @@ import {
   processComplexProtocolItem,
   processTokenBalance,
 } from "../../resolvers/debank/debankResolver.js";
-import { fetchBundleWallets } from "../../resolvers/debank/fetcher.js";
 import { hasDebankAccessKey } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { Adapter } from "../types.js";
 import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics.js";
 
-const YUZU_BUNDLE_ID = "220643";
+// We cannot rely on Debank's non-official bundle endpoint here.
+// Source bundle URL: https://debank.com/bundles/220643/portfolio
+// These wallet addresses were taken from the full bundle Debank URL, and any
+// future wallet additions or removals should be maintained manually in this list.
+const YUZU_WALLETS = [
+  "0x815f5bb257e88b67216a344c7c83a3ea4ee74748",
+  "0x502d222e8e4daef69032f55f0c1a999effd78fb3",
+  "0x015cc48cc8bc37d80aaff4e43061dbaf94192308",
+  "0x6695c0f8706c5ace3bdf8995073179cca47926dc",
+  "0x0879aa9e47d3209ce36addcf6561196040a73d8f",
+] as const;
 
 const ASSET_YZUSD = "yzUSD" as const;
 const ASSET_SYZUSD = "sYzuUSD" as const;
@@ -39,7 +48,7 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
         hasDebankAccessKey()
-          ? fetchBundleWallets(YUZU_BUNDLE_ID)
+          ? Promise.resolve([...YUZU_WALLETS])
           : Promise.resolve<string[]>([]),
         fetchYuzuMetrics(),
       ]);

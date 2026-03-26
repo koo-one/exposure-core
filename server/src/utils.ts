@@ -17,6 +17,36 @@ export const hasDebankAccessKey = (): boolean => {
   return Boolean(process.env.DEBANK_ACCESS_KEY);
 };
 
+export const fetchJsonOrThrow = async <T>(
+  url: string,
+  options?: {
+    errorContext?: string;
+    includeErrorBody?: boolean;
+    init?: RequestInit;
+  },
+): Promise<T> => {
+  const response = await fetch(url, options?.init);
+
+  if (!response.ok) {
+    let detail = "";
+
+    if (options?.includeErrorBody) {
+      try {
+        const text = await response.text();
+        if (text) detail = `: ${text}`;
+      } catch {
+        // Ignore body read failures while preserving the HTTP error.
+      }
+    }
+
+    throw new Error(
+      `${options?.errorContext ?? "API"} error: ${response.status} ${response.statusText}${detail}`,
+    );
+  }
+
+  return response.json() as Promise<T>;
+};
+
 // Canonicalize chain identifiers so node IDs stay stable across data sources.
 // Example: "ethereum", "mainnet", "eth" -> "eth".
 export const normalizeChain = (value: string): string => {

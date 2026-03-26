@@ -14,6 +14,8 @@ const SKY_ILK_GROUP_URLS = [
   "https://info-sky.blockanalitica.com/groups/legacy-rwa/ilks/?days_ago=1&order=-debt&p=1&p_size=10",
 ];
 
+import { fetchJsonOrThrow } from "../../utils.js";
+
 export interface SkyIlk {
   ilk: string;
   name: string;
@@ -35,19 +37,13 @@ export interface SkyMetrics {
   };
 }
 
-const fetchJson = async <T>(url: string): Promise<T> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Sky API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
-};
-
 export const fetchSkyAllocations = async (): Promise<SkyIlk[]> => {
   const ilkResponses = await Promise.all(
-    SKY_ILK_GROUP_URLS.map((url) => fetchJson<{ results: SkyIlk[] }>(url)),
+    SKY_ILK_GROUP_URLS.map((url) =>
+      fetchJsonOrThrow<{ results: SkyIlk[] }>(url, {
+        errorContext: "Sky API",
+      }),
+    ),
   );
 
   return ilkResponses.flatMap((r) => r.results);
@@ -55,11 +51,21 @@ export const fetchSkyAllocations = async (): Promise<SkyIlk[]> => {
 
 export const fetchSkyMetrics = async (): Promise<SkyMetrics> => {
   const [stusds, susds, usds] = await Promise.all([
-    fetchJson<{ rate: string | number; total_assets: string | number }>(
+    fetchJsonOrThrow<{ rate: string | number; total_assets: string | number }>(
       SKY_STUSDS_URL,
+      {
+        errorContext: "Sky API",
+      },
     ),
-    fetchJson<{ rate: string | number; total: string | number }>(SKY_SUSDS_URL),
-    fetchJson<{ total_corrected: string | number }>(SKY_USDS_URL),
+    fetchJsonOrThrow<{ rate: string | number; total: string | number }>(
+      SKY_SUSDS_URL,
+      {
+        errorContext: "Sky API",
+      },
+    ),
+    fetchJsonOrThrow<{ total_corrected: string | number }>(SKY_USDS_URL, {
+      errorContext: "Sky API",
+    }),
   ]);
 
   return {

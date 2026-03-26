@@ -140,6 +140,51 @@ const ALL_TOKEN_LIST_PATH = `${DEFAULT_BASE_URL}/user/all_token_list`;
 const BUNDLE_API_BASE_URL = "https://api.debank.com";
 const BUNDLE_PATH = `${BUNDLE_API_BASE_URL}/bundle`;
 
+// Keep Debank under a conservative global cap. We allow up to 50 requests in a
+// shared one-second window across the whole process, then wait for the next
+// window before starting more requests.
+const DEBANK_MAX_REQUESTS_PER_WINDOW = 50;
+const DEBANK_WINDOW_MS = 2000;
+
+let debankWindowStartedAt = 0;
+let debankRequestsInWindow = 0;
+let debankLimiterChain: Promise<void> = Promise.resolve();
+
+const sleep = async (ms: number): Promise<void> => {
+  if (ms <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const waitForDebankRequestWindow = async (): Promise<void> => {
+  const previous = debankLimiterChain;
+
+  let release!: () => void;
+  debankLimiterChain = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+
+  const now = Date.now();
+
+  if (
+    debankWindowStartedAt === 0 ||
+    now - debankWindowStartedAt >= DEBANK_WINDOW_MS
+  ) {
+    debankWindowStartedAt = now;
+    debankRequestsInWindow = 0;
+  }
+
+  if (debankRequestsInWindow >= DEBANK_MAX_REQUESTS_PER_WINDOW) {
+    await sleep(debankWindowStartedAt + DEBANK_WINDOW_MS - now);
+    debankWindowStartedAt = Date.now();
+    debankRequestsInWindow = 0;
+  }
+
+  debankRequestsInWindow += 1;
+  release();
+};
+
 const buildDebankUrl = (path: string, walletAddress: string): URL => {
   const url = new URL(path);
 
@@ -159,6 +204,8 @@ const fetchDebankData = async <T>(url: URL): Promise<T> => {
   if (accessKey) {
     headers.AccessKey = accessKey;
   }
+
+  await waitForDebankRequestWindow();
 
   const response = await fetch(url.href, { headers });
 
@@ -188,6 +235,26 @@ export const fetchTokenList = async (
   walletAddress: string,
 ): Promise<TokenObject[]> => {
   const url = buildDebankUrl(ALL_TOKEN_LIST_PATH, walletAddress);
+  // DeBank does not fully normalize sUSDAI exposure across chains.
+  // In our case, Base, Arbitrum, and Plasma sUSDAI should ideally all be
+  // represented through `all_complex_protocol_list`, but in practice only the
+  // Arbitrum position appears there.
+  //
+  // Because of that, we still need to query `all_token_list` to recover the
+  // missing chain-specific balances.
+  //
+  // Without `is_all=false`, `all_token_list` returns sUSDAI on Base, Arbitrum,
+  // and Plasma, which creates duplicate counting because the Arbitrum exposure is
+  // already represented in `all_complex_protocol_list`.
+  //
+  // With `is_all=false`, the token list is narrower and only the missing Base and
+  // Plasma sUSDAI balances come through, which lets us avoid double counting as
+  // much as possible.
+  //
+  // It is still unclear why those sUSDAI balances appear in the token list rather
+  // than being fully covered by the protocol list. Ideally, all of these
+  // exposures would be normalized through the protocol view instead.
+  url.searchParams.set("is_all", "false");
 
   return fetchDebankData<TokenObject[]>(url);
 };
