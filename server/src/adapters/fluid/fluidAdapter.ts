@@ -107,7 +107,6 @@ export const createFluidAdapter = (): Adapter<
 
       const vaultName = `${vault.supplySymbol}/${vault.borrowSymbol}`;
 
-      // Use supply-side tokens for logo resolution
       const logoKeys = vault.supplyTokens.map((t) => t.symbol).filter(Boolean);
 
       return {
@@ -145,13 +144,10 @@ export const createFluidAdapter = (): Adapter<
 
       const { vault, chainKey } = alloc;
 
-      // Create leaf nodes for each supply token (the collateral side).
-      // For simple vaults this is one token; for DEX vaults it's two.
       for (const token of vault.supplyTokens) {
         const tokenAddress = token.address.toLowerCase();
         const nodeId = `${chainKey}:token:${tokenAddress}`;
 
-        // Compute this token's share of the total supply USD
         const tokenShare =
           vault.supplyTokens.length === 1
             ? vault.totalSupplyUsd
@@ -175,7 +171,6 @@ export const createFluidAdapter = (): Adapter<
         });
       }
 
-      // Create leaf nodes for each borrow token (the debt side).
       for (const token of vault.borrowTokens) {
         const tokenAddress = token.address.toLowerCase();
         const nodeId = `${chainKey}:token:${tokenAddress}`;
@@ -185,7 +180,6 @@ export const createFluidAdapter = (): Adapter<
             ? vault.totalBorrowUsd
             : vault.totalBorrowUsd / vault.borrowTokens.length;
 
-        // Only create borrow edge if there's actual debt
         if (tokenShare > 0) {
           nodes.push({
             id: nodeId,

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { formatUsdCompact } from "@/lib/incident/format";
-import { getProtocolIcon } from "@/lib/incident/logos";
+import { formatUsdCompact, formatPercent } from "@/lib/incident/format";
+import { getProtocolDisplay, getProtocolIcon } from "@/lib/incident/logos";
 
 export interface CoveringProtocol {
   name: string;
@@ -17,21 +17,9 @@ interface BadDebtPanelProps {
   coveringProtocols?: CoveringProtocol[];
 }
 
-const COVERING_FALLBACK: Record<string, { initials: string; color: string }> = {
-  fluid: { initials: "FL", color: "#3b82f6" },
-  inverse: { initials: "IN", color: "#000000" },
-  morpho: { initials: "M", color: "#2563eb" },
-  euler: { initials: "E", color: "#e04040" },
-  midas: { initials: "Mi", color: "#8b5cf6" },
-  gearbox: { initials: "G", color: "#4a4a4a" },
-};
-
 function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
   const [imgError, setImgError] = useState(false);
-  const fb = COVERING_FALLBACK[cp.protocol] ?? {
-    initials: cp.name.slice(0, 2).toUpperCase(),
-    color: "#888",
-  };
+  const fb = getProtocolDisplay(cp.protocol);
 
   if (imgError) {
     return (
@@ -57,11 +45,6 @@ function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
       onError={() => setImgError(true)}
     />
   );
-}
-
-function formatPercent(value: number): string {
-  const pct = value <= 1 ? value * 100 : value;
-  return `${pct.toFixed(1)}%`;
 }
 
 export function BadDebtPanel({

@@ -3,7 +3,7 @@ import { loadIncidentConfig } from "@/lib/incident/config";
 import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
 import { inferProtocolFolderFromNodeId } from "@/lib/blobPaths";
-import { formatUsdCompact } from "@/lib/incident/format";
+import { capitalize, formatUsdCompact } from "@/lib/incident/format";
 import {
   getAssetIcon,
   getProtocolIcon,
@@ -49,10 +49,6 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
-}
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function computeSummary(vaults: VaultExposure[]): IncidentSummary {

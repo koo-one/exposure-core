@@ -1,3 +1,5 @@
+import { zeroAddress } from "viem";
+
 export interface FluidChainConfig {
   chainId: number;
   chainKey: string;
@@ -72,12 +74,10 @@ export interface FluidVault {
   totalPositions: number;
 }
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
 const isValidToken = (
   token: { address: string } & Partial<FluidTokenInfo>,
 ): token is FluidTokenInfo =>
-  token.address !== ZERO_ADDRESS && token.symbol !== undefined;
+  token.address !== zeroAddress && token.symbol !== undefined;
 
 const tokenAmountToUsd = (
   raw: string,
