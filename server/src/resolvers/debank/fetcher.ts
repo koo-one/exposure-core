@@ -235,7 +235,25 @@ export const fetchTokenList = async (
   walletAddress: string,
 ): Promise<TokenObject[]> => {
   const url = buildDebankUrl(ALL_TOKEN_LIST_PATH, walletAddress);
-  // Keep token balances as a raw wallet fallback and avoid protocol-derived tokens.
+  // DeBank does not fully normalize sUSDAI exposure across chains.
+  // In our case, Base, Arbitrum, and Plasma sUSDAI should ideally all be
+  // represented through `all_complex_protocol_list`, but in practice only the
+  // Arbitrum position appears there.
+  //
+  // Because of that, we still need to query `all_token_list` to recover the
+  // missing chain-specific balances.
+  //
+  // Without `is_all=false`, `all_token_list` returns sUSDAI on Base, Arbitrum,
+  // and Plasma, which creates duplicate counting because the Arbitrum exposure is
+  // already represented in `all_complex_protocol_list`.
+  //
+  // With `is_all=false`, the token list is narrower and only the missing Base and
+  // Plasma sUSDAI balances come through, which lets us avoid double counting as
+  // much as possible.
+  //
+  // It is still unclear why those sUSDAI balances appear in the token list rather
+  // than being fully covered by the protocol list. Ideally, all of these
+  // exposures would be normalized through the protocol view instead.
   url.searchParams.set("is_all", "false");
 
   return fetchDebankData<TokenObject[]>(url);

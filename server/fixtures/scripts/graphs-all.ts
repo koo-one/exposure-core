@@ -31,10 +31,11 @@ const main = async (): Promise<void> => {
   await writeJsonFile(resolve(outputDir, "search-index.json"), searchIndex);
 
   if (adapterFailures.length > 0) {
-    console.warn(
+    console.error(
       `graphs-all completed with ${adapterFailures.length} adapter failure(s)`,
       adapterFailures,
     );
+    process.exitCode = 1;
   }
 };
 

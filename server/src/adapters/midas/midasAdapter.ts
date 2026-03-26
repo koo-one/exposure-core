@@ -27,7 +27,7 @@ const MIDAS_PROTOCOL = "midas" as const;
 
 export interface MidasAllocation {
   asset: string;
-  kind: "unclassified" | "wallet-total" | "wallet";
+  kind: "unclassified" | "wallet";
   category: string;
   label: string | null;
   navUsd: number;
@@ -153,15 +153,6 @@ const buildWalletAllocations = (params: {
     if (navUsd <= 0) continue;
 
     const wallets = metadataByCategory.get(category) ?? [];
-    allocations.push({
-      asset,
-      kind: "wallet-total",
-      category,
-      label: category,
-      navUsd,
-      linkTitle: null,
-      link: null,
-    });
 
     if (wallets.length === 1) {
       const wallet = wallets[0];
@@ -312,10 +303,6 @@ export const createMidasAdapter = (): Adapter<
       const edges: Edge[] = [];
 
       for (const allocation of allocations) {
-        if (allocation.kind === "wallet-total") {
-          continue;
-        }
-
         if (allocation.category === UNCLASSIFIED_LOCATION_NAME) {
           const allocationNode = buildStandaloneAllocationNode(
             allocation,
