@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/generate-graphs",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 * * * *"
     }
   ],
   "git": {
