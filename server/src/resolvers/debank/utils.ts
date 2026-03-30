@@ -204,7 +204,7 @@ export const buildLendingPositionAssetId = (params: {
   const tokenChain = token?.chain?.trim() || chain;
   const tokenProtocol = resolveTokenProtocolNamespace(token);
   const tokenId = token?.id?.trim() || "";
-  const stableAddress = /^0x[a-f0-9]+$/i.test(tokenId) ? tokenId : null;
+  const stableAddress = /^0x[a-f0-9]{40}$/i.test(tokenId) ? tokenId : null;
   const fallbackLabel =
     token?.symbol?.trim() ||
     token?.optimized_symbol?.trim() ||
