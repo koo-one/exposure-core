@@ -12,8 +12,8 @@ export type VaultV2Adapter =
           state: { supplyAssetsUsd: number | null } | null;
           market: {
             uniqueKey: string;
-            loanAsset: { symbol: string };
-            collateralAsset: { symbol: string } | null;
+            loanAsset: { address: string; symbol: string };
+            collateralAsset: { address: string; symbol: string } | null;
             morphoBlue: { chain: { network: string } };
           };
         }[];
@@ -113,9 +113,11 @@ const VAULT_V2S_ADAPTERS_QUERY: TypedDocumentNode<
                   market {
                     uniqueKey
                     loanAsset {
+                      address
                       symbol
                     }
                     collateralAsset {
+                      address
                       symbol
                     }
                     morphoBlue {

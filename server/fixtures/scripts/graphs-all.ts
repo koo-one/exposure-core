@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,7 +14,6 @@ const main = async (): Promise<void> => {
   const argv = process.argv.slice(2);
   const outputDir = resolveFixturesOutputRoot(serverDir, argv);
 
-  await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
 
   const { groupedSnapshots, adapterFailures } = await buildProtocolGraphGroups(

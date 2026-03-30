@@ -23,7 +23,12 @@ import { useTerminalToast } from "@/hooks/useTerminalToast";
 import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
-import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import {
+  buildEntriesByAddress,
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  resolveAddressFallbackEntry,
+} from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import { getDirectChildNodes } from "@/lib/graph";
 import {
@@ -137,6 +142,10 @@ export default function AssetPage() {
   const infoNode = selectedNode ?? rootNode;
   const graphRootIds = useMemo(
     () => new Set(preparedIndex.map((entry) => entry.normalizedId)),
+    [preparedIndex],
+  );
+  const graphRootEntriesByAddress = useMemo(
+    () => buildEntriesByAddress(preparedIndex),
     [preparedIndex],
   );
   const activeRootEntry = useMemo(() => {
@@ -283,11 +292,22 @@ export default function AssetPage() {
 
     const normalizedNodeId = canonicalizeNodeId(node.id);
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
+    const fallbackEntry = resolveAddressFallbackEntry(
+      normalizedNodeId,
+      node.protocol,
+      graphRootEntriesByAddress,
+    );
+    const targetEntry = isKnownAsset
+      ? { id: normalizedNodeId, chain: node.chain, protocol: node.protocol }
+      : fallbackEntry;
 
-    if (isKnownAsset && normalizedNodeId !== canonicalAssetId) {
+    if (
+      targetEntry &&
+      canonicalizeNodeId(targetEntry.id) !== canonicalAssetId
+    ) {
       const queryParams = new URLSearchParams(searchParams.toString());
-      const nextProtocol = (node.protocol ?? protocol)?.trim();
-      const nextChain = (node.chain ?? chain)?.trim();
+      const nextProtocol = (targetEntry.protocol ?? protocol)?.trim();
+      const nextChain = (targetEntry.chain ?? chain)?.trim();
       if (nextProtocol) queryParams.set("protocol", nextProtocol);
       else queryParams.delete("protocol");
       if (nextChain) queryParams.set("chain", nextChain);
@@ -306,7 +326,7 @@ export default function AssetPage() {
       }
 
       router.push(
-        `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
+        `/asset/${encodeURIComponent(canonicalizeNodeId(targetEntry.id))}?${queryParams.toString()}`,
       );
       return;
     }

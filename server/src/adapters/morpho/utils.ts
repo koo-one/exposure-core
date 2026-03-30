@@ -30,12 +30,16 @@ export const buildMorphoMarketId = (
 export const buildMorphoCollateralId = (
   chain: string,
   version: "v1" | "v2",
+  collateralAddress: string | null | undefined,
   collateralSymbol: string,
 ): string => {
+  const stableAddress = collateralAddress?.trim() || null;
+
   return buildCanonicalIdentity({
     chain,
     protocol: `morpho-${version}`,
-    resourceParts: ["collateral", collateralSymbol],
+    address: stableAddress,
+    resourceParts: stableAddress ? [] : ["collateral", collateralSymbol],
   }).id;
 };
 

@@ -18,6 +18,7 @@ export function normalizeProtocolKey(protocol: string): string {
   let normalized = protocol.trim().toLowerCase();
   normalized = normalized.replace(/\s+/g, " ");
   normalized = normalized.replace(/\s+\d+$/, "");
+  if (normalized.startsWith("aave")) return "aave";
   if (normalized.startsWith("morpho")) return "morpho";
   if (normalized === "fireblock") return "fireblocks";
   return normalized.replace(/\s+/g, "-");
@@ -382,6 +383,7 @@ function getPtMarketLogos(name: string): string[] | null {
 
 // Keep this list in sync with apps/web/public/logos/protocols/*.svg.
 const PROTOCOL_LOGO_KEYS = new Set<string>([
+  "aave",
   "aster",
   "asterdex",
   "binance",

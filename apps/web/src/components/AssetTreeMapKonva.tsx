@@ -285,8 +285,9 @@ const computeTileHeaderLayout = ({
     height > thresholds.othersLabelHeight;
   const canShowValue = width > 120;
 
+  const stackTop = padding.textY;
   const logoSize = logo.size;
-  const rowHeight = logoCount > 0 && width > 92 ? logoSize : fontSize + 2;
+  const rowHeight = logoCount > 0 ? logoSize : fontSize + 2;
   const badgeHeight = 15;
   const badgeGap = 2;
   const badgeHorizontalPadding = 8;
@@ -297,7 +298,6 @@ const computeTileHeaderLayout = ({
   const valueGap = 6;
   const totalContentWidth = Math.max(0, width - paddingX * 2);
 
-  const stackTop = padding.textY;
   const finalHeaderHeight = Math.max(
     headerHeight,
     stackTop + contentStackHeight,
@@ -305,6 +305,8 @@ const computeTileHeaderLayout = ({
   );
 
   const canShowLogo = logoCount > 0 && width > 92 && finalHeaderHeight >= 16;
+  const actualRowHeight = canShowLogo ? logoSize : fontSize + 2;
+
   const logoAreaWidth = canShowLogo ? logoSize + logoGap : 0;
   const valueAreaWidth = canShowValue
     ? Math.min(60, valueLabel.length * TILE_STYLE.textMeasure.valueCharWidth)
@@ -332,24 +334,24 @@ const computeTileHeaderLayout = ({
     },
     logo: {
       x: paddingX,
-      y: stackTop + (rowHeight - logoSize) / 2,
+      y: stackTop + (actualRowHeight - logoSize) / 2,
       size: logoSize,
     },
     label: {
       x: labelX,
       y: stackTop,
       width: actualLabelWidth,
-      height: rowHeight,
+      height: actualRowHeight,
     },
     value: {
       x: valueX,
       y: stackTop,
       width: valueAreaWidth,
-      height: rowHeight,
+      height: actualRowHeight,
     },
     secondary: {
       x: labelX,
-      y: stackTop + rowHeight + badgeGap,
+      y: stackTop + actualRowHeight + badgeGap,
       width: Math.min(
         secondaryLabel.length * TILE_STYLE.textMeasure.labelCharWidth +
           badgeHorizontalPadding * 2,

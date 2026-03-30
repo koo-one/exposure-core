@@ -50,11 +50,24 @@ export const formatUiLabel = (value: string | undefined): string => {
   if (!value) return "";
 
   return value
-    .split(/([\s/:-_]+)/)
+    .split(/([\s/:_-]+)/)
     .map((part) => {
-      if (!part || /^[\s/:-_]+$/.test(part)) return part;
+      if (!part || /^[\s/:_-]+$/.test(part)) return part;
       if (part === part.toUpperCase()) return part;
       return part[0].toUpperCase() + part.slice(1);
+    })
+    .join("");
+};
+
+export const formatTitleLabel = (value: string | undefined): string => {
+  if (!value) return "";
+
+  return value
+    .split(/([\s/:_-]+)/)
+    .map((part) => {
+      if (!part || /^[\s/:_-]+$/.test(part)) return part;
+      if (/^[A-Z0-9]{2,5}$/.test(part)) return part;
+      return part[0].toUpperCase() + part.slice(1).toLowerCase();
     })
     .join("");
 };

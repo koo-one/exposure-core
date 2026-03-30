@@ -1,4 +1,4 @@
-import { roundToTwoDecimals } from "../../utils.js";
+import { normalizeProtocol, roundToTwoDecimals, toSlug } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import type { TokenObject } from "./fetcher.js";
 
@@ -144,6 +144,44 @@ export const inferTokenLogoKey = (token: TokenObject | null): string | null => {
   return null;
 };
 
+export const resolveTokenProtocolNamespace = (
+  token: TokenObject | null,
+): string => {
+  const explicitProtocol = resolveDebankProtocolNamespace(
+    token?.protocol_id ?? "",
+    token?.chain ?? "",
+  );
+  if (explicitProtocol) return explicitProtocol;
+
+  const inferredProtocol = token ? inferTokenLogoKey(token) : null;
+  if (inferredProtocol) return inferredProtocol;
+
+  return "token";
+};
+
+export const resolveDebankProtocolNamespace = (
+  protocol: string,
+  chain?: string | null,
+): string => {
+  const rawProtocol = toSlug(protocol);
+  const rawChain = toSlug(chain ?? "");
+
+  if (!rawProtocol) return "";
+  if (!rawChain) return normalizeProtocol(rawProtocol);
+
+  const duplicatedChainPrefix = `${rawChain}-`;
+  const withoutChainPrefix = rawProtocol.startsWith(duplicatedChainPrefix)
+    ? rawProtocol.slice(duplicatedChainPrefix.length)
+    : rawProtocol;
+
+  return normalizeProtocol(withoutChainPrefix);
+};
+
+export const resolveTokenLogoKeys = (token: TokenObject | null): string[] => {
+  const key = inferTokenLogoKey(token);
+  return key ? [key] : [];
+};
+
 export const buildProtocolListItemId = (
   chain: string,
   protocol: string,
@@ -152,7 +190,7 @@ export const buildProtocolListItemId = (
 ): string => {
   return buildCanonicalIdentity({
     chain,
-    protocol,
+    protocol: resolveDebankProtocolNamespace(protocol, chain),
     resourceId,
     resourceParts: positionIndex ? [positionIndex] : [],
   }).id;

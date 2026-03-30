@@ -61,11 +61,13 @@ const VAULTS_QUERY: TypedDocumentNode<
             market {
               uniqueKey
               loanAsset {
+                address
                 symbol
                 decimals
                 priceUsd
               }
               collateralAsset {
+                address
                 symbol
               }
               morphoBlue {

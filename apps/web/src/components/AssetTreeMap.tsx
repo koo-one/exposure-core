@@ -273,6 +273,26 @@ export default function AssetTreeMap({
       return kind.startsWith("lending");
     };
 
+    const isLendingPositionNode = (node: GraphNode | undefined): boolean => {
+      if (!node) return false;
+      const kind = (node.details?.kind ?? "").trim().toLowerCase();
+      return kind === "lending" && node.name.trim() === "LendingPosition";
+    };
+
+    const getLendingPositionLogoNode = (
+      node: GraphNode | undefined,
+    ):
+      | { name: string; protocol?: string | null; logoKeys?: string[] }
+      | undefined => {
+      const protocol = node?.protocol?.trim();
+      if (!protocol) return undefined;
+      return {
+        name: protocol,
+        protocol,
+        logoKeys: [protocol],
+      };
+    };
+
     const nestedAllocationsByNodeId = new Map<string, GraphAllocationPreview[]>(
       Object.entries(data.nestedAllocations ?? {}).map(
         ([nodeId, allocations]) => [normalizeId(nodeId), allocations],
@@ -322,10 +342,10 @@ export default function AssetTreeMap({
       const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
       const kind = (c.node?.details?.kind ?? "").toLowerCase();
       const subtype = (c.node?.details?.subtype ?? "").toLowerCase();
+      const isLendingPosition = isLendingPositionNode(node);
       const isVault =
         kind === "yield" || kind === "lending" || subtype.includes("vault");
       const isMorphoLendingMarket = isMorphoRoot && isLendingNode(node);
-
       return {
         name: (() => {
           if (!node) return c.id;
@@ -344,23 +364,25 @@ export default function AssetTreeMap({
 
           return node.name;
         })(),
-        logoNode: isMorphoLendingMarket
-          ? {
-              name: (() => {
-                if (lendingPair?.collateral) return lendingPair.collateral;
-                if (node) {
-                  return getMorphoCollateralLabel(
-                    node.name,
-                    rootUnderlyingSymbol,
-                  );
-                }
-                return c.id;
-              })(),
-              logoKeys: lendingPair?.collateral
-                ? [lendingPair.collateral]
-                : undefined,
-            }
-          : undefined,
+        logoNode: isLendingPosition
+          ? getLendingPositionLogoNode(node)
+          : isMorphoLendingMarket
+            ? {
+                name: (() => {
+                  if (lendingPair?.collateral) return lendingPair.collateral;
+                  if (node) {
+                    return getMorphoCollateralLabel(
+                      node.name,
+                      rootUnderlyingSymbol,
+                    );
+                  }
+                  return c.id;
+                })(),
+                logoKeys: lendingPair?.collateral
+                  ? [lendingPair.collateral]
+                  : undefined,
+              }
+            : undefined,
         lendingPair: lendingPair ?? undefined,
         secondaryLabel: getAllocationRelationshipBadge(root, node),
         value: c.value,

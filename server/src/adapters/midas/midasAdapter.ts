@@ -4,7 +4,7 @@ import {
   processComplexProtocolItem,
   processTokenBalance,
 } from "../../resolvers/debank/debankResolver.js";
-import { hasDebankAccessKey, toSlug } from "../../utils.js";
+import { hasDebankAccessKey } from "../../utils.js";
 import { buildCanonicalIdentity } from "../../core/canonicalIdentity.js";
 import {
   type DeltaYSankeyResponse,
@@ -253,16 +253,15 @@ export const createMidasAdapter = (): Adapter<
       const apy = vaultMetrics?.apy ?? null;
 
       const primaryDeployment = getMidasPrimaryDeployment(asset);
-      const chain = primaryDeployment?.chain ?? "eth";
-      const address = primaryDeployment?.address ?? toSlug(asset);
+      if (!primaryDeployment) return null;
 
       const node: Node = {
         id: buildCanonicalIdentity({
-          chain,
+          chain: primaryDeployment.chain,
           protocol: MIDAS_PROTOCOL,
-          address,
+          address: primaryDeployment.address,
         }).id,
-        chain,
+        chain: primaryDeployment.chain,
         name: asset,
         protocol: MIDAS_PROTOCOL,
         details: {

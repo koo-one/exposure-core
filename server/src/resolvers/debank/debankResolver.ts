@@ -11,9 +11,12 @@ import {
   buildAppListItemId,
   inferTokenLogoKey,
   isAllocationUsdEligible,
+  resolveDebankProtocolNamespace,
+  resolveTokenLogoKeys,
+  resolveTokenProtocolNamespace,
   tokenToUsdValue,
 } from "./utils.js";
-import { normalizeChain, normalizeProtocol } from "../../utils.js";
+import { normalizeChain } from "../../utils.js";
 
 const processProtocolCommonItem = (params: {
   item: PortfolioItemObject;
@@ -36,15 +39,17 @@ const processProtocolCommonItem = (params: {
 
   const { project_id, chain, id } = item.pool;
   const chainSlug = normalizeChain(chain);
-  const protocolSlug = normalizeProtocol(project_id);
+  const protocolSlug = resolveDebankProtocolNamespace(project_id, chain);
   const name = (description || supplyTokens[0]?.name) ?? "";
   const nodeId = buildProtocolListItemId(chain, project_id, id);
+  const logoKeys = resolveTokenLogoKeys(supplyTokens[0] ?? null);
 
   nodes.push({
     id: nodeId,
     chain: chainSlug,
     name,
     protocol: protocolSlug,
+    ...(logoKeys.length > 0 ? { logoKeys } : {}),
     details,
   });
 
@@ -70,7 +75,7 @@ const processLiquidityPoolItem = (params: {
 
   const { project_id, chain, id } = item.pool;
   const chainSlug = normalizeChain(chain);
-  const protocolSlug = normalizeProtocol(project_id);
+  const protocolSlug = resolveDebankProtocolNamespace(project_id, chain);
   const allocationUsd = item.stats.net_usd_value;
 
   if (!isAllocationUsdEligible(allocationUsd)) return { nodes, edges };
@@ -84,12 +89,17 @@ const processLiquidityPoolItem = (params: {
     tokenName0 && tokenName1 ? `${tokenName0}/${tokenName1}` : tokenName0;
 
   const nodeId = buildProtocolListItemId(chain, project_id, id);
+  const logoKeys = [
+    ...resolveTokenLogoKeys(supplyTokens[0] ?? null),
+    ...resolveTokenLogoKeys(supplyTokens[1] ?? null),
+  ].filter((value, index, values) => values.indexOf(value) === index);
 
   nodes.push({
     id: nodeId,
     chain: chainSlug,
     name: poolName,
     protocol: protocolSlug,
+    ...(logoKeys.length > 0 ? { logoKeys } : {}),
     details: { kind: "Liquidity Pool" },
   });
 
@@ -115,7 +125,7 @@ const processLendingItem = (params: {
 
   const { project_id, chain } = item.pool;
   const chainSlug = normalizeChain(chain);
-  const protocolSlug = normalizeProtocol(project_id);
+  const protocolSlug = resolveDebankProtocolNamespace(project_id, chain);
   const allocationUsd = item.stats.net_usd_value;
 
   if (!isAllocationUsdEligible(allocationUsd)) return { nodes, edges };
@@ -160,9 +170,12 @@ const processLendingItem = (params: {
   });
 
   for (const token of supplyTokens) {
+    const tokenProtocol = resolveTokenProtocolNamespace(token);
+    const tokenLogoKeys = resolveTokenLogoKeys(token);
+    const tokenName = token.symbol ?? token.name ?? "";
     const tokenId = buildProtocolListItemId(
       chain,
-      token.protocol_id,
+      tokenProtocol,
       token.id ?? "",
       undefined,
     );
@@ -174,8 +187,9 @@ const processLendingItem = (params: {
     nodes.push({
       id: tokenId,
       chain: chainSlug,
-      name: token.name ?? "",
-      protocol: normalizeProtocol(token.protocol_id),
+      name: tokenName,
+      protocol: tokenProtocol,
+      ...(tokenLogoKeys.length > 0 ? { logoKeys: tokenLogoKeys } : {}),
     });
 
     // connect token with the position node
@@ -188,9 +202,12 @@ const processLendingItem = (params: {
   }
 
   for (const token of borrowTokens) {
+    const tokenProtocol = resolveTokenProtocolNamespace(token);
+    const tokenLogoKeys = resolveTokenLogoKeys(token);
+    const tokenName = token.symbol ?? token.name ?? "";
     const tokenId = buildProtocolListItemId(
       chain,
-      token.protocol_id,
+      tokenProtocol,
       token.id ?? "",
       undefined,
     );
@@ -198,8 +215,9 @@ const processLendingItem = (params: {
     nodes.push({
       id: tokenId,
       chain: chainSlug,
-      name: token.name ?? "",
-      protocol: normalizeProtocol(token.protocol_id),
+      name: tokenName,
+      protocol: tokenProtocol,
+      ...(tokenLogoKeys.length > 0 ? { logoKeys: tokenLogoKeys } : {}),
     });
 
     edges.push({
@@ -302,12 +320,14 @@ const processAppChainCommonItem = (params: {
 
   const appId = item.base.app_id;
   const nodeId = buildAppListItemId(appId, description, supplyTokens[0].id);
+  const logoKeys = resolveTokenLogoKeys(supplyTokens[0] ?? null);
 
   nodes.push({
     id: nodeId,
     chain: appId,
     name: `${description}:${supplyTokens[0].name ?? ""}`,
     protocol: appId,
+    ...(logoKeys.length > 0 ? { logoKeys } : {}),
     details,
   });
 
@@ -348,12 +368,17 @@ const processPerpetualItem = (params: {
     position_token.id,
     margin_token.id,
   );
+  const logoKeys = [
+    ...resolveTokenLogoKeys(position_token),
+    ...resolveTokenLogoKeys(margin_token),
+  ].filter((value, index, values) => values.indexOf(value) === index);
 
   nodes.push({
     id: nodeId,
     chain: app_id,
     name: `${position_token.name}/${margin_token.name}`,
     protocol: app_id,
+    ...(logoKeys.length > 0 ? { logoKeys } : {}),
     details: {
       kind: "Perpetuals",
     },
@@ -428,10 +453,11 @@ export const processTokenBalance = async (
     if (!isAllocationUsdEligible(allocationUsd)) continue;
 
     const chainSlug = normalizeChain(token.chain);
-    const protocolSlug = normalizeProtocol(token.protocol_id ?? "");
+    const protocolSlug = resolveTokenProtocolNamespace(token);
+    const tokenLogoKeys = resolveTokenLogoKeys(token);
     const tokenId = buildProtocolListItemId(
       token.chain,
-      token.protocol_id ?? "",
+      protocolSlug,
       token.id,
       undefined,
     );
@@ -441,6 +467,7 @@ export const processTokenBalance = async (
       chain: chainSlug,
       name: token.name ?? token.symbol,
       protocol: protocolSlug,
+      ...(tokenLogoKeys.length > 0 ? { logoKeys: tokenLogoKeys } : {}),
     });
 
     edges.push({

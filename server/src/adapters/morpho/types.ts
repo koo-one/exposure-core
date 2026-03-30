@@ -1,11 +1,13 @@
 export interface MorphoMarket {
   uniqueKey: string;
   loanAsset: {
+    address: string;
     symbol: string;
     decimals: number;
     priceUsd: number | null;
   };
   collateralAsset: {
+    address: string;
     symbol: string;
   } | null;
   morphoBlue: {

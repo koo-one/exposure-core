@@ -1,42 +1,17 @@
+import {
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  extractAddressKeyFromNodeId,
+} from "@/lib/nodeId";
+
+export {
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  extractAddressKeyFromNodeId,
+};
+
 export const graphSnapshotBlobPath = (nodeId: string): string => {
   return `exposure/graph/${nodeId}.json`;
-};
-
-export const canonicalizeProtocolToken = (raw: string): string => {
-  const p = raw
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
-
-  if (p.startsWith("morpho")) {
-    if (p.includes("v2")) return "morpho-v2";
-    if (p.includes("v1")) return "morpho-v1";
-    return "morpho";
-  }
-
-  if (p.startsWith("euler")) {
-    if (p.includes("v2")) return "euler-v2";
-    if (p.includes("v1")) return "euler-v1";
-    return "euler";
-  }
-
-  return p;
-};
-
-export const canonicalizeNodeId = (raw: string): string => {
-  const normalized = raw.trim();
-  if (!normalized) return "";
-
-  const parts = normalized.split(":");
-  const [chainPart, protocolPart, ...restParts] = parts;
-
-  if (!chainPart || !protocolPart) return normalized.toLowerCase();
-
-  const chain = chainPart.trim().toLowerCase();
-  const protocol = canonicalizeProtocolToken(protocolPart);
-  const rest = restParts.join(":").trim().toLowerCase();
-
-  return rest ? `${chain}:${protocol}:${rest}` : `${chain}:${protocol}`;
 };
 
 export const protocolToFolder = (

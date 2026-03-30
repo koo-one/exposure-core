@@ -1,6 +1,6 @@
 import type { GraphNode } from "@/types";
 import { cn } from "@/lib/utils";
-import { currencyFormatter, formatUiLabel } from "@/utils/formatters";
+import { currencyFormatter, formatTitleLabel } from "@/utils/formatters";
 
 export interface TreemapHoverCardDatum {
   nodeId?: string;
@@ -85,7 +85,7 @@ export const TreemapHoverCard = ({
     >
       <div className="flex items-center justify-between mb-4">
         <div className="text-[10px] font-semibold text-white/40 tracking-[0.06em]">
-          {formatUiLabel(kind || "Asset")}
+          {formatTitleLabel(kind || "Asset")}
         </div>
         <div
           className={cn(

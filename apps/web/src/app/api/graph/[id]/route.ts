@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import {
   canonicalizeNodeId,
+  extractAddressKeyFromNodeId,
   graphSnapshotBlobPath,
   graphProtocolBlobPath,
   inferProtocolFolderFromNodeId,
@@ -51,6 +52,25 @@ const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
 
   const snapshot = value as Partial<GraphSnapshot>;
   return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
+};
+
+const resolveSnapshotFromPayload = (
+  snapshots: Record<string, unknown>,
+  normalizedId: string,
+): GraphSnapshot | null => {
+  const exact = snapshots[normalizedId];
+  if (isGraphSnapshot(exact)) return exact;
+
+  const targetAddressKey = extractAddressKeyFromNodeId(normalizedId);
+  if (!targetAddressKey) return null;
+
+  for (const [candidateId, candidateSnapshot] of Object.entries(snapshots)) {
+    if (!isGraphSnapshot(candidateSnapshot)) continue;
+    if (extractAddressKeyFromNodeId(candidateId) !== targetAddressKey) continue;
+    return candidateSnapshot;
+  }
+
+  return null;
 };
 
 const normalizeAllocationPreviews = (
@@ -140,7 +160,10 @@ const loadBlobSnapshotForNode = async (
     const payload = await loadBlobProtocolPayload(protocol);
     if (!payload) continue;
 
-    const snapshot = payload.snapshots[normalizedId];
+    const snapshot = resolveSnapshotFromPayload(
+      payload.snapshots,
+      normalizedId,
+    );
 
     if (isGraphSnapshot(snapshot)) {
       return {
@@ -247,7 +270,10 @@ const loadFixtureSnapshotForNode = async (
     const payload = await loadFixtureProtocolPayload(protocol);
     if (!payload) continue;
 
-    const snapshot = payload.snapshots[normalizedId];
+    const snapshot = resolveSnapshotFromPayload(
+      payload.snapshots,
+      normalizedId,
+    );
 
     if (isGraphSnapshot(snapshot)) {
       return { snapshot, path: payload.path, snapshots: payload.snapshots };

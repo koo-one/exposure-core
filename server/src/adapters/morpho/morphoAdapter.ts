@@ -20,6 +20,28 @@ type MorphoCatalog = { vaultV1: MorphoVaultV1 } | { vaultV2: MorphoVaultV2 };
 const MORPHO_PROTOCOL = "morpho" as const;
 const MORPHO_V1_PROTOCOL = "morpho-v1" as const;
 
+const resolveMorphoCollateralSymbol = (
+  loanSymbol: string,
+  collateralSymbol: string | null | undefined,
+): string | null => {
+  const normalizedCollateral = collateralSymbol?.trim() ?? "";
+  if (normalizedCollateral) return normalizedCollateral;
+
+  const normalizedLoan = loanSymbol.trim();
+  return normalizedLoan || null;
+};
+
+const resolveMorphoCollateralAddress = (
+  loanAddress: string | null | undefined,
+  collateralAddress: string | null | undefined,
+): string | null => {
+  const normalizedCollateral = collateralAddress?.trim() ?? "";
+  if (normalizedCollateral) return normalizedCollateral;
+
+  const normalizedLoan = loanAddress?.trim() ?? "";
+  return normalizedLoan || null;
+};
+
 export interface MorphoAllocationEntryV1 {
   vaultV1: MorphoVaultV1;
   allocation: MorphoAllocation;
@@ -251,8 +273,16 @@ export const createMorphoAdapter = (): Adapter<
 
           const market = entry.allocation.market;
           const chain = market.morphoBlue.chain.network;
+          const loanAddress = market.loanAsset.address;
           const loanSymbol = market.loanAsset.symbol;
-          const collateralSymbol = market.collateralAsset?.symbol ?? null;
+          const collateralAddress = resolveMorphoCollateralAddress(
+            loanAddress,
+            market.collateralAsset?.address,
+          );
+          const collateralSymbol = resolveMorphoCollateralSymbol(
+            loanSymbol,
+            market.collateralAsset?.symbol,
+          );
           const name = collateralSymbol
             ? `${loanSymbol}/${collateralSymbol}`
             : loanSymbol;
@@ -277,6 +307,7 @@ export const createMorphoAdapter = (): Adapter<
             const collateralNodeId = buildMorphoCollateralId(
               chain,
               "v1",
+              collateralAddress,
               collateralSymbol,
             );
 
@@ -321,8 +352,16 @@ export const createMorphoAdapter = (): Adapter<
 
             const market = pos.market;
             const chain = market.morphoBlue.chain.network;
+            const loanAddress = market.loanAsset.address;
             const loanSymbol = market.loanAsset.symbol;
-            const collateralSymbol = market.collateralAsset?.symbol ?? null;
+            const collateralAddress = resolveMorphoCollateralAddress(
+              loanAddress,
+              market.collateralAsset?.address,
+            );
+            const collateralSymbol = resolveMorphoCollateralSymbol(
+              loanSymbol,
+              market.collateralAsset?.symbol,
+            );
             const name = collateralSymbol
               ? `${loanSymbol}/${collateralSymbol}`
               : loanSymbol;
@@ -348,6 +387,7 @@ export const createMorphoAdapter = (): Adapter<
               const collateralNodeId = buildMorphoCollateralId(
                 chain,
                 "v1",
+                collateralAddress,
                 collateralSymbol,
               );
 

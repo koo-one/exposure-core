@@ -30,7 +30,12 @@ import {
   pushBreadcrumbHistory,
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
-import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import {
+  buildEntriesByAddress,
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  resolveAddressFallbackEntry,
+} from "@/lib/nodeId";
 import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
 
 const shortChainLabel = (value: string): string => formatChainLabel(value);
@@ -98,6 +103,9 @@ function UniversalTreemapView({
   );
 
   const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
+  const [graphRootEntriesByAddress, setGraphRootEntriesByAddress] = useState<
+    Map<string, SearchIndexEntry[]>
+  >(new Map());
   const [assetNameById, setAssetNameById] = useState<Map<string, string>>(
     new Map(),
   );
@@ -189,6 +197,7 @@ function UniversalTreemapView({
         });
         setGraphRootIds(set);
         setAssetNameById(names);
+        setGraphRootEntriesByAddress(buildEntriesByAddress(json));
       } catch {
         /* ignore */
       }
@@ -248,23 +257,35 @@ function UniversalTreemapView({
                   );
                   const canonicalId = canonicalizeNodeId(node.id);
                   const isKnownAsset = graphRootIds.has(canonicalId);
+                  const fallbackEntry = resolveAddressFallbackEntry(
+                    canonicalId,
+                    node.protocol,
+                    graphRootEntriesByAddress,
+                  );
+                  const targetEntry = isKnownAsset
+                    ? {
+                        id: canonicalId,
+                        chain: node.chain,
+                        protocol: node.protocol,
+                      }
+                    : fallbackEntry;
 
                   if (hasChildren) {
                     applyLocalDrilldown(node);
                   } else if (
-                    isKnownAsset &&
+                    targetEntry &&
                     node.id.toLowerCase() !== asset?.id.toLowerCase()
                   ) {
                     const [chainFromId = "global", protocolFromId = ""] =
-                      canonicalId.split(":");
+                      canonicalizeNodeId(targetEntry.id).split(":");
                     const nextHistory = pushBreadcrumbHistory(
                       history,
                       canonicalizeNodeId(asset?.id ?? ""),
                     );
                     onSelectAsset(
-                      canonicalId,
-                      chainFromId || "global",
-                      protocolFromId || "",
+                      canonicalizeNodeId(targetEntry.id),
+                      (targetEntry.chain || chainFromId || "global").trim(),
+                      (targetEntry.protocol || protocolFromId || "").trim(),
                       nextHistory,
                     );
                   }
