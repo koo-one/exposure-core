@@ -47,3 +47,53 @@ export const extractAddressKeyFromNodeId = (raw: string): string | null => {
 
   return `${chain}:${address}`;
 };
+
+interface AddressIndexedEntry {
+  id: string;
+  protocol: string;
+  normalizedId?: string;
+}
+
+export const buildEntriesByAddress = <T extends AddressIndexedEntry>(
+  entries: T[],
+): Map<string, T[]> => {
+  const indexed = new Map<string, T[]>();
+
+  for (const entry of entries) {
+    const addressKey = extractAddressKeyFromNodeId(
+      entry.normalizedId ?? entry.id,
+    );
+    if (!addressKey) continue;
+
+    const existing = indexed.get(addressKey);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      indexed.set(addressKey, [entry]);
+    }
+  }
+
+  return indexed;
+};
+
+export const resolveAddressFallbackEntry = <T extends AddressIndexedEntry>(
+  nodeId: string,
+  nodeProtocol: string | null | undefined,
+  entriesByAddress: Map<string, T[]>,
+): T | null => {
+  const addressKey = extractAddressKeyFromNodeId(nodeId);
+  if (!addressKey) return null;
+
+  const candidates = entriesByAddress.get(addressKey) ?? [];
+  if (candidates.length === 0) return null;
+
+  return (
+    candidates.find(
+      (entry) =>
+        canonicalizeProtocolToken(entry.protocol) ===
+        canonicalizeProtocolToken(nodeProtocol ?? ""),
+    ) ??
+    candidates[0] ??
+    null
+  );
+};

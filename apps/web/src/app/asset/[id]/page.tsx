@@ -24,9 +24,10 @@ import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import {
+  buildEntriesByAddress,
   canonicalizeNodeId,
   canonicalizeProtocolToken,
-  extractAddressKeyFromNodeId,
+  resolveAddressFallbackEntry,
 } from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import { getDirectChildNodes } from "@/lib/graph";
@@ -143,19 +144,10 @@ export default function AssetPage() {
     () => new Set(preparedIndex.map((entry) => entry.normalizedId)),
     [preparedIndex],
   );
-  const graphRootEntriesByAddress = useMemo(() => {
-    const entries = new Map<string, SearchIndexEntry[]>();
-
-    for (const entry of preparedIndex) {
-      const addressKey = extractAddressKeyFromNodeId(entry.normalizedId);
-      if (!addressKey) continue;
-
-      const current = entries.get(addressKey) ?? [];
-      entries.set(addressKey, [...current, entry]);
-    }
-
-    return entries;
-  }, [preparedIndex]);
+  const graphRootEntriesByAddress = useMemo(
+    () => buildEntriesByAddress(preparedIndex),
+    [preparedIndex],
+  );
   const activeRootEntry = useMemo(() => {
     return preparedIndex.find(
       (entry) => entry.normalizedId === canonicalAssetId,
@@ -300,21 +292,11 @@ export default function AssetPage() {
 
     const normalizedNodeId = canonicalizeNodeId(node.id);
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
-    const fallbackEntry = (() => {
-      const addressKey = extractAddressKeyFromNodeId(normalizedNodeId);
-      if (!addressKey) return null;
-
-      const candidates = graphRootEntriesByAddress.get(addressKey) ?? [];
-      if (candidates.length === 0) return null;
-
-      return (
-        candidates.find(
-          (entry) =>
-            canonicalizeProtocolToken(entry.protocol) ===
-            canonicalizeProtocolToken(node.protocol ?? ""),
-        ) ?? candidates[0]
-      );
-    })();
+    const fallbackEntry = resolveAddressFallbackEntry(
+      normalizedNodeId,
+      node.protocol,
+      graphRootEntriesByAddress,
+    );
     const targetEntry = isKnownAsset
       ? { id: normalizedNodeId, chain: node.chain, protocol: node.protocol }
       : fallbackEntry;

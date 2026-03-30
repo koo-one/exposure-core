@@ -31,9 +31,10 @@ import {
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
 import {
+  buildEntriesByAddress,
   canonicalizeNodeId,
   canonicalizeProtocolToken,
-  extractAddressKeyFromNodeId,
+  resolveAddressFallbackEntry,
 } from "@/lib/nodeId";
 import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
 
@@ -187,22 +188,16 @@ function UniversalTreemapView({
         if (!Array.isArray(json)) return;
         const set = new Set<string>();
         const names = new Map<string, string>();
-        const entriesByAddress = new Map<string, SearchIndexEntry[]>();
         json.forEach((entry) => {
           const canonicalId = canonicalizeNodeId(entry.id);
           set.add(canonicalId);
           if (!names.has(canonicalId)) {
             names.set(canonicalId, entry.name);
           }
-          const addressKey = extractAddressKeyFromNodeId(canonicalId);
-          if (!addressKey) return;
-
-          const current = entriesByAddress.get(addressKey) ?? [];
-          entriesByAddress.set(addressKey, [...current, entry]);
         });
         setGraphRootIds(set);
         setAssetNameById(names);
-        setGraphRootEntriesByAddress(entriesByAddress);
+        setGraphRootEntriesByAddress(buildEntriesByAddress(json));
       } catch {
         /* ignore */
       }
@@ -262,22 +257,11 @@ function UniversalTreemapView({
                   );
                   const canonicalId = canonicalizeNodeId(node.id);
                   const isKnownAsset = graphRootIds.has(canonicalId);
-                  const fallbackEntry = (() => {
-                    const addressKey = extractAddressKeyFromNodeId(canonicalId);
-                    if (!addressKey) return null;
-
-                    const candidates =
-                      graphRootEntriesByAddress.get(addressKey) ?? [];
-                    if (candidates.length === 0) return null;
-
-                    return (
-                      candidates.find(
-                        (entry) =>
-                          canonicalizeProtocolToken(entry.protocol) ===
-                          canonicalizeProtocolToken(node.protocol ?? ""),
-                      ) ?? candidates[0]
-                    );
-                  })();
+                  const fallbackEntry = resolveAddressFallbackEntry(
+                    canonicalId,
+                    node.protocol,
+                    graphRootEntriesByAddress,
+                  );
                   const targetEntry = isKnownAsset
                     ? {
                         id: canonicalId,
