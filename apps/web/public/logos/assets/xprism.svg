@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="xPRISM token logo">
+  <rect width="120" height="120" rx="28" fill="#050505"/>
+  <path d="M18 25h57l8 12h28l12 22-12 23H76l-9 13H33L16 59z" fill="none" stroke="#f59e0b" stroke-width="4"/>
+  <path d="M22 59l18-20 10 30m-28-10 34 7m-6-27 12 33" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+  <path d="M61 70 80 94" stroke="#38bdf8" stroke-linecap="round" stroke-width="5"/>
+  <text x="84" y="60" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="#fff">xPRISM</text>
+</svg>

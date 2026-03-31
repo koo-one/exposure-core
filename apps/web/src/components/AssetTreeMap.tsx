@@ -16,6 +16,7 @@ import {
   GraphAllocationPreview,
 } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
+import { inferAssetLogoKey } from "@/lib/logos";
 import { getNodeTypeLabel } from "@/lib/nodeType";
 import {
   TreemapHoverCard,
@@ -281,9 +282,48 @@ export default function AssetTreeMap({
 
     const getLendingPositionLogoNode = (
       node: GraphNode | undefined,
+      lendingPair?: {
+        collateral?: string | null;
+        borrow?: string | null;
+      } | null,
     ):
       | { name: string; protocol?: string | null; logoKeys?: string[] }
       | undefined => {
+      if (lendingPair?.collateral || lendingPair?.borrow) {
+        const keys = [lendingPair.collateral, lendingPair.borrow].filter(
+          (value): value is string => Boolean(value),
+        );
+        const inferredKeys = keys
+          .map((value) => inferAssetLogoKey(value) ?? value)
+          .filter(Boolean);
+        if (keys.length > 0) {
+          return {
+            name:
+              lendingPair.collateral && lendingPair.borrow
+                ? `${lendingPair.collateral}/${lendingPair.borrow}`
+                : (lendingPair.collateral ??
+                  lendingPair.borrow ??
+                  node?.name ??
+                  ""),
+            logoKeys: inferredKeys,
+          };
+        }
+      }
+
+      const explicitLogoKeys = Array.isArray(node?.logoKeys)
+        ? node.logoKeys.filter(Boolean)
+        : [];
+      if (explicitLogoKeys.length > 0) {
+        const inferredLogoKeys = explicitLogoKeys
+          .map((value) => inferAssetLogoKey(value) ?? value)
+          .filter(Boolean);
+        return {
+          name: node?.name ?? inferredLogoKeys[0] ?? "",
+          protocol: node?.protocol,
+          logoKeys: inferredLogoKeys,
+        };
+      }
+
       const protocol = node?.protocol?.trim();
       if (!protocol) return undefined;
       return {
@@ -365,7 +405,7 @@ export default function AssetTreeMap({
           return node.name;
         })(),
         logoNode: isLendingPosition
-          ? getLendingPositionLogoNode(node)
+          ? getLendingPositionLogoNode(node, lendingPair)
           : isMorphoLendingMarket
             ? {
                 name: (() => {
@@ -379,7 +419,10 @@ export default function AssetTreeMap({
                   return c.id;
                 })(),
                 logoKeys: lendingPair?.collateral
-                  ? [lendingPair.collateral]
+                  ? [
+                      inferAssetLogoKey(lendingPair.collateral) ??
+                        lendingPair.collateral,
+                    ]
                   : undefined,
               }
             : undefined,

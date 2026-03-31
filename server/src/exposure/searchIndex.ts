@@ -80,6 +80,13 @@ const ASSET_NAME_STOPWORDS = new Set<string>([
 ]);
 
 const TERM_ASSET_PATTERN = /^l([A-Za-z0-9.+]+)-\d+[dwmy]$/i;
+const EXACT_ROOT_LOGO_KEYS: Record<string, string> = {
+  "yieldnest rwa": "usdc",
+};
+const EXACT_ROOT_LOGO_KEYS_BY_ID: Record<string, string> = {
+  "base:morpho-v2:0xbeeff7ae5e00aae3db302e4b0d8c883810a58100": "usdc",
+};
+const VERSION_LIKE_LOGO_KEY = /^v\d+(?:\.\d+)*$/i;
 
 const extractAssetCandidateKey = (raw: string): string | null => {
   const trimmed = raw.trim();
@@ -116,8 +123,119 @@ const inferAssetKeyFromName = (name: string): string | null => {
     .map((part) => extractAssetCandidateKey(part))
     .filter((part): part is string => Boolean(part));
 
-  const candidate = candidates[candidates.length - 1] ?? null;
-  return candidate ? inferAssetLogoKey(candidate) : null;
+  const candidate =
+    [...candidates]
+      .reverse()
+      .find((part) => !VERSION_LIKE_LOGO_KEY.test(part)) ??
+    candidates[candidates.length - 1] ??
+    null;
+  const inferred = candidate ? inferAssetLogoKey(candidate) : null;
+  if (inferred === "eth" && /\s/.test(compact)) return "weth";
+  return inferred;
+};
+
+const inferNodeLogoKey = (node: SnapshotNode): string | null => {
+  const direct =
+    typeof node.details?.underlyingSymbol === "string"
+      ? node.details.underlyingSymbol.trim()
+      : "";
+  if (direct && isTokenLike(direct)) {
+    const key = inferAssetLogoKey(direct);
+    if (key) return key;
+  }
+
+  const named = inferAssetKeyFromName(node.name);
+  if (named) return named;
+
+  const displayName =
+    typeof node.displayName === "string" ? node.displayName.trim() : "";
+  if (displayName && isTokenLike(displayName)) {
+    const key = inferAssetLogoKey(displayName);
+    if (key) return key;
+  }
+
+  const rootName = node.name.trim();
+  if (isTokenLike(rootName) && rootName.length <= 10) {
+    const key = inferAssetLogoKey(rootName);
+    if (key) return key;
+  }
+
+  return null;
+};
+
+const inferDescendantLogoKey = (
+  snapshot: Snapshot,
+  root: SnapshotNode,
+): string | null => {
+  const edges = snapshot.edges ?? [];
+  if (edges.length === 0) return null;
+
+  const nodesById = new Map<string, SnapshotNode>();
+  const edgesByFrom = new Map<string, Edge[]>();
+  for (const node of snapshot.nodes) nodesById.set(node.id, node);
+  for (const edge of edges) {
+    const outgoing = edgesByFrom.get(edge.from);
+    if (outgoing) outgoing.push(edge);
+    else edgesByFrom.set(edge.from, [edge]);
+  }
+
+  const weights = new Map<string, number>();
+
+  const addWeight = (key: string | null, weight: number) => {
+    if (!key || !Number.isFinite(weight) || weight <= 0) return;
+    weights.set(key, (weights.get(key) ?? 0) + weight);
+  };
+
+  const visit = (
+    nodeId: string,
+    branchWeight: number,
+    seen: Set<string>,
+  ): boolean => {
+    if (seen.has(nodeId)) return false;
+
+    const node = nodesById.get(nodeId);
+    if (!node) return false;
+
+    const nextSeen = new Set(seen);
+    nextSeen.add(nodeId);
+
+    const outgoing = (edgesByFrom.get(nodeId) ?? []).filter((edge) => {
+      const allocationUsd = Math.abs(
+        typeof edge.allocationUsd === "number" ? edge.allocationUsd : 0,
+      );
+      return Number.isFinite(allocationUsd) && allocationUsd > 0;
+    });
+
+    let foundInDescendants = false;
+    for (const edge of outgoing) {
+      const allocationUsd = Math.abs(edge.allocationUsd);
+      const nextWeight = Math.min(branchWeight, allocationUsd);
+      foundInDescendants =
+        visit(edge.to, nextWeight, nextSeen) || foundInDescendants;
+    }
+
+    if (foundInDescendants) return true;
+
+    const key = inferNodeLogoKey(node);
+    if (!key) return false;
+    addWeight(key, branchWeight);
+    return true;
+  };
+
+  for (const edge of edgesByFrom.get(root.id) ?? []) {
+    const allocationUsd = Math.abs(
+      typeof edge.allocationUsd === "number" ? edge.allocationUsd : 0,
+    );
+    if (!Number.isFinite(allocationUsd) || allocationUsd <= 0) continue;
+    visit(edge.to, allocationUsd, new Set([root.id]));
+  }
+
+  let best: { key: string; weight: number } | null = null;
+  for (const [key, weight] of weights.entries()) {
+    if (!best || weight > best.weight) best = { key, weight };
+  }
+
+  return best?.key ?? null;
 };
 
 const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
@@ -133,6 +251,15 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     if (key) return [key];
   }
 
+  const exactRootKeyById = EXACT_ROOT_LOGO_KEYS_BY_ID[root.id];
+  if (exactRootKeyById) return [exactRootKeyById];
+
+  const exactRootKey = EXACT_ROOT_LOGO_KEYS[root.name.trim().toLowerCase()];
+  if (exactRootKey) return [exactRootKey];
+
+  const descendantKey = inferDescendantLogoKey(snapshot, root);
+  if (descendantKey) return [descendantKey];
+
   const brandedRootKey = inferAssetKeyFromName(root.name);
   if (brandedRootKey) return [brandedRootKey];
 
@@ -142,91 +269,7 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     if (key) return [key];
   }
 
-  const edges = snapshot.edges ?? [];
-  if (edges.length === 0) return [];
-
-  const nodesById = new Map<string, SnapshotNode>();
-  for (const n of snapshot.nodes) nodesById.set(n.id, n);
-
-  const weights = new Map<string, number>();
-  const isUpper = (v: string): boolean => /^[A-Z0-9.]+$/.test(v.trim());
-
-  for (const e of edges) {
-    if (e.from !== root.id) continue;
-    const toNode = nodesById.get(e.to);
-    if (!toNode) continue;
-
-    const allocationUsd = Math.abs(
-      typeof e.allocationUsd === "number" ? e.allocationUsd : 0,
-    );
-    if (!Number.isFinite(allocationUsd) || allocationUsd <= 0) continue;
-
-    const leafName = toNode.name.trim();
-    if (!leafName) continue;
-
-    const childDirect =
-      typeof toNode.details?.underlyingSymbol === "string"
-        ? toNode.details.underlyingSymbol.trim()
-        : "";
-    if (childDirect && isTokenLike(childDirect)) {
-      const key = inferAssetLogoKey(childDirect);
-      if (key) {
-        weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
-        continue;
-      }
-      continue;
-    }
-
-    const brandedLeafKey = inferAssetKeyFromName(leafName);
-    if (brandedLeafKey) {
-      weights.set(
-        brandedLeafKey,
-        (weights.get(brandedLeafKey) ?? 0) + allocationUsd,
-      );
-      continue;
-    }
-
-    const slashParts = leafName.split("/");
-    if (slashParts.length === 2) {
-      const base = slashParts[0];
-      const quote = slashParts[1];
-      if (base && quote && isTokenLike(base) && isTokenLike(quote)) {
-        const key = inferAssetLogoKey(base);
-        if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
-        continue;
-      }
-    }
-
-    const dashParts = leafName.split("-");
-    if (dashParts.length === 2) {
-      const base = dashParts[0];
-      const quote = dashParts[1];
-      if (
-        base &&
-        quote &&
-        isTokenLike(base) &&
-        isTokenLike(quote) &&
-        isUpper(base) &&
-        isUpper(quote)
-      ) {
-        const key = inferAssetLogoKey(base);
-        if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
-        continue;
-      }
-    }
-
-    if (isTokenLike(leafName)) {
-      const key = inferAssetLogoKey(leafName);
-      if (key) weights.set(key, (weights.get(key) ?? 0) + allocationUsd);
-    }
-  }
-
-  let best: { key: string; weight: number } | null = null;
-  for (const [key, weight] of weights.entries()) {
-    if (!best || weight > best.weight) best = { key, weight };
-  }
-
-  return best ? [best.key] : [];
+  return [];
 };
 
 const getTypeLabel = (root: SnapshotNode): string => {

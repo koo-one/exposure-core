@@ -15,6 +15,7 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   "usd coin": "usdc",
   "wrapped btc": "wbtc",
   "wrapped ether": "weth",
+  "yieldnest rwa": "usdc",
 };
 
 const PT_SPECIAL_CASES: [RegExp, string][] = [
@@ -31,7 +32,9 @@ const PT_LOGO_KEY_OVERRIDES: Record<string, string> = {
   lbtc: "pt-lbtc",
   susde: "pt-susde",
   teth: "pt-teth",
+  tusde: "pt-tusde",
   usde: "pt-usde",
+  yu: "pt-yu",
 };
 
 const PT_REUSABLE_LOGO_KEYS = new Set<string>([
@@ -113,7 +116,7 @@ export const inferAssetLogoKey = (raw: string): string | null => {
     if (family) {
       return (
         PT_LOGO_KEY_OVERRIDES[family] ??
-        (PT_REUSABLE_LOGO_KEYS.has(family) ? family : "pt")
+        (PT_REUSABLE_LOGO_KEYS.has(family) ? family : null)
       );
     }
   }
@@ -122,7 +125,13 @@ export const inferAssetLogoKey = (raw: string): string | null => {
   if (exact) return exact;
 
   const normalized = normalizeLogoKey(value);
-  return normalized.length > 0 ? normalized : null;
+  if (!normalized) return null;
+
+  if (normalized === "eth" && /\s/.test(value)) {
+    return "weth";
+  }
+
+  return normalized;
 };
 
 export const inferTokenLogoKey = (token: TokenObject | null): string | null => {
