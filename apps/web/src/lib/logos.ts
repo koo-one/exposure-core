@@ -131,13 +131,29 @@ const ASSET_NAME_STOPWORDS = new Set<string>([
 ]);
 
 const ASSET_LOGO_KEY_ALIASES: Record<string, string> = {
+  aavetoken: "aave",
   "btc.b": "btck",
+  capusd: "stcusd",
+  jitostakedsol: "jitosol",
   "mc-usr": "mc_usr",
   "mf-one": "mfone",
+  morphotoken: "morpho",
+  bnb: "wbnb",
+  hype: "whype",
+  syruptoken: "syrup",
+  s: "ws",
   stkwell: "well",
+  tbtcv2: "tbtc",
   ubtc: "unibtc",
   upgammausdc: "upusdc",
+  "arm-weth-eeth": "weeth",
+  "arm-weth-steth": "wsteth",
+  wrappedxpl: "wxpl",
+  wrappedetheronsonic: "weth",
+  wrappedmon: "wmon",
   whlp: "hwhlp",
+  solanauniversal: "usol",
+  plumenetwork: "plusd",
   wpol: "pol",
   yvausd: "yvvbausd",
 };
@@ -149,6 +165,7 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   "axelar wrapped saga": "axelar",
   btc: "wbtc",
   "btc.b": "btck",
+  "cbbtc/tribtc": "cbbtc",
   compweth: "eth",
   "compounding open dollar": "cusdo",
   "dai stablecoin": "dai",
@@ -162,6 +179,12 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   "fluid tether usd": "usdt",
   "fluid usd coin": "usdc",
   "fluid usdt0": "usdt0",
+  "frxusd/stakedao-av/frxusd": "frxusd",
+  "frxusd/stakedao-frxusdousd": "frxusd",
+  "pt-yvvbusdc(vbusdc)-2026/08/02": "yvvbusdc",
+  "stakedao-av/frxusd": "frxusd",
+  "stakedao-frxusdousd": "frxusd",
+  "gauntlet usdc rwa": "usdc",
   "glv [wbtc-usdc]": "glv-wbtc-usdc",
   "glv [weth-usdc]": "glv-weth-usdc",
   gho: "gho",
@@ -172,22 +195,31 @@ const EXACT_ASSET_LOGO_KEYS: Record<string, string> = {
   nusd: "snusd",
   "openeden open dollar": "cusdo",
   "paypal usd": "pyusd",
+  "plume usd": "plusd",
   rlusd: "rlusd",
   siusd: "iusd",
   snusd: "snusd",
+  "solana (universal)": "usol",
   "stakedao-frxmsusd": "stakedao-frxmsusd",
   stkwell: "well",
   steth: "wsteth",
   "syrup usdc": "syrupusdc",
   "syrup usdt": "syrupusdt",
+  "usdc/aznd": "aznd",
+  "usdc/gm:eth/usd[weth-usdc]": "gm",
+  "usdc/mubond": "mubond",
+  "usdc/ondo": "ondo",
+  "usdc/xprism": "xprism",
   "tether usd": "usdt",
   "usd coin": "usdc",
   "usd coin/dai stablecoin": "usdc",
+  "wrapped xpl": "wxpl",
   "wbtc-a": "wbtc",
   "wbtc-b": "wbtc",
   "wbtc-c": "wbtc",
   "wrapped btc": "wbtc",
   "wrapped ether": "weth",
+  "yieldnest rwa": "usdc",
   ubtc: "unibtc",
   ueth: "ueth",
   upgammausdc: "upusdc",
@@ -205,6 +237,8 @@ const PT_SPECIAL_CASES: [RegExp, string][] = [
   [/\b(?:PT|YT)\s+Strata\s+Senior\s+USDe\b/i, "srusde"],
   [/\b(?:PT|YT)\s+Staked\s+cap\s+USD\b/i, "stcusd"],
   [/\b(?:PT|YT)\s+Compounding\s+Open\s+Dollar\b/i, "cusdo"],
+  [/\b(?:PT|YT)[-\s]*yUSD(?:@\d{1,2}\/\d{1,2}\/\d{4})?\b/i, "yusd"],
+  [/\bPT[-\s]*yvvbUSDC\b/i, "yvvbusdc"],
   [/\bYT\s+Fluid\s+USDT0\b/i, "usdt0"],
   [/\bPTs\s+USDC\b/i, "usdc"],
 ];
@@ -214,11 +248,13 @@ const PT_LOGO_KEY_OVERRIDES: Record<string, string> = {
   avusd: "pt-avusd",
   berastone: "pt-berastone",
   cusd: "pt-cusd",
+  hwhlp: "hwhlp",
   lbtc: "pt-lbtc",
   nusd: "snusd",
   sbold: "bold",
   siusd: "iusd",
   snusd: "snusd",
+  susdf: "susdf",
   usdg: "pt-usdg",
   susde: "pt-susde",
   teth: "pt-teth",
@@ -264,6 +300,7 @@ const PT_SPACED_PATTERN = /\bPT\s+([A-Za-z0-9.+]+)(?:\s+vault\b|\s+\d|$)/i;
 const PT_SEGMENT_PATTERN = /(?:^|\s)(?:e)?PT[-\s]/i;
 const TERM_ASSET_PATTERN = /^l([A-Za-z0-9.+]+)-\d+[dwmy]$/i;
 const WRAPPED_LP_PATTERN = /^wrapped-lp-([a-z0-9.+-]+)-\d{1,2}[a-z]{3}\d{4}$/i;
+const VERSION_LIKE_LOGO_KEY = /^v\d+(?:\.\d+)*$/i;
 
 function isNormalizedTokenLike(value: string, maxLength = 14): boolean {
   return (
@@ -294,6 +331,11 @@ function getBrandedAssetLogoKey(name: string): string | null {
   const compact = name.trim().replace(/\s+/g, " ");
   if (!compact) return null;
 
+  const preferWrappedEther = (key: string | null): string | null => {
+    if (!key) return null;
+    return key === "eth" && /\s/.test(compact) ? "weth" : key;
+  };
+
   const exact = EXACT_ASSET_LOGO_KEYS[compact.toLowerCase()];
   if (exact) return exact;
 
@@ -306,7 +348,7 @@ function getBrandedAssetLogoKey(name: string): string | null {
     if (wrappedLpExact) return wrappedLpExact;
 
     const wrappedLpKey = getAssetCandidateKey(wrappedLp);
-    if (wrappedLpKey) return wrappedLpKey;
+    if (wrappedLpKey) return preferWrappedEther(wrappedLpKey);
   }
 
   const colonCandidate = compact.split(":").at(-1)?.trim() ?? "";
@@ -314,7 +356,7 @@ function getBrandedAssetLogoKey(name: string): string | null {
   if (exactColon) return exactColon;
   if (!/\s/.test(colonCandidate)) {
     const colonKey = getAssetCandidateKey(colonCandidate);
-    if (colonKey) return colonKey;
+    if (colonKey) return preferWrappedEther(colonKey);
   }
 
   const words = compact
@@ -329,7 +371,12 @@ function getBrandedAssetLogoKey(name: string): string | null {
     )
     .filter((value): value is string => Boolean(value));
 
-  return candidates.length > 0 ? candidates[candidates.length - 1] : null;
+  return preferWrappedEther(
+    [...candidates]
+      .reverse()
+      .find((value) => !VERSION_LIKE_LOGO_KEY.test(value)) ??
+      (candidates.length > 0 ? candidates[candidates.length - 1] : null),
+  );
 }
 
 export function inferAssetLogoKey(name: string): string | null {
@@ -439,15 +486,21 @@ function splitMarketPair(name: string): [string, string] | null {
   return base && quote ? [base, quote] : null;
 }
 
-function getGeneratedAssetBadgePath(label: string): string {
-  const normalized = normalizeLogoKey(label) || "asset";
-  const cleanedLabel = label.replace(/[^A-Za-z0-9+.-]+/g, "").toUpperCase();
-  const text = (cleanedLabel || normalized.toUpperCase()).slice(0, 3);
-  let hash = 0;
-  for (const char of normalized) hash = (hash * 31 + char.charCodeAt(0)) % 360;
-  const background = `hsl(${hash} 65% 46%)`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${background}"/><text x="32" y="37" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" text-anchor="middle">${text}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+function getEvkVaultAssetKey(name: string): string | null {
+  const match = name.trim().match(/^EVK Vault\s+e(.+)$/i);
+  if (!match) return null;
+
+  const candidate = match[1]?.trim() ?? "";
+  if (!candidate) return null;
+
+  const exactCandidate = normalizeLogoKey(candidate);
+  if (ASSET_LOGO_KEYS.has(exactCandidate)) return exactCandidate;
+
+  const strippedVersion = candidate.replace(/-\d+$/i, "").trim();
+  const normalizedStripped = normalizeLogoKey(strippedVersion);
+  if (ASSET_LOGO_KEYS.has(normalizedStripped)) return normalizedStripped;
+
+  return null;
 }
 
 function getAssetLikeLogoPath(label: string): string {
@@ -461,10 +514,7 @@ function getAssetLikeLogoPath(label: string): string {
     return getPtFamilyLogoPath(label) ?? "";
   }
 
-  const normalized = normalizeLogoKey(label);
-  return isNormalizedTokenLike(normalized, 20)
-    ? getGeneratedAssetBadgePath(label)
-    : "";
+  return "";
 }
 
 function getPtMarketLogos(name: string): string[] | null {
@@ -709,6 +759,12 @@ export function getNodeLogos(
   if (displayName) {
     const assetLogo = getInferredAssetLogoPath(displayName);
     if (assetLogo) return [assetLogo];
+  }
+
+  const evkAssetKey = getEvkVaultAssetKey(name);
+  if (evkAssetKey) {
+    const path = getAssetLogoPath(evkAssetKey);
+    if (path) return [path];
   }
 
   const chainLogoPath =

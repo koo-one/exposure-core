@@ -158,7 +158,6 @@ export default function AssetPage() {
       ? {
           ...infoNode,
           displayName: activeRootEntry.displayName ?? infoNode.displayName,
-          logoKeys: activeRootEntry.logoKeys ?? infoNode.logoKeys,
         }
       : infoNode;
   const headerChildren = useMemo(() => {
