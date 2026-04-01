@@ -257,9 +257,6 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
   const exactRootKey = EXACT_ROOT_LOGO_KEYS[root.name.trim().toLowerCase()];
   if (exactRootKey) return [exactRootKey];
 
-  const descendantKey = inferDescendantLogoKey(snapshot, root);
-  if (descendantKey) return [descendantKey];
-
   const brandedRootKey = inferAssetKeyFromName(root.name);
   if (brandedRootKey) return [brandedRootKey];
 
@@ -268,6 +265,9 @@ const inferLogoKeys = (snapshot: Snapshot, root: SnapshotNode): string[] => {
     const key = inferAssetLogoKey(rootName);
     if (key) return [key];
   }
+
+  const descendantKey = inferDescendantLogoKey(snapshot, root);
+  if (descendantKey) return [descendantKey];
 
   return [];
 };
