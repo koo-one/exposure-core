@@ -1,6 +1,7 @@
 import { type SearchIndexEntry } from "@/constants";
 
 import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import { formatChainLabel } from "@/utils/formatters";
 
 export type PreparedSearchIndexEntry = SearchIndexEntry & {
   normalizedId: string;
@@ -21,6 +22,22 @@ export interface DropdownGroup {
   totalTvlUsd: number | null;
   primary: SearchIndexEntry;
 }
+
+export const buildChainLabel = (
+  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
+): string => {
+  const chainNames = Array.from(
+    new Set(
+      chains
+        .map((chain) => formatChainLabel(chain.chain))
+        .filter((label) => label.length > 0),
+    ),
+  );
+
+  if (chainNames.length <= 1) return chainNames[0] ?? "";
+  if (chainNames.length <= 3) return chainNames.join("/");
+  return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
+};
 
 const normalizeText = (value: string | null | undefined): string =>
   (value ?? "").trim().toLowerCase();

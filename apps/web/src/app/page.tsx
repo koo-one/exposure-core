@@ -19,6 +19,7 @@ import { GraphNode } from "@/types";
 import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
 import { getDirectChildNodes } from "@/lib/graph";
 import {
+  buildChainLabel,
   buildCuratorOptions,
   buildDropdownResults,
   filterSearchEntries,
@@ -34,27 +35,9 @@ import {
   buildEntriesByAddress,
   canonicalizeNodeId,
   canonicalizeProtocolToken,
-  resolveAddressFallbackEntry,
+  resolveGraphTargetEntry,
 } from "@/lib/nodeId";
 import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
-
-const shortChainLabel = (value: string): string => formatChainLabel(value);
-
-const buildChainLabel = (
-  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
-): string => {
-  const chainNames = Array.from(
-    new Set(
-      chains
-        .map((c) => shortChainLabel(c.chain))
-        .filter((label) => label.length > 0),
-    ),
-  );
-
-  if (chainNames.length <= 1) return chainNames[0] ?? "";
-  if (chainNames.length <= 3) return chainNames.join("/");
-  return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
-};
 
 function UniversalTreemapView({
   asset,
@@ -255,20 +238,11 @@ function UniversalTreemapView({
                   const hasChildren = graphData.edges.some(
                     (e) => e.from === node.id,
                   );
-                  const canonicalId = canonicalizeNodeId(node.id);
-                  const isKnownAsset = graphRootIds.has(canonicalId);
-                  const fallbackEntry = resolveAddressFallbackEntry(
-                    canonicalId,
-                    node.protocol,
+                  const targetEntry = resolveGraphTargetEntry(
+                    node,
+                    graphRootIds,
                     graphRootEntriesByAddress,
                   );
-                  const targetEntry = isKnownAsset
-                    ? {
-                        id: canonicalId,
-                        chain: node.chain,
-                        protocol: node.protocol,
-                      }
-                    : fallbackEntry;
 
                   if (hasChildren) {
                     applyLocalDrilldown(node);

@@ -414,10 +414,40 @@ function getPtSpecificLogos(name: string): string[] | null {
 
 function getLogoPathsFromKeys(logoKeys: string[]): string[] {
   return logoKeys
-    .map((key) => getBrandedAssetLogoPath(key) ?? getAssetLogoPath(key))
+    .map((key) => getAssetLogoPath(key))
     .filter(
       (path): path is string => typeof path === "string" && path.length > 0,
     );
+}
+
+function getOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function getNodeLogoKeys(node: unknown): string[] | null {
+  if (!node || typeof node !== "object" || !("logoKeys" in node)) return null;
+
+  const raw = (node as { logoKeys?: unknown }).logoKeys;
+  if (!Array.isArray(raw)) return null;
+
+  const keys = raw
+    .map((value) => getOptionalString(value))
+    .filter((value): value is string => Boolean(value));
+
+  return keys.length > 0 ? keys : null;
+}
+
+function getNodeUnderlyingSymbol(node: unknown): string | null {
+  if (!node || typeof node !== "object" || !("details" in node)) return null;
+
+  const details = (node as { details?: unknown }).details;
+  if (!details || typeof details !== "object") return null;
+
+  return getOptionalString(
+    (details as { underlyingSymbol?: unknown }).underlyingSymbol,
+  );
 }
 
 function normalizePtFamilyKey(value: string): string {
@@ -671,20 +701,6 @@ export function hasChainLogo(chain?: string | null): chain is string {
   return CHAIN_LOGO_KEYS.has(normalizeChainKey(chain));
 }
 
-export function getNodeLogoPath(
-  node:
-    | GraphNode
-    | {
-        name: string;
-        protocol?: string | null;
-        displayName?: string;
-        logoKeys?: string[];
-      },
-): string | null {
-  const logos = getNodeLogos(node);
-  return logos.length > 0 ? logos[0] : null;
-}
-
 /**
  * Returns an array of logo paths for a node.
  * If it's a lending market (e.g. "WETH/USDC"), it may return two logos.
@@ -703,14 +719,7 @@ export function getNodeLogos(
   const lowerName = name.toLowerCase();
   const normalizedAssetName = normalizeLogoKey(name);
 
-  const logoKeys = (() => {
-    if (typeof node !== "object" || node == null) return null;
-    if (!("logoKeys" in node)) return null;
-    const raw = (node as { logoKeys?: unknown }).logoKeys;
-    if (!Array.isArray(raw)) return null;
-    const keys = raw.filter((v): v is string => typeof v === "string");
-    return keys.length > 0 ? keys : null;
-  })();
+  const logoKeys = getNodeLogoKeys(node);
 
   if (logoKeys) {
     const hasOnlyGenericPtLogoKeys = logoKeys.every((key) => {
@@ -718,46 +727,22 @@ export function getNodeLogos(
       return normalized === "pt" || normalized === "pendle";
     });
 
-    const ptSpecificLogos = getPtSpecificLogos(node.name);
-    if (ptSpecificLogos && !hasOnlyGenericPtLogoKeys) return ptSpecificLogos;
-
-    if (hasOnlyGenericPtLogoKeys) {
-      if (ptSpecificLogos) return ptSpecificLogos;
-    }
-
     const paths = getLogoPathsFromKeys(logoKeys);
+    if (paths.length > 0 && !hasOnlyGenericPtLogoKeys) return paths;
+
+    const ptSpecificLogos = getPtSpecificLogos(node.name);
+    if (ptSpecificLogos) return ptSpecificLogos;
+
     if (paths.length > 0) return paths;
   }
 
   const ptSpecificLogos = getPtSpecificLogos(name);
   if (ptSpecificLogos) return ptSpecificLogos;
 
-  const underlyingSymbol = (() => {
-    if (typeof node !== "object" || node == null) return null;
-    if (!("details" in node)) return null;
-    const details = (node as { details?: unknown }).details;
-    if (!details || typeof details !== "object") return null;
-    if (!("underlyingSymbol" in details)) return null;
-    const value = (details as { underlyingSymbol?: unknown }).underlyingSymbol;
-    const symbol = typeof value === "string" ? value.trim() : "";
-    return symbol ? symbol : null;
-  })();
-
-  const displayName = (() => {
-    if (typeof node !== "object" || node == null) return null;
-    if (!("displayName" in node)) return null;
-    const value = (node as { displayName?: unknown }).displayName;
-    const display = typeof value === "string" ? value.trim() : "";
-    return display ? display : null;
-  })();
+  const underlyingSymbol = getNodeUnderlyingSymbol(node);
 
   if (underlyingSymbol) {
     const assetLogo = getInferredAssetLogoPath(underlyingSymbol);
-    if (assetLogo) return [assetLogo];
-  }
-
-  if (displayName) {
-    const assetLogo = getInferredAssetLogoPath(displayName);
     if (assetLogo) return [assetLogo];
   }
 
@@ -845,10 +830,4 @@ export function getNodeLogos(
   }
 
   return [];
-}
-
-export function getFallbackMonogram(text: string): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "?";
-  return trimmed.slice(0, 2).toUpperCase();
 }

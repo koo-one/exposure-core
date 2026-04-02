@@ -57,6 +57,16 @@ const getMorphoCollateralLabel = (
   );
 };
 
+const buildSyntheticLogoKeys = (
+  values: (string | null | undefined)[],
+): string[] => {
+  return values.flatMap((value) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return [];
+    return [inferAssetLogoKey(trimmed) ?? trimmed];
+  });
+};
+
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
   rootNodeId?: string;
@@ -290,13 +300,11 @@ export default function AssetTreeMap({
       | { name: string; protocol?: string | null; logoKeys?: string[] }
       | undefined => {
       if (lendingPair?.collateral || lendingPair?.borrow) {
-        const keys = [lendingPair.collateral, lendingPair.borrow].filter(
-          (value): value is string => Boolean(value),
-        );
-        const inferredKeys = keys
-          .map((value) => inferAssetLogoKey(value) ?? value)
-          .filter(Boolean);
-        if (keys.length > 0) {
+        const logoKeys = buildSyntheticLogoKeys([
+          lendingPair.collateral,
+          lendingPair.borrow,
+        ]);
+        if (logoKeys.length > 0) {
           return {
             name:
               lendingPair.collateral && lendingPair.borrow
@@ -305,22 +313,22 @@ export default function AssetTreeMap({
                   lendingPair.borrow ??
                   node?.name ??
                   ""),
-            logoKeys: inferredKeys,
+            logoKeys,
           };
         }
       }
 
       const explicitLogoKeys = Array.isArray(node?.logoKeys)
-        ? node.logoKeys.filter(Boolean)
+        ? node.logoKeys.filter(
+            (value): value is string =>
+              typeof value === "string" && value.trim().length > 0,
+          )
         : [];
       if (explicitLogoKeys.length > 0) {
-        const inferredLogoKeys = explicitLogoKeys
-          .map((value) => inferAssetLogoKey(value) ?? value)
-          .filter(Boolean);
         return {
-          name: node?.name ?? inferredLogoKeys[0] ?? "",
+          name: node?.name ?? explicitLogoKeys[0] ?? "",
           protocol: node?.protocol,
-          logoKeys: inferredLogoKeys,
+          logoKeys: explicitLogoKeys,
         };
       }
 
@@ -329,7 +337,6 @@ export default function AssetTreeMap({
       return {
         name: protocol,
         protocol,
-        logoKeys: [protocol],
       };
     };
 
@@ -386,6 +393,9 @@ export default function AssetTreeMap({
       const isVault =
         kind === "yield" || kind === "lending" || subtype.includes("vault");
       const isMorphoLendingMarket = isMorphoRoot && isLendingNode(node);
+      const collateralLogoKeys = buildSyntheticLogoKeys([
+        lendingPair?.collateral,
+      ]);
       return {
         name: (() => {
           if (!node) return c.id;
@@ -418,12 +428,10 @@ export default function AssetTreeMap({
                   }
                   return c.id;
                 })(),
-                logoKeys: lendingPair?.collateral
-                  ? [
-                      inferAssetLogoKey(lendingPair.collateral) ??
-                        lendingPair.collateral,
-                    ]
-                  : undefined,
+                logoKeys:
+                  collateralLogoKeys.length > 0
+                    ? collateralLogoKeys
+                    : undefined,
               }
             : undefined,
         lendingPair: lendingPair ?? undefined,

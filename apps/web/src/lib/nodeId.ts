@@ -54,6 +54,12 @@ interface AddressIndexedEntry {
   normalizedId?: string;
 }
 
+export interface GraphTargetCandidate {
+  id: string;
+  chain?: string | null;
+  protocol?: string | null;
+}
+
 export const buildEntriesByAddress = <T extends AddressIndexedEntry>(
   entries: T[],
 ): Map<string, T[]> => {
@@ -95,5 +101,28 @@ export const resolveAddressFallbackEntry = <T extends AddressIndexedEntry>(
     ) ??
     candidates[0] ??
     null
+  );
+};
+
+export const resolveGraphTargetEntry = <T extends AddressIndexedEntry>(
+  node: GraphTargetCandidate,
+  graphRootIds: Set<string>,
+  entriesByAddress: Map<string, T[]>,
+): GraphTargetCandidate | T | null => {
+  const normalizedId = canonicalizeNodeId(node.id);
+  if (!normalizedId) return null;
+
+  if (graphRootIds.has(normalizedId)) {
+    return {
+      id: normalizedId,
+      chain: node.chain,
+      protocol: node.protocol,
+    };
+  }
+
+  return resolveAddressFallbackEntry(
+    normalizedId,
+    node.protocol,
+    entriesByAddress,
   );
 };

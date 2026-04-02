@@ -27,11 +27,12 @@ import {
   buildEntriesByAddress,
   canonicalizeNodeId,
   canonicalizeProtocolToken,
-  resolveAddressFallbackEntry,
+  resolveGraphTargetEntry,
 } from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import { getDirectChildNodes } from "@/lib/graph";
 import {
+  buildChainLabel,
   buildCuratorOptions,
   buildDropdownResults,
   filterSearchEntries,
@@ -45,24 +46,6 @@ import {
 } from "@/lib/breadcrumbs";
 import Image from "next/image";
 import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
-
-const shortChainLabel = (v: string): string => formatChainLabel(v);
-
-const buildChainLabel = (
-  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
-): string => {
-  const chainNames = Array.from(
-    new Set(
-      chains
-        .map((c) => shortChainLabel(c.chain))
-        .filter((label) => label.length > 0),
-    ),
-  );
-
-  if (chainNames.length <= 1) return chainNames[0] ?? "";
-  if (chainNames.length <= 3) return chainNames.join("/");
-  return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
-};
 
 export default function AssetPage() {
   const params = useParams();
@@ -158,6 +141,7 @@ export default function AssetPage() {
       ? {
           ...infoNode,
           displayName: activeRootEntry.displayName ?? infoNode.displayName,
+          logoKeys: activeRootEntry.logoKeys ?? infoNode.logoKeys,
         }
       : infoNode;
   const headerChildren = useMemo(() => {
@@ -289,16 +273,11 @@ export default function AssetPage() {
     lastTileClick.current = { nodeId: node.id, seq: tileClickSeq.current };
     setSelectedNode(node);
 
-    const normalizedNodeId = canonicalizeNodeId(node.id);
-    const isKnownAsset = graphRootIds.has(normalizedNodeId);
-    const fallbackEntry = resolveAddressFallbackEntry(
-      normalizedNodeId,
-      node.protocol,
+    const targetEntry = resolveGraphTargetEntry(
+      node,
+      graphRootIds,
       graphRootEntriesByAddress,
     );
-    const targetEntry = isKnownAsset
-      ? { id: normalizedNodeId, chain: node.chain, protocol: node.protocol }
-      : fallbackEntry;
 
     if (
       targetEntry &&
