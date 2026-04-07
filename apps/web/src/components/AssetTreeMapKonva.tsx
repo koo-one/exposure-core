@@ -190,6 +190,18 @@ const TILE_STYLE = {
     othersLabelWidth: 90,
     othersLabelHeight: 56,
   },
+  miniPercent: {
+    minWidth: 58,
+    maxWidth: 118,
+    minHeight: 24,
+    maxHeight: 84,
+    badgeHeight: 14,
+    minBadgeWidth: 30,
+    maxBadgeWidth: 52,
+    charWidth: 5.8,
+    inset: 4,
+    fontSize: 9,
+  },
 };
 
 const SR_ONLY_STYLE: React.CSSProperties = {
@@ -217,6 +229,16 @@ const getTileNameText = (data: TreemapTileDatum) => {
 
 const getTileValueText = (data: TreemapTileDatum) => {
   return currencyFormatter.format(data.originalValue);
+};
+
+const getCompactPercentText = (percent?: number) => {
+  if (typeof percent !== "number" || !Number.isFinite(percent)) return "—";
+  const pct = percent * 100;
+  if (pct <= 0) return "0%";
+  if (pct < 0.1) return "<0.1%";
+  if (pct < 1) return `${pct.toFixed(2)}%`;
+  if (pct < 10) return `${pct.toFixed(1)}%`;
+  return `${pct.toFixed(0)}%`;
 };
 
 const getTileAccessibleLabel = (data: TreemapTileDatum) => {
@@ -261,6 +283,7 @@ const computeTileHeaderLayout = ({
   valueLabel,
   secondaryLabel,
   headerHeight,
+  showValue,
 }: {
   width: number;
   height: number;
@@ -269,6 +292,7 @@ const computeTileHeaderLayout = ({
   valueLabel: string;
   secondaryLabel: string;
   headerHeight: number;
+  showValue: boolean;
 }): TileHeaderLayout => {
   const {
     thresholds,
@@ -283,7 +307,7 @@ const computeTileHeaderLayout = ({
     !!secondaryLabel &&
     width > thresholds.othersLabelWidth &&
     height > thresholds.othersLabelHeight;
-  const canShowValue = width > 120;
+  const canShowValue = showValue;
 
   const stackTop = padding.textY;
   const logoSize = logo.size;
@@ -359,6 +383,27 @@ const computeTileHeaderLayout = ({
       ),
     },
   };
+};
+
+const canComputeNestedLayout = ({
+  allocations,
+  availW,
+  availH,
+}: {
+  allocations?: AllocationItem[];
+  availW: number;
+  availH: number;
+}) => {
+  if (
+    availW < TILE_STYLE.nested.minLayoutWidth ||
+    availH < TILE_STYLE.nested.minLayoutHeight
+  ) {
+    return false;
+  }
+
+  return (allocations || []).some(
+    (item) => Number.isFinite(item.value) && item.value > 0,
+  );
 };
 
 const computeNestedLayout = ({
@@ -726,7 +771,16 @@ const TreemapTileKonva = React.memo(
     lastClick: { nodeId: string; seq: number } | null;
     onHover: (
       datum: TreemapTileDatum,
-      point: { clientX: number; clientY: number },
+      point: {
+        clientX: number;
+        clientY: number;
+        tileAnchor?: {
+          left: number;
+          top: number;
+          width: number;
+          height: number;
+        } | null;
+      },
     ) => void;
     onHoverEnd: () => void;
   }) => {
@@ -784,6 +838,7 @@ const TreemapTileKonva = React.memo(
     );
     const logoCount = Math.min(logoPaths.length, TILE_STYLE.logo.maxCount);
     const label = getTileNameText(data);
+    const showHeaderValue = width > 120;
     const valueLabel = getTileValueText(data);
     const secondaryLabel = data.secondaryLabel ?? "";
 
@@ -799,17 +854,17 @@ const TreemapTileKonva = React.memo(
       [data, onHover],
     );
 
-    const handleMouseLeave = useCallback(() => {
-      setIsHovered(false);
-      onHoverEnd();
-    }, [onHoverEnd]);
-
     const handleMouseMove = useCallback(
       (e: KonvaEventObject<MouseEvent>) => {
         onHover(data, { clientX: e.evt.clientX, clientY: e.evt.clientY });
       },
       [data, onHover],
     );
+
+    const handleMouseLeave = useCallback(() => {
+      setIsHovered(false);
+      onHoverEnd();
+    }, [onHoverEnd]);
 
     // 1. Calculate Header Layout
     const headerLayout = useMemo(
@@ -822,6 +877,7 @@ const TreemapTileKonva = React.memo(
           valueLabel,
           secondaryLabel,
           headerHeight,
+          showValue: showHeaderValue,
         }),
       [
         width,
@@ -831,22 +887,69 @@ const TreemapTileKonva = React.memo(
         valueLabel,
         secondaryLabel,
         headerHeight,
+        showHeaderValue,
       ],
     );
 
+    const percentLabel = getCompactPercentText(data.percent);
+    const miniPercentStyle = TILE_STYLE.miniPercent;
+    const miniPercentBadgeWidth = Math.min(
+      miniPercentStyle.maxBadgeWidth,
+      Math.max(
+        miniPercentStyle.minBadgeWidth,
+        percentLabel.length * miniPercentStyle.charWidth +
+          miniPercentStyle.inset * 2,
+      ),
+    );
+    const miniPercentFitsTile =
+      width >= miniPercentBadgeWidth + miniPercentStyle.inset &&
+      height >= miniPercentStyle.badgeHeight + miniPercentStyle.inset;
+    const showMiniPercentLabel =
+      !isOthers && percentLabel !== "—" && miniPercentFitsTile;
     // 2. Nested Treemap Calculation
     const innerMargin = TILE_STYLE.padding.inner;
-    const availW = Math.max(0, width - innerMargin * 2);
-    const availH = Math.max(0, height - headerLayout.height - innerMargin * 2);
+    const nestedAvailW = Math.max(0, width - innerMargin * 2);
+    const baseNestedAvailH = Math.max(
+      0,
+      height - headerLayout.height - innerMargin * 2,
+    );
+    const miniPercentBaseX = Math.max(
+      miniPercentStyle.inset,
+      width - miniPercentBadgeWidth - miniPercentStyle.inset,
+    );
+    const miniPercentBaseY = Math.max(
+      miniPercentStyle.inset,
+      height - miniPercentStyle.badgeHeight - miniPercentStyle.inset,
+    );
+    const nestedBadgeClearance = 2;
+
+    const hasNestedLayoutCandidate = useMemo(
+      () =>
+        canComputeNestedLayout({
+          allocations: data.allocations,
+          availW: nestedAvailW,
+          availH: baseNestedAvailH,
+        }),
+      [data.allocations, nestedAvailW, baseNestedAvailH],
+    );
+    const nestedRegionTop = headerLayout.height + innerMargin;
+    const nestedMaxHeightBeforeBadge = Math.max(
+      0,
+      miniPercentBaseY - nestedBadgeClearance - nestedRegionTop,
+    );
+    const nestedAvailH =
+      hasNestedLayoutCandidate && showMiniPercentLabel
+        ? Math.min(baseNestedAvailH, nestedMaxHeightBeforeBadge)
+        : baseNestedAvailH;
 
     const nestedLayout = useMemo(
       () =>
         computeNestedLayout({
           allocations: data.allocations,
-          availW,
-          availH,
+          availW: nestedAvailW,
+          availH: nestedAvailH,
         }),
-      [data.allocations, availW, availH],
+      [data.allocations, nestedAvailW, nestedAvailH],
     );
     const visibleNestedChildren = useMemo<VisibleNestedChild[]>(
       () =>
@@ -866,6 +969,9 @@ const TreemapTileKonva = React.memo(
     );
     const nestedOthersCount =
       (nestedLayout?.othersCount ?? 0) + hiddenNestedCount;
+
+    const miniPercentX = miniPercentBaseX;
+    const miniPercentY = miniPercentBaseY;
 
     return (
       <Group
@@ -923,8 +1029,8 @@ const TreemapTileKonva = React.memo(
         {nestedLayout && (
           <Group x={innerMargin} y={headerLayout.height + innerMargin}>
             <Rect
-              width={availW}
-              height={availH}
+              width={nestedAvailW}
+              height={nestedAvailH}
               fill={TILE_STYLE.colors.innerBorder}
               listening={false}
             />
@@ -953,40 +1059,40 @@ const TreemapTileKonva = React.memo(
               );
             })}
 
-            {availW > 0 && (
+            {nestedAvailW > 0 && (
               <Rect
                 x={0}
                 y={0}
-                width={availW}
+                width={nestedAvailW}
                 height={1}
                 fill={TILE_STYLE.colors.innerBorder}
                 listening={false}
               />
             )}
 
-            {availH > 0 && (
+            {nestedAvailH > 0 && (
               <Rect
                 x={0}
                 y={0}
                 width={1}
-                height={availH}
+                height={nestedAvailH}
                 fill={TILE_STYLE.colors.innerBorder}
                 listening={false}
               />
             )}
 
             {nestedOthersCount > 0 &&
-              availW > TILE_STYLE.nested.othersLabelMinWidth &&
-              availH > TILE_STYLE.nested.othersLabelMinHeight && (
+              nestedAvailW > TILE_STYLE.nested.othersLabelMinWidth &&
+              nestedAvailH > TILE_STYLE.nested.othersLabelMinHeight && (
                 <Text
                   text={`+${nestedOthersCount} OTHERS`}
                   x={Math.max(
                     TILE_STYLE.nested.labelInset,
-                    availW -
+                    nestedAvailW -
                       TILE_STYLE.nested.othersLabelWidth -
                       TILE_STYLE.nested.labelInset,
                   )}
-                  y={Math.max(TILE_STYLE.nested.labelInset, availH - 9)}
+                  y={Math.max(TILE_STYLE.nested.labelInset, nestedAvailH - 9)}
                   width={TILE_STYLE.nested.othersLabelWidth}
                   height={9}
                   fontSize={7}
@@ -999,6 +1105,41 @@ const TreemapTileKonva = React.memo(
                   listening={false}
                 />
               )}
+          </Group>
+        )}
+
+        {showMiniPercentLabel && (
+          <Group listening={false}>
+            <Rect
+              x={miniPercentX}
+              y={miniPercentY}
+              width={miniPercentBadgeWidth}
+              height={miniPercentStyle.badgeHeight}
+              cornerRadius={7}
+              fill={
+                isHovered
+                  ? TILE_STYLE.colors.badgeBackgroundHover
+                  : TILE_STYLE.colors.badgeBackground
+              }
+            />
+            <Text
+              text={percentLabel}
+              x={miniPercentX}
+              y={miniPercentY}
+              width={miniPercentBadgeWidth}
+              height={miniPercentStyle.badgeHeight}
+              align="center"
+              verticalAlign="middle"
+              fontSize={miniPercentStyle.fontSize}
+              fontFamily={TILE_STYLE.fontFamily}
+              fill={
+                isHovered
+                  ? TILE_STYLE.colors.badgeTextHover
+                  : TILE_STYLE.colors.badgeText
+              }
+              fontStyle="bold"
+              letterSpacing={-0.1}
+            />
           </Group>
         )}
       </Group>

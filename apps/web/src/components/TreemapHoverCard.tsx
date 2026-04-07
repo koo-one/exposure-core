@@ -76,6 +76,17 @@ export const TreemapHoverCard = ({
         .slice(0, 4)
     : [];
 
+  const formattedShare = (() => {
+    if (percent === null || !Number.isFinite(percent)) return "—";
+    const pct = percent * 100;
+    if (pct <= 0) return "0%";
+    if (pct < 0.01) return "<0.01%";
+    if (pct < 0.1) return `${pct.toFixed(3)}%`;
+    if (pct < 1) return `${pct.toFixed(2)}%`;
+    if (pct < 10) return `${pct.toFixed(1)}%`;
+    return `${pct.toFixed(2)}%`;
+  })();
+
   return (
     <div
       className="pointer-events-none w-[280px] select-none rounded-lg border border-white/10 bg-[#0D0D0D]/95 backdrop-blur-xl p-5 text-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
@@ -162,7 +173,7 @@ export const TreemapHoverCard = ({
           Portfolio Share
         </div>
         <div className="text-xs font-bold text-white font-mono">
-          {percent === null ? "—" : `${(percent * 100).toFixed(2)}%`}
+          {formattedShare}
         </div>
       </div>
 

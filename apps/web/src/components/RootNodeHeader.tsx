@@ -10,7 +10,12 @@ import {
 } from "@/utils/formatters";
 import { GraphNode } from "@/types";
 import { getCuratorLogos, getNodeLogos } from "@/lib/logos";
-import { getProtocolAppUrl, getProtocolAuditUrl } from "@/lib/protocol";
+import { getCuratorPrimaryUrl } from "@/lib/curators";
+import {
+  getExplorerUrl,
+  getProtocolAppUrl,
+  getProtocolAuditUrl,
+} from "@/lib/protocol";
 import { getRootRelationshipSemantics } from "@/lib/rootRelationship";
 
 interface RootNodeHeaderProps {
@@ -45,7 +50,12 @@ export function RootNodeHeader({
     return [];
   })();
   const curator = curatorNames.join(", ");
-  const curatorLogos = curatorNames.flatMap((name) => getCuratorLogos(name));
+  const curatorLinks = curatorNames.map((name) => ({
+    name,
+    href: getCuratorPrimaryUrl(name) ?? `/?curator=${encodeURIComponent(name)}`,
+    isExternal: Boolean(getCuratorPrimaryUrl(name)),
+    logos: getCuratorLogos(name),
+  }));
   const curatorLabel = isEulerEarnVault ? "Capital allocator" : "Curator";
 
   const apyForDisplay =
@@ -56,7 +66,11 @@ export function RootNodeHeader({
       : null;
 
   const appUrl = getProtocolAppUrl(node);
+  const explorerUrl = getExplorerUrl(node);
   const auditUrl = getProtocolAuditUrl(node);
+  const primaryActionUrl = explorerUrl ?? appUrl;
+  const primaryActionLabel = explorerUrl ? "See in explorer" : "Protocol app";
+  const showProtocolAppLink = !!appUrl && appUrl !== primaryActionUrl;
   const relationship = getRootRelationshipSemantics(node, children);
 
   return (
@@ -127,22 +141,64 @@ export function RootNodeHeader({
                     {curatorLabel}
                   </div>
                   <div
-                    className="relative h-[14px] w-[58px] shrink-0"
+                    className="flex items-center gap-1.5 min-w-0 max-w-[160px] shrink-0"
                     title={curator || undefined}
                   >
-                    {curatorLogos.length > 0 ? (
-                      curatorLogos
+                    {curatorLinks.length > 0 ? (
+                      curatorLinks
                         .slice(0, 2)
-                        .map((logo, idx) => (
-                          <img
-                            key={logo}
-                            src={logo}
-                            alt=""
-                            className="h-[14px] w-auto max-w-[46px] object-contain absolute top-0"
-                            style={{ left: `${idx * 12}px` }}
-                            loading="lazy"
-                          />
-                        ))
+                        .map(({ name, href, isExternal, logos }) => {
+                          const content = (
+                            <>
+                              {logos.length > 0 ? (
+                                <span className="inline-flex items-center gap-0.5 shrink-0">
+                                  {logos.slice(0, 2).map((logo, idx) => (
+                                    <img
+                                      key={`${name}-${idx}-${logo}`}
+                                      src={logo}
+                                      alt=""
+                                      className="h-[14px] w-auto max-w-[28px] object-contain shrink-0"
+                                      loading="lazy"
+                                    />
+                                  ))}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold text-black/72 tracking-[0.04em] truncate min-w-0">
+                                  {name}
+                                </span>
+                              )}
+                            </>
+                          );
+
+                          if (isExternal) {
+                            return (
+                              <span
+                                key={name}
+                                className="inline-flex items-center gap-1 min-w-0 max-w-[120px] shrink"
+                              >
+                                {content}
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={`Open curator profile for ${name} in a new tab`}
+                                  className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black/10 text-black/50 hover:bg-black/[0.03] hover:text-black/70 transition-colors shrink-0"
+                                >
+                                  <ExternalLink className="h-2 w-2" />
+                                </a>
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <span
+                              key={name}
+                              className="inline-flex items-center gap-1 min-w-0 max-w-[120px] shrink"
+                            >
+                              {content}
+                            </span>
+                          );
+                        })
                     ) : curator ? (
                       <div className="text-[9px] font-semibold text-black/72 tracking-[0.04em] truncate max-w-[140px]">
                         {curator}
@@ -166,15 +222,26 @@ export function RootNodeHeader({
 
       {/* Action Links */}
       <div className="flex items-center gap-2 shrink-0">
-        {appUrl && (
+        {primaryActionUrl && (
           <a
-            href={appUrl}
+            href={primaryActionUrl}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 px-2.5 py-1 bg-black text-white text-[8px] font-semibold tracking-[0.04em] rounded-full hover:bg-black/80 transition-colors shadow-sm"
           >
             <ExternalLink className="w-2.5 h-2.5" />
-            Protocol
+            {primaryActionLabel}
+          </a>
+        )}
+        {showProtocolAppLink && appUrl && (
+          <a
+            href={appUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-black/10 bg-white text-[8px] font-semibold tracking-[0.04em] rounded-full hover:bg-black/[0.02] transition-colors text-black/72 shadow-sm"
+          >
+            <ExternalLink className="w-2.5 h-2.5" />
+            Protocol app
           </a>
         )}
         {auditUrl && (
