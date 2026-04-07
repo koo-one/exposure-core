@@ -85,6 +85,62 @@ export const chainMeta = (
   return null;
 };
 
+const explorerBaseByChain: Record<string, string> = {
+  eth: "https://etherscan.io",
+  ethereum: "https://etherscan.io",
+  arb: "https://arbiscan.io",
+  arbitrum: "https://arbiscan.io",
+  "arbitrum-one": "https://arbiscan.io",
+  op: "https://explorer.optimism.io",
+  optimism: "https://explorer.optimism.io",
+  "op-mainnet": "https://explorer.optimism.io",
+  base: "https://basescan.org",
+  polygon: "https://polygonscan.com",
+  matic: "https://polygonscan.com",
+  bsc: "https://bscscan.com",
+  bnb: "https://bscscan.com",
+  plasma: "https://plasmascan.to",
+  katana: "https://katanascan.com",
+  monad: "https://monadvision.com",
+  hyperevm: "https://hyperevmscan.io",
+  tac: "https://explorer.tac.build",
+  uni: "https://uniscan.xyz",
+  bera: "https://berascan.com",
+  avax: "https://snowtrace.io",
+  avalanche: "https://snowtrace.io",
+  sonic: "https://explorer.sonic.game",
+  swell: "https://explorer.swellnetwork.io",
+  bob: "https://bobascan.com",
+  plume: "https://explorer.plume.org",
+  etherlink: "https://explorer.etherlink.com",
+  kava: "https://kavascan.com",
+  mnt: "https://mantlescan.xyz",
+  mantle: "https://mantlescan.xyz",
+  rootstock: "https://explorer.rootstock.io",
+  rsk: "https://explorer.rootstock.io",
+  stable: "https://stablescan.xyz",
+  blast: "https://blastscan.io",
+  fraxtal: "https://fraxscan.com",
+  linea: "https://lineascan.build",
+  manta: "https://pacific-explorer.manta.network",
+  metis: "https://andromeda-explorer.metis.io",
+  mode: "https://explorer.mode.network",
+  morph: "https://explorer.morph.network",
+  scroll: "https://scrollscan.com",
+  xlayer: "https://www.okx.com/web3/explorer/xlayer",
+  zircuit: "https://explorer.zircuit.com",
+  zksync: "https://explorer.zksync.io",
+  "0g": "https://explorer.0g.ai",
+  oasis: "https://explorer.oasis.io/mainnet/sapphire",
+  soneium: "https://soneium.blockscout.com",
+  "xrpl-evm": "https://explorer.xrplevm.org",
+};
+
+const getExplorerBase = (chain: string): string | null => {
+  const key = chain.trim().toLowerCase();
+  return explorerBaseByChain[key] ?? null;
+};
+
 const protocolUrlBuilders: {
   match: (protocol: string) => boolean;
   build: (node: GraphNode) => string | null;
@@ -192,10 +248,10 @@ export const getExplorerUrl = (node: GraphNode): string | null => {
   if (!addr) return null;
 
   const chain = typeof node.chain === "string" ? node.chain : "";
-  const meta = chainMeta(chain);
-  if (!meta) return null;
+  const explorerBase = getExplorerBase(chain);
+  if (!explorerBase) return null;
 
-  return `${meta.explorerBase}/address/${addr}`;
+  return `${explorerBase}/address/${addr}`;
 };
 
 export const getProtocolAuditUrl = (node: GraphNode): string | null => {

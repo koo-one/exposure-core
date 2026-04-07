@@ -572,33 +572,23 @@ export default function AssetTreeMap({
               ref={tooltipRef}
               className="fixed z-50 pointer-events-none"
               style={(() => {
-                const pad = 14;
                 const offsetX = 18;
                 const offsetY = 14;
+                const gutter = 12;
 
                 const w = tooltipSize?.w ?? 280;
-                const h = tooltipSize?.h ?? 170;
-
+                const h = tooltipSize?.h ?? 0;
                 const viewportWidth =
-                  typeof window === "undefined"
-                    ? containerSize.width
-                    : window.innerWidth;
+                  window.visualViewport?.width ?? window.innerWidth;
                 const viewportHeight =
-                  typeof window === "undefined"
-                    ? containerSize.height
-                    : window.innerHeight;
+                  window.visualViewport?.height ?? window.innerHeight;
 
-                const maxX = Math.max(pad, viewportWidth - pad - w);
-                const maxY = Math.max(pad, viewportHeight - pad - h);
-
-                const left = Math.max(
-                  pad,
-                  Math.min(maxX, hoverState.clientX + offsetX),
-                );
-                const top = Math.max(
-                  pad,
-                  Math.min(maxY, hoverState.clientY + offsetY),
-                );
+                const baseLeft = hoverState.clientX - w - offsetX;
+                const baseTop = hoverState.clientY + offsetY;
+                const maxLeft = Math.max(gutter, viewportWidth - w - gutter);
+                const maxTop = Math.max(gutter, viewportHeight - h - gutter);
+                const left = Math.min(Math.max(baseLeft, gutter), maxLeft);
+                const top = Math.min(Math.max(baseTop, gutter), maxTop);
 
                 return {
                   left,
