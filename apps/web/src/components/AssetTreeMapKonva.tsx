@@ -284,7 +284,6 @@ const computeTileHeaderLayout = ({
   secondaryLabel,
   headerHeight,
   showValue,
-  compactValue,
 }: {
   width: number;
   height: number;
@@ -294,7 +293,6 @@ const computeTileHeaderLayout = ({
   secondaryLabel: string;
   headerHeight: number;
   showValue: boolean;
-  compactValue: boolean;
 }): TileHeaderLayout => {
   const {
     thresholds,
@@ -335,10 +333,7 @@ const computeTileHeaderLayout = ({
 
   const logoAreaWidth = canShowLogo ? logoSize + logoGap : 0;
   const valueAreaWidth = canShowValue
-    ? Math.min(
-        compactValue ? 50 : 60,
-        valueLabel.length * TILE_STYLE.textMeasure.valueCharWidth,
-      )
+    ? Math.min(60, valueLabel.length * TILE_STYLE.textMeasure.valueCharWidth)
     : 0;
   const maxLabelAreaWidth = Math.max(
     0,
@@ -388,6 +383,27 @@ const computeTileHeaderLayout = ({
       ),
     },
   };
+};
+
+const canComputeNestedLayout = ({
+  allocations,
+  availW,
+  availH,
+}: {
+  allocations?: AllocationItem[];
+  availW: number;
+  availH: number;
+}) => {
+  if (
+    availW < TILE_STYLE.nested.minLayoutWidth ||
+    availH < TILE_STYLE.nested.minLayoutHeight
+  ) {
+    return false;
+  }
+
+  return (allocations || []).some(
+    (item) => Number.isFinite(item.value) && item.value > 0,
+  );
 };
 
 const computeNestedLayout = ({
@@ -822,11 +838,8 @@ const TreemapTileKonva = React.memo(
     );
     const logoCount = Math.min(logoPaths.length, TILE_STYLE.logo.maxCount);
     const label = getTileNameText(data);
-    const showCompactPercent = false;
-    const showHeaderValue = width > 120 || showCompactPercent;
-    const valueLabel = showCompactPercent
-      ? getCompactPercentText(data.percent)
-      : getTileValueText(data);
+    const showHeaderValue = width > 120;
+    const valueLabel = getTileValueText(data);
     const secondaryLabel = data.secondaryLabel ?? "";
 
     const handleClick = useCallback(() => {
@@ -865,7 +878,6 @@ const TreemapTileKonva = React.memo(
           secondaryLabel,
           headerHeight,
           showValue: showHeaderValue,
-          compactValue: showCompactPercent,
         }),
       [
         width,
@@ -876,7 +888,6 @@ const TreemapTileKonva = React.memo(
         secondaryLabel,
         headerHeight,
         showHeaderValue,
-        showCompactPercent,
       ],
     );
 
@@ -894,10 +905,7 @@ const TreemapTileKonva = React.memo(
       width >= miniPercentBadgeWidth + miniPercentStyle.inset &&
       height >= miniPercentStyle.badgeHeight + miniPercentStyle.inset;
     const showMiniPercentLabel =
-      !isOthers &&
-      percentLabel !== "—" &&
-      miniPercentFitsTile &&
-      !showCompactPercent;
+      !isOthers && percentLabel !== "—" && miniPercentFitsTile;
     // 2. Nested Treemap Calculation
     const innerMargin = TILE_STYLE.padding.inner;
     const nestedAvailW = Math.max(0, width - innerMargin * 2);
@@ -915,9 +923,9 @@ const TreemapTileKonva = React.memo(
     );
     const nestedBadgeClearance = 2;
 
-    const nestedLayoutCandidate = useMemo(
+    const hasNestedLayoutCandidate = useMemo(
       () =>
-        computeNestedLayout({
+        canComputeNestedLayout({
           allocations: data.allocations,
           availW: nestedAvailW,
           availH: baseNestedAvailH,
@@ -930,7 +938,7 @@ const TreemapTileKonva = React.memo(
       miniPercentBaseY - nestedBadgeClearance - nestedRegionTop,
     );
     const nestedAvailH =
-      nestedLayoutCandidate && showMiniPercentLabel
+      hasNestedLayoutCandidate && showMiniPercentLabel
         ? Math.min(baseNestedAvailH, nestedMaxHeightBeforeBadge)
         : baseNestedAvailH;
 

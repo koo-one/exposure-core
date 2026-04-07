@@ -578,10 +578,18 @@ export default function AssetTreeMap({
 
                 const w = tooltipSize?.w ?? 280;
                 const h = tooltipSize?.h ?? 0;
+                const viewport =
+                  typeof window === "undefined" ? null : window.visualViewport;
                 const viewportWidth =
-                  window.visualViewport?.width ?? window.innerWidth;
+                  viewport?.width ??
+                  (typeof window === "undefined"
+                    ? containerSize.width
+                    : window.innerWidth);
                 const viewportHeight =
-                  window.visualViewport?.height ?? window.innerHeight;
+                  viewport?.height ??
+                  (typeof window === "undefined"
+                    ? containerSize.height
+                    : window.innerHeight);
 
                 const baseLeft = hoverState.clientX - w - offsetX;
                 const baseTop = hoverState.clientY + offsetY;

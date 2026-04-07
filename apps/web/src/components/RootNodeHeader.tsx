@@ -148,17 +148,20 @@ export function RootNodeHeader({
                       curatorLinks
                         .slice(0, 2)
                         .map(({ name, href, isExternal, logos }) => {
-                          const logo = logos[0];
-
                           const content = (
                             <>
-                              {logo ? (
-                                <img
-                                  src={logo}
-                                  alt=""
-                                  className="h-[14px] w-auto max-w-[28px] object-contain shrink-0"
-                                  loading="lazy"
-                                />
+                              {logos.length > 0 ? (
+                                <span className="inline-flex items-center gap-0.5 shrink-0">
+                                  {logos.slice(0, 2).map((logo, idx) => (
+                                    <img
+                                      key={`${name}-${idx}-${logo}`}
+                                      src={logo}
+                                      alt=""
+                                      className="h-[14px] w-auto max-w-[28px] object-contain shrink-0"
+                                      loading="lazy"
+                                    />
+                                  ))}
+                                </span>
                               ) : (
                                 <span className="text-[9px] font-semibold text-black/72 tracking-[0.04em] truncate min-w-0">
                                   {name}
@@ -173,9 +176,7 @@ export function RootNodeHeader({
                                 key={name}
                                 className="inline-flex items-center gap-1 min-w-0 max-w-[120px] shrink"
                               >
-                                <span className="inline-flex items-center gap-1 min-w-0 max-w-[120px] shrink">
-                                  {content}
-                                </span>
+                                {content}
                                 <a
                                   href={href}
                                   target="_blank"
