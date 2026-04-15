@@ -187,38 +187,45 @@ function DetailModal({
               >
                 Actions Taken
               </p>
-              {details.actions.map((action, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg p-3"
-                  style={{ border: "1px solid var(--border)" }}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <img
-                      src={getProtocolIcon(action.protocol)}
-                      alt={action.protocol}
-                      className="w-4 h-4"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    <span
-                      className="font-bold text-xs capitalize"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      {action.action}
-                    </span>
+              {details.actions.map((action, i) => {
+                const iconSrc = getProtocolIcon(action.protocol);
+
+                return (
+                  <div
+                    key={i}
+                    className="rounded-lg p-3"
+                    style={{ border: "1px solid var(--border)" }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {iconSrc ? (
+                        <img
+                          src={iconSrc}
+                          alt={action.protocol}
+                          className="w-4 h-4"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        className="font-bold text-xs capitalize"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {action.action}
+                      </span>
+                    </div>
+                    {action.market && (
+                      <p
+                        className="text-xs font-mono"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {action.market}
+                      </p>
+                    )}
                   </div>
-                  {action.market && (
-                    <p
-                      className="text-xs font-mono"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {action.market}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

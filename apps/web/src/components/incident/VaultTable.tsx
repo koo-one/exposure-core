@@ -5,9 +5,11 @@ import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
 import { formatUsdCompact, formatNumberCompact } from "@/lib/incident/format";
 import {
   getCuratorIcon,
-  getProtocolIcon,
-  getChainIcon,
   getAssetIcon,
+  getChainDisplayName,
+  getChainIcon,
+  getProtocolDisplay,
+  getProtocolIcon,
 } from "@/lib/incident/logos";
 import { StatusBadge } from "./StatusBadge";
 
@@ -24,15 +26,6 @@ const STATUS_ORDER: Record<string, number> = {
   covering: 1,
 };
 
-const PROTOCOL_FALLBACK: Record<string, { initials: string; color: string }> = {
-  morpho: { initials: "M", color: "#2563eb" },
-  euler: { initials: "E", color: "#e04040" },
-  midas: { initials: "Mi", color: "#8b5cf6" },
-  inverse: { initials: "IN", color: "#000000" },
-  fluid: { initials: "FL", color: "#3b82f6" },
-  gearbox: { initials: "G", color: "#4a4a4a" },
-};
-
 function VaultLogo({
   protocol,
   curator,
@@ -42,58 +35,52 @@ function VaultLogo({
 }) {
   const [primaryError, setPrimaryError] = useState(false);
   const [fallbackError, setFallbackError] = useState(false);
-  const fb = PROTOCOL_FALLBACK[protocol] ?? {
-    initials: protocol.slice(0, 2).toUpperCase(),
-    color: "#888",
-  };
-
+  const protocolDisplay = getProtocolDisplay(protocol);
   const curatorIcn = curator ? getCuratorIcon(curator) : null;
-  const primaryLogo = curatorIcn ?? getProtocolIcon(protocol);
-  const fallbackLogo = getProtocolIcon(protocol);
+  const protocolLogo = getProtocolIcon(protocol);
+  const primaryLogo = curatorIcn ?? protocolLogo;
+  const showPrimaryLogo = Boolean(primaryLogo) && !primaryError;
+  const showFallbackLogo =
+    Boolean(protocolLogo) &&
+    !fallbackError &&
+    (primaryLogo !== protocolLogo || primaryError);
 
-  if (primaryError && fallbackError) {
+  if (!showPrimaryLogo && !showFallbackLogo) {
     return (
       <div
         title={protocol}
         className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: fb.color }}
+        style={{ backgroundColor: protocolDisplay.color }}
       >
         <span className="text-white font-black" style={{ fontSize: 8 }}>
-          {fb.initials}
+          {protocolDisplay.initials}
         </span>
       </div>
     );
   }
 
-  if (primaryError) {
+  if (showPrimaryLogo && primaryLogo) {
     return (
       <img
-        src={fallbackLogo}
-        alt={protocol}
-        title={protocol}
+        src={primaryLogo}
+        alt={curator ?? protocolDisplay.name}
+        title={curator ?? protocolDisplay.name}
         className="w-5 h-5 flex-shrink-0"
-        onError={() => setFallbackError(true)}
+        onError={() => setPrimaryError(true)}
       />
     );
   }
 
   return (
     <img
-      src={primaryLogo}
-      alt={curator ?? protocol}
-      title={curator ?? protocol}
+      src={protocolLogo}
+      alt={protocolDisplay.name}
+      title={protocolDisplay.name}
       className="w-5 h-5 flex-shrink-0"
-      onError={() => setPrimaryError(true)}
+      onError={() => setFallbackError(true)}
     />
   );
 }
-
-const CHAIN_NAMES: Record<string, string> = {
-  eth: "Ethereum",
-  base: "Base",
-  arb: "Arbitrum",
-  plasma: "Plasma",
-};
 
 function LogoWithTooltip({
   children,
@@ -120,9 +107,10 @@ function LogoWithTooltip({
 
 function ChainLogo({ chain }: { chain: string }) {
   const [imgError, setImgError] = useState(false);
-  const displayName = CHAIN_NAMES[chain] ?? chain.toUpperCase();
+  const iconSrc = getChainIcon(chain);
+  const displayName = getChainDisplayName(chain);
 
-  if (imgError) {
+  if (!iconSrc || imgError) {
     return (
       <span
         className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
@@ -139,7 +127,7 @@ function ChainLogo({ chain }: { chain: string }) {
   return (
     <LogoWithTooltip label={displayName}>
       <img
-        src={getChainIcon(chain)}
+        src={iconSrc}
         alt={displayName}
         className="w-5 h-5"
         onError={() => setImgError(true)}
@@ -148,38 +136,20 @@ function ChainLogo({ chain }: { chain: string }) {
   );
 }
 
-const PROTOCOL_NAMES: Record<string, string> = {
-  morpho: "Morpho",
-  euler: "Euler",
-  midas: "Midas",
-  inverse: "Inverse Finance",
-  fluid: "Fluid",
-  gearbox: "Gearbox",
-  venus: "Venus",
-  "lista-dao": "Lista DAO",
-  upshift: "Upshift",
-  yo: "YO",
-};
-
 function ProtocolLogo({ protocol }: { protocol: string }) {
   const [imgError, setImgError] = useState(false);
-  const displayName =
-    PROTOCOL_NAMES[protocol] ??
-    protocol.charAt(0).toUpperCase() + protocol.slice(1);
-  const fb = PROTOCOL_FALLBACK[protocol] ?? {
-    initials: protocol.slice(0, 2).toUpperCase(),
-    color: "#888",
-  };
+  const iconSrc = getProtocolIcon(protocol);
+  const display = getProtocolDisplay(protocol);
 
-  if (imgError) {
+  if (!iconSrc || imgError) {
     return (
-      <LogoWithTooltip label={displayName}>
+      <LogoWithTooltip label={display.name}>
         <div
           className="w-5 h-5 rounded flex items-center justify-center"
-          style={{ backgroundColor: fb.color }}
+          style={{ backgroundColor: display.color }}
         >
           <span className="text-white font-black" style={{ fontSize: 8 }}>
-            {fb.initials}
+            {display.initials}
           </span>
         </div>
       </LogoWithTooltip>
@@ -187,10 +157,10 @@ function ProtocolLogo({ protocol }: { protocol: string }) {
   }
 
   return (
-    <LogoWithTooltip label={displayName}>
+    <LogoWithTooltip label={display.name}>
       <img
-        src={getProtocolIcon(protocol)}
-        alt={displayName}
+        src={iconSrc}
+        alt={display.name}
         className="w-5 h-5"
         onError={() => setImgError(true)}
       />
@@ -201,7 +171,7 @@ function ProtocolLogo({ protocol }: { protocol: string }) {
 /* ── Filter Logo ── */
 function FilterLogo({ src, alt }: { src: string; alt: string }) {
   const [error, setError] = useState(false);
-  if (error) return null;
+  if (!src || error) return null;
   return (
     <img
       src={src}
@@ -377,6 +347,7 @@ interface FilterDropdownProps {
   onToggle: (value: string) => void;
   capitalize?: boolean;
   uppercase?: boolean;
+  displayLabel?: (option: string) => string;
   logoPath?: (option: string) => string;
 }
 
@@ -387,6 +358,7 @@ function FilterDropdown({
   onToggle,
   capitalize: cap,
   uppercase: upper,
+  displayLabel,
   logoPath,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -445,9 +417,12 @@ function FilterDropdown({
         >
           {options.map((opt) => {
             const isActive = active.has(opt);
-            let display = opt;
-            if (upper) display = opt.toUpperCase();
-            else if (cap) display = opt.charAt(0).toUpperCase() + opt.slice(1);
+            let display = displayLabel ? displayLabel(opt) : opt;
+            if (!displayLabel) {
+              if (upper) display = opt.toUpperCase();
+              else if (cap)
+                display = opt.charAt(0).toUpperCase() + opt.slice(1);
+            }
             return (
               <button
                 key={opt}
@@ -656,7 +631,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           options={protocols}
           active={activeProtocols}
           onToggle={(v) => toggleFilter(setActiveProtocols, v)}
-          capitalize
+          displayLabel={(value) => getProtocolDisplay(value).name}
           logoPath={getProtocolIcon}
         />
         <FilterDropdown
@@ -664,7 +639,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           options={chains}
           active={activeChains}
           onToggle={(v) => toggleFilter(setActiveChains, v)}
-          uppercase
+          displayLabel={getChainDisplayName}
           logoPath={getChainIcon}
         />
         <FilterDropdown
@@ -822,18 +797,13 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
                   {/* Network — single chain per row */}
-                  <td
-                    className="px-3 py-3"
-                    title={CHAIN_NAMES[chain] ?? chain.toUpperCase()}
-                  >
+                  <td className="px-3 py-3" title={getChainDisplayName(chain)}>
                     <ChainLogo chain={chain} />
                   </td>
                   {/* Protocol */}
                   <td
                     className="px-3 py-3"
-                    title={
-                      PROTOCOL_NAMES[ve.vault.protocol] ?? ve.vault.protocol
-                    }
+                    title={getProtocolDisplay(ve.vault.protocol).name}
                   >
                     <ProtocolLogo protocol={ve.vault.protocol} />
                   </td>

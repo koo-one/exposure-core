@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatUsdCompact } from "@/lib/incident/format";
-import { getProtocolIcon } from "@/lib/incident/logos";
+import { getProtocolDisplay, getProtocolIcon } from "@/lib/incident/logos";
 
 export interface CoveringProtocol {
   name: string;
@@ -23,31 +23,24 @@ interface BadDebtPanelProps {
   };
 }
 
-const COVERING_FALLBACK: Record<string, { initials: string; color: string }> = {
-  fluid: { initials: "FL", color: "#3b82f6" },
-  inverse: { initials: "IN", color: "#000000" },
-  morpho: { initials: "M", color: "#2563eb" },
-  euler: { initials: "E", color: "#e04040" },
-  midas: { initials: "Mi", color: "#8b5cf6" },
-  gearbox: { initials: "G", color: "#4a4a4a" },
-};
-
 function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
   const [imgError, setImgError] = useState(false);
-  const fb = COVERING_FALLBACK[cp.protocol] ?? {
-    initials: cp.name.slice(0, 2).toUpperCase(),
-    color: "#888",
-  };
+  const iconSrc = getProtocolIcon(cp.protocol);
+  const fallback = getProtocolDisplay(cp.protocol);
 
-  if (imgError) {
+  if (!iconSrc || imgError) {
     return (
       <div
         title={cp.name}
         className="rounded flex items-center justify-center flex-shrink-0"
-        style={{ width: 20, height: 20, backgroundColor: fb.color }}
+        style={{
+          width: 20,
+          height: 20,
+          backgroundColor: fallback.color,
+        }}
       >
         <span className="text-white font-black" style={{ fontSize: 7 }}>
-          {fb.initials}
+          {fallback.initials}
         </span>
       </div>
     );
@@ -55,7 +48,7 @@ function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
 
   return (
     <img
-      src={getProtocolIcon(cp.protocol)}
+      src={iconSrc}
       alt={cp.name}
       title={cp.name}
       className="flex-shrink-0 rounded"

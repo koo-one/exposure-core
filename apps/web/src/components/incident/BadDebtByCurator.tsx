@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUsdCompact } from "@/lib/incident/format";
-import { getCuratorIcon, getProtocolIcon } from "@/lib/incident/logos";
+import {
+  getCuratorDisplay,
+  getCuratorIcon,
+  getProtocolIcon,
+} from "@/lib/incident/logos";
 import type { VaultExposure, ToxicBreakdownEntry } from "@/lib/incident/types";
 
 interface BadDebtByCuratorProps {
@@ -54,17 +58,21 @@ function CuratorLogo({
   protocol: string;
 }) {
   const [imgError, setImgError] = useState(false);
-
   const iconSrc = getCuratorIcon(curator) ?? getProtocolIcon(protocol);
+  const fallback = getCuratorDisplay(curator, protocol);
 
-  if (imgError) {
+  if (!iconSrc || imgError) {
     return (
       <div
         className="rounded flex items-center justify-center flex-shrink-0"
-        style={{ width: 24, height: 24, backgroundColor: "#888" }}
+        style={{
+          width: 24,
+          height: 24,
+          backgroundColor: fallback.color,
+        }}
       >
         <span className="text-white font-black" style={{ fontSize: 8 }}>
-          {curator.slice(0, 2).toUpperCase()}
+          {fallback.initials}
         </span>
       </div>
     );

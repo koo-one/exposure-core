@@ -1,131 +1,150 @@
-/**
- * Centralized icn logo paths for all entities.
- * All icons live in /logos/icn/icn-{key}.png.
- */
+import {
+  getAssetLogoPath,
+  getChainLogoPath,
+  getCuratorLogos,
+  getProtocolLogoPath,
+  hasChainLogo,
+  hasProtocolLogo,
+  inferAssetLogoKey,
+  normalizeChainKey,
+  normalizeProtocolKey,
+} from "@/lib/logos";
+import { formatChainLabel } from "@/utils/formatters";
 
-const ICN = (key: string) => `/logos/icn/icn-${key}.png`;
+const DEFAULT_ENTITY_COLOR = "#6b7280";
 
-const PROTOCOL_ICN: Record<string, string> = {
-  morpho: ICN("morpho"),
-  euler: ICN("euler"),
-  midas: ICN("midas"),
-  inverse: ICN("inversefinance"),
-  fluid: ICN("fluid"),
-  gearbox: ICN("gearbox"),
-  venus: ICN("venusprotocol"),
-  "lista-dao": ICN("listadao"),
-  upshift: ICN("upshift"),
-  yo: ICN("yo"),
-  yields: ICN("yo"),
-};
-
-const CHAIN_ICN: Record<string, string> = {
-  eth: ICN("ethereum"),
-  base: ICN("base"),
-  arb: ICN("arbitrum"),
-  plasma: ICN("plasma"),
-  bsc: ICN("bsc"),
-  hyperevm: ICN("hyperevm"),
-  tac: ICN("tac"),
-};
-
-const ASSET_ICN: Record<string, string> = {
-  usr: ICN("usr"),
-  wstusr: ICN("wstusr"),
-  rlp: ICN("rlp"),
-};
-
-const CURATOR_ICN: Record<string, string> = {
-  gauntlet: ICN("gauntlet"),
-  "re7-labs": ICN("re7labs"),
-  re7: ICN("re7labs"),
-  apostro: ICN("apostro"),
-  "august-digital": ICN("augustdigital"),
-  august: ICN("augustdigital"),
-  "mev-capital": ICN("mevcapital"),
-  mevcapital: ICN("mevcapital"),
-  "9summits": ICN("9summits"),
-  extrafi: ICN("extrafi"),
-  clearstar: ICN("clearstar"),
-  kpk: ICN("kpk"),
-  keyrock: ICN("keyrock"),
-  seamless: ICN("seamless"),
-  steakhouse: ICN("steakhouse"),
-};
-
-const PROTOCOL_DISPLAY: Record<
+const PROTOCOL_META: Record<
   string,
   { name: string; initials: string; color: string }
 > = {
-  morpho: { name: "Morpho", initials: "M", color: "#2563eb" },
+  aave: { name: "Aave", initials: "A", color: "#7c3aed" },
   euler: { name: "Euler", initials: "E", color: "#e04040" },
-  midas: { name: "Midas", initials: "Mi", color: "#8b5cf6" },
-  inverse: { name: "Inverse Finance", initials: "IN", color: "#000000" },
+  ethena: { name: "Ethena", initials: "ET", color: "#0ea5e9" },
   fluid: { name: "Fluid", initials: "FL", color: "#3b82f6" },
+  gauntlet: { name: "Gauntlet", initials: "G", color: "#111827" },
   gearbox: { name: "Gearbox", initials: "G", color: "#4a4a4a" },
-  yo: { name: "YO", initials: "YO", color: "#6366f1" },
-  venus: { name: "Venus", initials: "V", color: "#f59e0b" },
+  inverse: { name: "Inverse Finance", initials: "IN", color: "#111827" },
   "lista-dao": { name: "Lista DAO", initials: "L", color: "#3b82f6" },
+  midas: { name: "Midas", initials: "Mi", color: "#8b5cf6" },
+  morpho: { name: "Morpho", initials: "M", color: "#2563eb" },
+  pendle: { name: "Pendle", initials: "P", color: "#14b8a6" },
+  resolv: { name: "Resolv", initials: "R", color: "#0ea5e9" },
+  safe: { name: "Safe", initials: "S", color: "#059669" },
+  sky: { name: "Sky", initials: "S", color: "#0f172a" },
   upshift: { name: "Upshift", initials: "U", color: "#8b5cf6" },
+  venus: { name: "Venus", initials: "V", color: "#f59e0b" },
+  yo: { name: "YO", initials: "YO", color: "#6366f1" },
+  yuzu: { name: "Yuzu", initials: "Y", color: "#f97316" },
 };
 
 const CHAIN_DISPLAY: Record<string, string> = {
-  eth: "Ethereum",
-  base: "Base",
   arb: "Arbitrum",
-  plasma: "Plasma",
-  hyperevm: "HyperEVM",
+  base: "Base",
   bsc: "BSC",
+  eth: "Ethereum",
+  global: "Global",
+  hyperevm: "HyperEVM",
+  plasma: "Plasma",
   tac: "TAC",
+  uni: "Unichain",
 };
 
+function normalizeDisplayValue(value: string): string {
+  return value
+    .trim()
+    .replace(/[_/:-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function humanizeSlug(value: string): string {
+  const normalized = normalizeDisplayValue(value.toLowerCase());
+  if (!normalized) return "";
+
+  return normalized
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => {
+      if (/^[a-z]{2,4}$/.test(part) && ["dao", "evm", "tac"].includes(part)) {
+        return part.toUpperCase();
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ");
+}
+
+export function getEntityInitials(value: string): string {
+  const normalized = normalizeDisplayValue(value);
+  if (!normalized) return "";
+
+  const parts = normalized.split(" ").filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+  }
+
+  const compact = parts[0].replace(/[^A-Za-z0-9]/g, "");
+  if (!compact) return "";
+
+  return compact.slice(0, 2).toUpperCase();
+}
+
 export function getProtocolIcon(protocol: string): string {
-  return PROTOCOL_ICN[protocol] ?? ICN(protocol);
+  const key = normalizeProtocolKey(protocol);
+  return key && hasProtocolLogo(key) ? getProtocolLogoPath(key) : "";
 }
 
 export function getChainIcon(chain: string): string {
-  return CHAIN_ICN[chain] ?? ICN(chain);
+  const key = normalizeChainKey(chain);
+  return key && hasChainLogo(key) ? getChainLogoPath(key) : "";
 }
 
 export function getAssetIcon(symbol: string): string | null {
-  return ASSET_ICN[symbol.toLowerCase()] ?? null;
+  const directPath = getAssetLogoPath(symbol);
+  if (directPath) return directPath;
+
+  const inferredKey = inferAssetLogoKey(symbol);
+  if (!inferredKey) return null;
+
+  const inferredPath = getAssetLogoPath(inferredKey);
+  return inferredPath || null;
 }
 
 export function getProtocolDisplay(protocol: string) {
-  return (
-    PROTOCOL_DISPLAY[protocol] ?? {
-      name: protocol.charAt(0).toUpperCase() + protocol.slice(1),
-      initials: protocol.slice(0, 2).toUpperCase(),
-      color: "#888",
-    }
-  );
+  const key = normalizeProtocolKey(protocol);
+  const known = PROTOCOL_META[key];
+  if (known) return known;
+
+  const name = humanizeSlug(key || protocol);
+  return {
+    name,
+    initials: getEntityInitials(name || protocol),
+    color: DEFAULT_ENTITY_COLOR,
+  };
 }
 
 export function getChainDisplayName(chain: string): string {
-  return CHAIN_DISPLAY[chain] ?? chain.toUpperCase();
+  const key = normalizeChainKey(chain);
+  return CHAIN_DISPLAY[key] ?? formatChainLabel(key || chain);
 }
 
 export function getCuratorIcon(curator: string): string | null {
-  const key = curator.trim().toLowerCase().replace(/\s+/g, "");
-  return CURATOR_ICN[key] ?? null;
+  return getCuratorLogos(curator)[0] ?? null;
+}
+
+export function getCuratorDisplay(curator: string, protocol?: string) {
+  const label = normalizeDisplayValue(curator);
+  const protocolDisplay = protocol ? getProtocolDisplay(protocol) : null;
+  const name = label || protocolDisplay?.name || "";
+
+  return {
+    name,
+    initials: getEntityInitials(name),
+    color: protocolDisplay?.color ?? DEFAULT_ENTITY_COLOR,
+  };
 }
 
 /** @deprecated Use getCuratorIcon instead */
 export function getCuratorLogoKey(displayName: string): string | null {
-  const normalized = displayName.trim().toLowerCase().replace(/\s+/g, "");
-  const mapping: Record<string, string> = {
-    gauntlet: "gauntlet",
-    re7: "re7-labs",
-    re7labs: "re7-labs",
-    mevcapital: "mev-capital",
-    apostro: "apostro",
-    august: "august-digital",
-    augustdigital: "august-digital",
-    clearstar: "clearstar",
-    kpk: "kpk",
-    keyrock: "keyrock",
-    "9summits": "9summits",
-    ninesummits: "9summits",
-  };
-  return mapping[normalized] ?? null;
+  const logoPath = getCuratorIcon(displayName);
+  const match = logoPath?.match(/\/logos\/curators\/([^.]+)\.[a-z]+$/i);
+  return match?.[1] ?? null;
 }

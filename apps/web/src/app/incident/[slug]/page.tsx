@@ -40,10 +40,6 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
 function computeSummary(vaults: VaultExposure[]): IncidentSummary {
   const byProtocol: IncidentSummary["byProtocol"] = {};
   const byAsset: IncidentSummary["byAsset"] = {};
@@ -93,20 +89,6 @@ function computeSummary(vaults: VaultExposure[]): IncidentSummary {
     dataTimestamp: new Date().toISOString(),
   };
 }
-
-// Protocol display config for logos + fallback
-const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
-  morpho: { color: "#2563eb", initials: "M" },
-  euler: { color: "#e04040", initials: "E" },
-  midas: { color: "#8b5cf6", initials: "Mi" },
-  inverse: { color: "#000000", initials: "IN" },
-  fluid: { color: "#3b82f6", initials: "FL" },
-  gearbox: { color: "#4a4a4a", initials: "G" },
-  yo: { color: "#6366f1", initials: "YO" },
-  venus: { color: "#f59e0b", initials: "V" },
-  "lista-dao": { color: "#3b82f6", initials: "L" },
-  upshift: { color: "#8b5cf6", initials: "U" },
-};
 
 export default async function IncidentPage({
   params,
@@ -959,10 +941,7 @@ export default async function IncidentPage({
 
   const protocolRows: DashboardProtocolRow[] = sortedProtocols.map(
     ([protocol, data]) => {
-      const display = PROTOCOL_DISPLAY[protocol] ?? {
-        color: "#888",
-        initials: protocol.slice(0, 2).toUpperCase(),
-      };
+      const display = getProtocolDisplay(protocol);
       const protocolBreakdown = vaults
         .filter((ve) => ve.vault.protocol === protocol)
         .flatMap((ve) => ve.breakdown)
@@ -978,7 +957,7 @@ export default async function IncidentPage({
         }, []);
 
       return {
-        name: capitalize(protocol),
+        name: display.name,
         logoSrc: getProtocolIcon(protocol),
         fallbackInitials: display.initials,
         fallbackColor: display.color,

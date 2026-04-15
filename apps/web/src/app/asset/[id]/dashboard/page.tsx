@@ -33,6 +33,7 @@ import { formatUsdCompact } from "@/lib/incident/format";
 import {
   getChainDisplayName,
   getChainIcon,
+  getEntityInitials,
   getCuratorIcon,
   getProtocolDisplay,
   getProtocolIcon,
@@ -534,7 +535,7 @@ export default function AssetDashboardPage() {
           name: entry.name,
           logoSrc:
             getCuratorIcon(entry.name) ?? getProtocolIcon(entry.protocol),
-          fallbackInitials: entry.name.slice(0, 2).toUpperCase(),
+          fallbackInitials: getEntityInitials(entry.name),
           fallbackColor: display.color,
           meta: `${entry.vaults.length} downstream node${entry.vaults.length === 1 ? "" : "s"}`,
           breakdown: aggregateBreakdown(entry.vaults),
@@ -775,7 +776,7 @@ export default function AssetDashboardPage() {
       <ExposureDashboardBody
         banner={{
           title: `${dashboardLabel} Including Exposure`,
-          description: `${dashboardLabel} is the active root node. This view reuses the contagion dashboard layout from feat/usr-contagion-dashboard and fills it with live graph-derived downstream exposure data.`,
+          description: `${dashboardLabel} is the active root node. This dashboard summarizes live downstream allocations, tracked roots, and concentration from the current graph snapshot.`,
           timestamp,
           status: "active",
         }}
